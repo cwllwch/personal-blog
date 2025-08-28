@@ -20,6 +20,7 @@ defmodule PortalWeb.Router do
     get "/", PageController, :home
     get "/contact", PageController, :contact
     get "/about", PageController, :about
+    get "/prettify-my-json", PageController, :prettify
   end
 
   # Other scopes may use custom stacks.
