@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: portal_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - back
+
+  traefik:
+    image: traefik:v3.5
+    networks:
+      - front
+    ports:
+      - 8080:8080
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+  
+  portal:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks:
+      - front
+      - back
+    depends_on:
+      - db
+      - traefik
+    labels:
+        # basic traefik config 
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`localhost`)"
+
+      # https entrypoint
+      - "traefik.http.routers.portal.entrypoints=websecure"
+#      - "traefik.http.routers.portal.tls=true"
+#      - "traefik.http.routers.portal.tls.certresolver=myresolver"
+
+      # http entrypoint + middleware to redirect to https
+      - "traefik.http.routers.portal-http.entrypoints=web"
+#      - "traefik.http.routers.portal-http.rule=Host(`localhost`)"
+#      - "traefik.http.routers.portal.middlewares=redirect-to-https"
+#      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # load balancer + sticky sessions
+      - "traefik.http.services.portal.loadbalancer.server.port=4000"
+      - "traefik.http.services.portal.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.portal.loadbalancer.sticky.cookie.name=portal_sticky"
+      - "traefik.http.services.portal.loadbalancer.sticky.cookie.secure=true"
+      - "traefik.http.services.portal.loadbalancer.sticky.cookie.sameSite=lax"
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+
+volumes:
+  pgdata:
+
+networks:
+  front:
+    driver: bridge
+  back:
+    driver: bridge

@@ -35,4 +35,8 @@ portal-*.tar
 npm-debug.log
 /assets/node_modules/
 
+/postgres-init
 .env
+/certs
+.DS_Store
+.vscode/

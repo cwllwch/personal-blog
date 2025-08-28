@@ -1,0 +1,20 @@
+entrypoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  traefik:
+    address: ":8080"
+
+log:
+  level: DEBUG
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: portal_front
+
+api:
+  insecure: true
+  dashboard: true
