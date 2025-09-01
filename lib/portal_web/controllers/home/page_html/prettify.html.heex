@@ -4,4 +4,19 @@ Make this JSON pretty!
 
 <hr>
 
-<input type="text" id="json" name="json_input">
+<div class="flex content-start items-center justify-content gap-8" id="">
+  <div class="flex-initial flex-1">
+    <textarea rows="8" class="py-4 px-8 mt-8 rounded bg-slate-400 boder-emerald-400 ">
+    </textarea>
+  </div>
+  <div class="flex-initial flex-1"> 
+    <.button phx-click="prettify">
+      make it nice <br>
+      >> >> >>
+   </.button>
+  </div>
+  <div class="flex-initial flex-1">
+    <textarea rows="8" class="py-4 px-8 mt-8 rounded bg-slate-400">
+    </textarea>
+  </div>
+</div>

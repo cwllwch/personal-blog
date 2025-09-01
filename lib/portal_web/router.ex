@@ -20,15 +20,9 @@ defmodule PortalWeb.Router do
     get "/", PageController, :home
     get "/contact", PageController, :contact
     get "/about", PageController, :about
-    get "/prettify-my-json", PageController, :prettify
+    live "/prettify-my-json", LiveStuff.Prettify
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", PortalWeb do
-  #   pipe_through :api
-  # end
-
-  # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:portal, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 
