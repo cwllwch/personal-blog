@@ -16,7 +16,7 @@ defmodule PortalWeb.Router do
 
   scope "/", PortalWeb do
     pipe_through :browser
-
+    
     get "/", PageController, :home
     get "/contact", PageController, :contact
     get "/about", PageController, :about
