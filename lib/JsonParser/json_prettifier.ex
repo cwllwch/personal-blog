@@ -1,5 +1,5 @@
 defmodule JsonParser.JsonPrettifier do
-
+  alias Jason
   @moduledoc """
   This module takes a JSON, checks if it is badly formatted, parses it if it is 
   and then returns a prettified version of it.
@@ -18,5 +18,6 @@ defmodule JsonParser.JsonPrettifier do
 
   defp parse_this_json(_json) do
     "Still to be implemented."
+    
   end
 end

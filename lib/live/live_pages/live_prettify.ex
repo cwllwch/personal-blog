@@ -1,6 +1,6 @@
 defmodule PortalWeb.LiveStuff.Prettify do
   require Logger
-  use JsonParser.JsonPrettifier, alias: JP
+  alias JsonParser, as: JP
   use PortalWeb, :live_view
 
   @moduledoc """
@@ -15,10 +15,10 @@ defmodule PortalWeb.LiveStuff.Prettify do
   end
 
   def handle_event("prettify", _values, socket) do
-    Logger.info("Got a JSON prettify request")
     og_json = socket.assigns.og_json 
-    new_json = 
+    new_json = JP.JsonPrettifier.prettify(og_json) 
     socket = assign(socket, :new_json, new_json)
+    Logger.info(%{Original: og_json, New: new_json})
     {:noreply, socket}
   end
 
