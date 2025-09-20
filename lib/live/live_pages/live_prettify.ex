@@ -8,17 +8,23 @@ defmodule PortalWeb.LiveStuff.Prettify do
   """
 
   def mount(_params, _session, socket) do
-    og_json = "{\\\"your-json\\\": \\\"here\\\"} 333"
-    socket = assign(socket, :og_json, og_json)
     socket = assign(socket, :new_json, " ")
     {:ok, socket}
   end
 
-  def handle_event("prettify", _values, socket) do
-    og_json = socket.assigns.og_json
+  def handle_event("prettify", %{"_action" => "clean"}, socket) do
+    socket = assign(socket, :new_json, "")
+    |> assign(:og_json, "")
+    {:noreply, socket}
+  end
+
+  def handle_event("prettify", %{"_action" => "send", "og_json" => ""}, socket) do
+      {:noreply, socket}
+  end
+
+  def handle_event("prettify", %{"_action" => "send", "og_json" => og_json}, socket) do
     new_json = JP.prettify(og_json)
     socket = assign(socket, :new_json, new_json)
-    Logger.info(%{Original: og_json, New: new_json})
     {:noreply, socket}
   end
 
@@ -31,15 +37,29 @@ defmodule PortalWeb.LiveStuff.Prettify do
       <hr>
       <form phx-submit="prettify" class="flex flex-row gap-4 items-center justify-center py-8 ">
         <textarea
-        style="width:40%; height:36rem; color:black; font-size:14px"
+          style="width:40%; height:36rem; color:black; font-size:14px"
           class= "flex-[2] text-sm bg-slate-800"
+          name="og_json"
+          placeholder="paste the json!"
           wrap="hard"
-        ><%= @og_json %></textarea>
+        ></textarea>
 
+        <div class="flex-2 flex flex-col gap-4">
         <.button
-          type="submit">
+          type="submit"
+          name="_action"
+          value="send"
+          >
              make pretty!
         </.button>
+
+        <.button
+        type="submit"
+        name="_action"
+        value="clean">
+        clear
+        </.button>
+        </div>
 
          <textarea
           style="width:40%; height:36rem;"

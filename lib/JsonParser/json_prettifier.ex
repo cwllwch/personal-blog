@@ -49,20 +49,84 @@ defmodule JsonParser.JsonPrettifier do
     acc
   end
 
-  defp tokenizer(acc, full_map, index, length) when (index <= length) do
+  defp tokenizer(acc, full_map, index, length) when (index < length) do
     char = List.keyfind(full_map, index, 1)
-    char_with_type = elem(char, 0)
+    |> elem(0)
     |> typer()
 
-    new_acc = Map.put(acc, index, char_with_type)
-    new_index = index + 1
-
-    tokenizer(new_acc, full_map, new_index, length)
+    case char do
+      {:string, _} -> 
+        {new_char, new_index} = maybe_concat(full_map, char, index, length) 
+        Map.put(acc, new_index, new_char)
+        |> tokenizer(full_map, new_index, length)
+      {:integer, _} ->
+        {new_char, new_index} = maybe_concat(full_map, char, index, length) 
+        Map.put(acc, new_index, new_char)
+        |> tokenizer(full_map, new_index, length)
+      {_, _} -> 
+        new_index = index + 1 
+        Map.put(acc, new_index, char)
+        |> tokenizer(full_map, new_index, length)
+    end 
   end
 
-  defp tokenizer(acc, _full_map, index, length) when (index > length) do
+  defp tokenizer(acc, _full_map, index, length) when (index >= length) do
     acc
   end
+
+  defp maybe_concat(list, char, index, length) when (index < length) do
+    pointer = index + 1
+    nxt_char = List.keyfind(list, pointer, 1)
+    |> elem(0)
+    |> typer()
+
+    {prev_type, prev_val} = char
+    {nxt_type, nxt_val} = nxt_char
+    
+    case prev_type && nxt_type do
+      :string -> 
+        new_char = {nxt_type, prev_val <> nxt_val}
+        maybe_concat(new_char, list, index, pointer, length)
+      :integer ->  
+        new_char = {nxt_type, prev_val <> nxt_val}
+        maybe_concat(new_char, list, index, pointer, length)
+      _ ->
+        new_index = index + 1
+        {new_index, char}
+        
+    end
+  end
+
+  defp maybe_concat(char, list, index, pointer, length) when (pointer < length) do
+    {og_type, og_val} = char
+
+    nxt_char = List.keyfind(list, pointer, 1)
+    |> elem(0)
+    |> typer()
+    
+    Logger.info("Next char: #{inspect(nxt_char)}")
+    
+    {nxt_type, nxt_val} = nxt_char
+    new_pointer = pointer + 1
+
+    Logger.info(nxt_val <> "   " <> og_val)
+        
+    case og_type && nxt_type do
+      :string -> 
+        new_char = {og_type, og_val <> nxt_val}
+        maybe_concat(new_char, list, index, new_pointer, length)
+      :integer -> 
+        new_char = {og_type, nxt_val <> nxt_val}
+        maybe_concat(new_char, list, index, new_pointer, length)
+      _ ->
+        {index, char}
+    end 
+  end
+
+  defp maybe_concat(char, _list, index, pointer, length) when (pointer == length) do
+    {index, char}
+  end
+  
 
   defp typer(char) do
     case char do
