@@ -7,8 +7,8 @@ services:
       POSTGRES_DB: portal_dev
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks:
-      - back
+    ports:
+      - 5432:5432
 
   traefik:
     image: traefik:v3.5
