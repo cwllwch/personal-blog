@@ -1,6 +1,6 @@
 defmodule PortalWeb.LiveStuff.Prettify do
   require Logger
-  alias JsonParser.JsonPrettifier, as: JP
+  alias JsonPrettifier.Main, as: JP
   use PortalWeb, :live_view
 
   @moduledoc """
