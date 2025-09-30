@@ -28,5 +28,8 @@ defmodule JsonPrettifier.Main do
 #      string = "index: #{elem(tuple, 0)} | type: #{elem(tuple, 1)} | value: #{elem(tuple, 2)}\n"
 #      list.insert_at(acc, -1, string)
 #      end) 
+    |> Map.to_list()
+    |> IO.inspect
+    |> List.to_string()
   end
 end

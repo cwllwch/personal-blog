@@ -12,7 +12,7 @@ defmodule JsonParser.Lumberjack do
   @spec main(list(tuple())) :: {:ok, map()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
     tree = find_brackets(tokens)
-    {:ok, tree}
+    tree
   end
 
   def main(tokens) when tokens == [] do
@@ -20,33 +20,58 @@ defmodule JsonParser.Lumberjack do
   end
 
   defp find_brackets(tokens) do
-    opens = Enum.filter(tokens, fn char -> elem(char, 1) == :open_bracket end)
-    closes = Enum.filter(tokens, fn char -> elem(char, 1) == :close_bracket end)
-    
+    brackets = 
+    Enum.filter(tokens, fn char -> 
+      elem(char, 1) == :open_bracket || elem(char, 1) == :close_bracket
+    end)
+
     acc = %{}
 
-    reduce_lists(opens, closes, acc, 0)
+    process_list(brackets, acc, 0)
   end
 
-  defp reduce_lists(opens, closes, acc, counter) do 
+  defp process_list(brackets, acc, _level) when brackets == [] do
+    acc
+  end
+
+  defp process_list(brackets, acc, level) when level == 0 do 
+  {token, new_brackets} = List.pop_at(brackets, 0) 
+  type = elem(token, 1)
+  index = elem(token, 0)
+
     cond do
-      opens == [] and closes == [] -> acc 
-      opens != [] and closes != [] ->
-        {new_opens, new_closes, new_acc} = iterate(opens, closes, acc, counter)
-        counter = counter + 1
-        reduce_lists(new_opens, new_closes, new_acc, counter)
+    type == :open_bracket ->
+      new_acc = put_in(acc, [level], %{beginning: index, type: type})
+      level = level + 1 
+      process_list(new_brackets, new_acc, level, [0])
+    type == :close_bracket -> 
+      new_acc = get_and_update_in(acc, [level], &({:ok, Map.merge(&1, %{end: index})}))
+      {:ok, new_acc}
     end
   end
 
-  defp iterate(opens, closes, acc, counter) do
-    {obj_start, new_opens} =  List.pop_at(opens, 0)
-    {obj_end, new_closes} = List.pop_at(closes, -1)
-    
-    description = %{
-      obj_start: obj_start,
-      obj_end: obj_end 
-       }
-    new_acc = Map.put_new(acc, counter, description)
-    {new_opens, new_closes, new_acc}
+  defp process_list(brackets, acc, level, parent) when level >= 1 do 
+  {token, new_brackets} = List.pop_at(brackets, 0)
+  type = elem(token, 1)
+  index = elem(token, 0)
+
+    cond do
+    type == :open_bracket ->
+      level = level + 1 
+      parent = List.insert_at(parent, -1, List.last(parent) + 1)
+      new_acc = put_in(acc, parent, %{beginning: index, type: type})
+      process_list(new_brackets, new_acc, level, parent)
+
+    type == :close_bracket -> 
+      {_, new_acc} = get_and_update_in(acc, parent, &({:ok, Map.merge(&1, %{end: index})}))
+      level = level - 1 
+      {_, parent} = List.pop_at(parent, -1)
+
+      if level == 0 do
+        process_list(new_brackets, new_acc, level) 
+      else
+        process_list(new_brackets, new_acc, level, parent)
+      end
+    end
   end
 end
