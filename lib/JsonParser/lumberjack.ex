@@ -12,6 +12,7 @@ defmodule JsonParser.Lumberjack do
   @spec main(list(tuple())) :: {:ok, map()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
     tree = find_brackets(tokens)
+    #|> add_contents(tokens)
     tree
   end
 
@@ -41,37 +42,43 @@ defmodule JsonParser.Lumberjack do
 
     cond do
     type == :open_bracket ->
-      new_acc = put_in(acc, [level], %{beginning: index, type: type})
+      new_acc = put_in(acc, [level], %{beginning: index, parents: nil})
       level = level + 1 
-      process_list(new_brackets, new_acc, level, [0])
+      process_list(new_brackets, new_acc, level, [0], 0)
     type == :close_bracket -> 
-      new_acc = get_and_update_in(acc, [level], &({:ok, Map.merge(&1, %{end: index})}))
+      new_acc = get_and_update_in(acc, [level], &({:ok, Map.merge(%{end: index}, &1)}))
       {:ok, new_acc}
     end
   end
 
-  defp process_list(brackets, acc, level, parent) when level >= 1 do 
+  defp process_list(brackets, acc, level, parent, node_id) when level >= 1 do 
   {token, new_brackets} = List.pop_at(brackets, 0)
   type = elem(token, 1)
   index = elem(token, 0)
 
     cond do
     type == :open_bracket ->
+      node_id = node_id + 1
       level = level + 1 
-      parent = List.insert_at(parent, -1, List.last(parent) + 1)
-      new_acc = put_in(acc, parent, %{beginning: index, type: type})
-      process_list(new_brackets, new_acc, level, parent)
+      new_parent = List.insert_at(parent, -1, node_id)
+      new_acc = put_in(acc, new_parent, %{parents: parent, beginning: index})
+      process_list(new_brackets, new_acc, level, new_parent, node_id)
 
     type == :close_bracket -> 
-      {_, new_acc} = get_and_update_in(acc, parent, &({:ok, Map.merge(&1, %{end: index})}))
+      {_, new_acc} = get_and_update_in(acc, parent, &({:ok, Map.merge(%{end: index}, &1)}))
       level = level - 1 
       {_, parent} = List.pop_at(parent, -1)
 
       if level == 0 do
         process_list(new_brackets, new_acc, level) 
       else
-        process_list(new_brackets, new_acc, level, parent)
+        process_list(new_brackets, new_acc, level, parent, node_id)
       end
     end
   end
+
+
+#  defp add_contents(tree, tokens) do
+#    
+#  end
 end
