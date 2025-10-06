@@ -12,7 +12,8 @@ defmodule JsonParser.Lumberjack do
   @spec main(list(tuple())) :: {:ok, map()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
     tree = find_brackets(tokens)
-    #|> add_contents(tokens)
+    |> get_tree_struct()
+  #  |> add_contents(tokens)
     tree
   end
 
@@ -77,8 +78,58 @@ defmodule JsonParser.Lumberjack do
     end
   end
 
+  #defp add_contents(tree, tokens) do
+  #bracketless = Enum.filter(tokens, 
+  #  fn char -> elem(char, 1) != :open_bracket || elem(char, 1) != :close_bracket 
+  #end)
+    
+  #nodes = get_tree_struct(tree)
+  #end
 
-#  defp add_contents(tree, tokens) do
-#    
-#  end
+  def get_tree_struct(tree) do
+    keys = Map.keys(tree) 
+    |> Enum.filter(&(is_integer(&1)))
+
+    acc = Enum.reduce(keys, [], &(List.insert_at(&2, -1, [&1]))) 
+    get_children(tree, acc)
+  end
+
+  def get_children(tree, old_acc) do
+    keys = Enum.reduce(old_acc, [], fn path, acc -> 
+            new = get_in(tree, path)
+            |> Map.keys()
+            |> Enum.filter(&(is_integer(&1)))
+
+            if new == [] do
+              acc
+            else
+              acc ++ add_nodes(path, new)
+            end
+          end)
+
+    new_keys = keys -- old_acc
+
+    if new_keys != [] do 
+      new_acc = old_acc ++ new_keys
+      evaluator(tree, old_acc, new_acc)
+    else 
+      new_acc = old_acc
+      evaluator(tree, old_acc, new_acc)
+    end
+  end
+  
+
+  def add_nodes(path, key) when length(key) >= 1 do
+    Enum.reduce(key, [], fn x, y -> 
+        List.insert_at(y, -1, List.flatten([path, x]))
+    end)
+  end
+
+  def evaluator(tree, acc, new_acc) do
+    if acc == new_acc do
+      acc
+    else
+      get_children(tree, new_acc)
+    end
+  end
 end

@@ -71,7 +71,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
     
     cond do 
-    current_type == :string || current_type == :whitespace && prev_type == :string ->
+    current_type == :string && prev_type == :string ->
       new_char = {prev_index, :string, "#{prev_val}#{current_val}"}
       new_acc = List.replace_at(acc, prev_index, new_char)
       maybe_concat(new_acc, new_char, new_list)
