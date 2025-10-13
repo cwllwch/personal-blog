@@ -1,24 +1,19 @@
-defmodule JsonParser.Lumberjack do
-  
+defmodule JsonParser.Lumberjack.TreeBuilder do
   @moduledoc """
-  This module takes a list of tokens and returns an Abstract Syntax
-  Tree in json.
-  Should be the second intermediary step between getting the bad
-  json and outputting where it needs to be corrected, which will
-  allow us to evaluate the tree with rules and transform it.
+  This is a helper module that makes the trees Lumberjack will then fill with content. 
+  It returns both the tree based on the positions of the brackets, and a list with node 
+  addresses for later use. 
   """
-  require Logger
-  
-  @spec main(list(tuple())) :: {:ok, map()} | {:error, String.t()}
-  def main(tokens) when tokens != [] do
-    tree = find_brackets(tokens)
-    |> get_tree_struct()
-  #  |> add_contents(tokens)
-    tree
-  end
 
-  def main(tokens) when tokens == [] do
-    {:error, "empty list"}
+  def main(tokens) do
+    tree = find_brackets(tokens)
+    nodes = get_tree_struct(tree)
+    
+    if is_map(tree) && is_list(nodes) && !is_nil(nodes) do
+      {:ok, tree, nodes}
+    else  
+      {:error, "Uncaught parsing error"}
+    end
   end
 
   defp find_brackets(tokens) do
@@ -78,15 +73,8 @@ defmodule JsonParser.Lumberjack do
     end
   end
 
-  #defp add_contents(tree, tokens) do
-  #bracketless = Enum.filter(tokens, 
-  #  fn char -> elem(char, 1) != :open_bracket || elem(char, 1) != :close_bracket 
-  #end)
-    
-  #nodes = get_tree_struct(tree)
-  #end
-
-  def get_tree_struct(tree) do
+  
+  defp get_tree_struct(tree) do
     keys = Map.keys(tree) 
     |> Enum.filter(&(is_integer(&1)))
 
@@ -119,7 +107,7 @@ defmodule JsonParser.Lumberjack do
   end
   
 
-  def add_nodes(path, key) when length(key) >= 1 do
+  defp add_nodes(path, key) when length(key) >= 1 do
     Enum.reduce(key, [], fn x, y -> 
         List.insert_at(y, -1, List.flatten([path, x]))
     end)
@@ -132,4 +120,5 @@ defmodule JsonParser.Lumberjack do
       get_children(tree, new_acc)
     end
   end
+
 end
