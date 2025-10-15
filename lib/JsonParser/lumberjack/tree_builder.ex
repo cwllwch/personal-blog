@@ -120,5 +120,4 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
       get_children(tree, new_acc)
     end
   end
-
 end

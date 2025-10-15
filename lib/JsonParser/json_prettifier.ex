@@ -24,7 +24,7 @@ defmodule JsonPrettifier.Main do
   def parse_this_into_json(not_json) do
     Tokenizer.main(not_json)
     |> Lumberjack.main()
-    |> Jason.encode!()
+#    |> Jason.encode!()
 #    |> enum.reduce([], fn tuple, acc ->
 #      string = "index: #{elem(tuple, 0)} | type: #{elem(tuple, 1)} | value: #{elem(tuple, 2)}\n"
 #      list.insert_at(acc, -1, string)

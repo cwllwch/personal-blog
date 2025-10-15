@@ -8,8 +8,8 @@ defmodule JsonParser.Lumberjack do
   """
   alias JsonParser.Lumberjack.TreeBuilder
   alias JsonParser.Lumberjack.Fertilizer
-  require Logger
-  
+
+
   @spec main(list(tuple())) :: {:ok, map(), list()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
 
@@ -17,7 +17,7 @@ defmodule JsonParser.Lumberjack do
 
       {:ok, tree, nodes} ->
         Fertilizer.main(tree, nodes, tokens) 
-
+        #|> NodeProcessor.main(nodes)
       {:error, reason} -> 
         {:error, reason}
     end
