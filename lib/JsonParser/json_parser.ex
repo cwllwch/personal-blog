@@ -1,4 +1,4 @@
-defmodule JsonPrettifier.Main do
+defmodule JsonParser.Main do
   alias Jason
   alias JsonParser.Tokenizer
   alias JsonParser.Lumberjack

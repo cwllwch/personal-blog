@@ -5,7 +5,6 @@ defmodule JsonParser.Lumberjack.Fertilizer do
   Returns a tuple with a map with content and a list 
   of addresses to the nodes in the map for convenience. 
   """
-  require Logger
 
   defguardp are_siblings?(node1, node2, diff) when length(node1) == length(node2) and node1 != node2 and length(diff) == 1
   
@@ -63,9 +62,7 @@ check_necessity(node1, node2, diff,  acc)
     |> fill_intermediaries(new_list)
   end
 
-  defp fill_intermediaries(acc, list) when length(list) <= 1 do
-    if length(acc) > length(list), do: acc, else: list
-  end
+  defp fill_intermediaries(acc, list) when length(list) <= 1, do: (if length(acc) > length(list), do: acc, else: list)
 
 
   defp check_necessity(node1, node2, diff, list) when are_siblings?(elem(node1, 0), elem(node2, 0), diff) do
@@ -86,43 +83,59 @@ check_necessity(node1, node2, diff,  acc)
    end
   end
 
-  defp check_necessity(_node1, _node2, _diff, list) do
-    list
-  end
-
+  defp check_necessity(_node1, _node2, _diff, list), do: list
 
 
   defp insert_content(list, tree, tokens) when length(list) > 1 do
     {first_pointer, new_list} = List.pop_at(list, 0)
     {second_pointer, _} =  List.pop_at(new_list, 0)
 
-    acc = iterate(first_pointer, second_pointer, tokens, tree)
+    acc = evaluate_iterate(first_pointer, second_pointer, tokens, tree)
 
     insert_content(new_list, acc, tokens)
   end
+  
+  defp insert_content(list, tree, tokens) when length(list) == 1 do
+    {pointer, _} = List.pop_at(list, 0)
 
+    acc = evaluate_iterate(pointer, tokens, tree)
 
-  defp insert_content(list, tree, _tokens) when length(list) == 1 do
-    tree
+    insert_content([], acc, tokens)
   end
 
-  
-  defp iterate(start, finish, tokens, tree) do
-    {node, pre_s_index} = start
-    {_, pre_f_index} = finish 
+  defp insert_content(list, tree, _tokens) when list == [], do: tree
+
+  defp evaluate_iterate(pointer, tokens, tree) do
+    {address, index} = pointer
+
+    iterate(address, index..index, tokens, tree)
+  end
+
+  defp evaluate_iterate(start, finish, tokens, tree) do
+    {node1, pre_s_index} = start
+    {node2, pre_f_index} = finish 
 
     start_index = pre_s_index
-    finish_index = pre_f_index 
+    finish_index = pre_f_index - 1
 
+    cond do 
+    {length(node1) <= length(node2)} ->
+      iterate(node1, start_index..finish_index, tokens, tree)
+    {length(node1) > length(node2)} ->
+      iterate(node2, start_index..finish_index, tokens, tree)
+    end
+  end
+
+  defp iterate(address, range, tokens, tree) do
     content = 
-    Enum.reduce(start_index..finish_index, %{}, 
+    Enum.reduce(range, %{}, 
       fn index, acc ->
         to_add = List.keyfind!(tokens, index, 0) 
         Map.put_new(acc, index, {elem(to_add, 1), elem(to_add, 2)})
       end)
     |> Enum.sort
 
-    {_, new_tree} = get_and_update_in(tree, List.flatten([node, :content]), &(nil_killer(&1, content)))
+    {_, new_tree} = get_and_update_in(tree, List.flatten([address, :content]), &(nil_killer(&1, content)))
     new_tree 
   end
 

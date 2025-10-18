@@ -6,14 +6,14 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
   """
 
   def main(tokens) do
-    tree = find_brackets(tokens)
-    nodes = get_tree_struct(tree)
-    
-    if is_map(tree) && is_list(nodes) && !is_nil(nodes) do
+    try do
+      tree = find_brackets(tokens)
+      nodes = get_tree_struct(tree)
       {:ok, tree, nodes}
-    else  
-      {:error, "Uncaught parsing error"}
+    catch
+      error -> {:error, error}
     end
+    
   end
 
   defp find_brackets(tokens) do
@@ -43,7 +43,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
       process_list(new_brackets, new_acc, level, [0], 0)
     type == :close_bracket -> 
       new_acc = get_and_update_in(acc, [level], &({:ok, Map.merge(%{end: index}, &1)}))
-      {:ok, new_acc}
+      new_acc
     end
   end
 
@@ -75,7 +75,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
 
   
   defp get_tree_struct(tree) do
-    keys = Map.keys(tree) 
+    keys = Map.keys(tree)
     |> Enum.filter(&(is_integer(&1)))
 
     acc = Enum.reduce(keys, [], &(List.insert_at(&2, -1, [&1]))) 
