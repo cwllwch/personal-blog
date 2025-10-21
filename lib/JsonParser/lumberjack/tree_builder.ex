@@ -24,14 +24,14 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
 
     acc = %{}
 
-    process_list(brackets, acc, 0)
+    process_brackets(brackets, acc, 0)
   end
 
-  defp process_list(brackets, acc, _level) when brackets == [] do
+  defp process_brackets(brackets, acc, _level) when brackets == [] do
     acc
   end
 
-  defp process_list(brackets, acc, level) when level == 0 do 
+  defp process_brackets(brackets, acc, level) when level == 0 do 
   {token, new_brackets} = List.pop_at(brackets, 0) 
   type = elem(token, 1)
   index = elem(token, 0)
@@ -40,14 +40,14 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
     type == :open_bracket ->
       new_acc = put_in(acc, [level], %{beginning: index, parents: nil})
       level = level + 1 
-      process_list(new_brackets, new_acc, level, [0], 0)
+      process_brackets(new_brackets, new_acc, level, [0], 0)
     type == :close_bracket -> 
-      new_acc = get_and_update_in(acc, [level], &({:ok, Map.merge(%{end: index}, &1)}))
+      {:ok, new_acc} = get_and_update_in(acc, [level], &({:ok, Map.merge(%{end: index}, &1)}))
       new_acc
     end
   end
 
-  defp process_list(brackets, acc, level, parent, node_id) when level >= 1 do 
+  defp process_brackets(brackets, acc, level, parent, node_id) when level >= 1 do 
   {token, new_brackets} = List.pop_at(brackets, 0)
   type = elem(token, 1)
   index = elem(token, 0)
@@ -58,17 +58,17 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
       level = level + 1 
       new_parent = List.insert_at(parent, -1, node_id)
       new_acc = put_in(acc, new_parent, %{parents: parent, beginning: index})
-      process_list(new_brackets, new_acc, level, new_parent, node_id)
+      process_brackets(new_brackets, new_acc, level, new_parent, node_id)
 
     type == :close_bracket -> 
-      {_, new_acc} = get_and_update_in(acc, parent, &({:ok, Map.merge(%{end: index}, &1)}))
+      {:ok, new_acc} = get_and_update_in(acc, parent, &({:ok, Map.merge(%{end: index}, &1)}))
       level = level - 1 
       {_, parent} = List.pop_at(parent, -1)
 
       if level == 0 do
-        process_list(new_brackets, new_acc, level) 
+        process_brackets(new_brackets, new_acc, level) 
       else
-        process_list(new_brackets, new_acc, level, parent, node_id)
+        process_brackets(new_brackets, new_acc, level, parent, node_id)
       end
     end
   end

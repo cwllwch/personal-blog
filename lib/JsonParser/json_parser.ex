@@ -15,13 +15,13 @@ defmodule JsonParser.Main do
     case Jason.decode(json) do
       {:ok, parsed} ->
         Jason.encode!(parsed, pretty: true)
-      {:error, _reason} ->
-        new_json = parse_this_into_json(json)
-        new_json
+      {:error, reason} ->
+        Logger.info(reason)
+        parse_this(json)
     end
   end
 
-  def parse_this_into_json(not_json) do
+  def parse_this(not_json) do
     Tokenizer.main(not_json)
     |> Lumberjack.main()
 #    |> Jason.encode!()

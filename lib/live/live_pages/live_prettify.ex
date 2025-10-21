@@ -24,6 +24,7 @@ defmodule PortalWeb.LiveStuff.Prettify do
   end
 
   def handle_event("prettify", %{"_action" => "send", "og_json" => og_json}, socket) do
+    
     new_json = JP.prettify(og_json)
     socket = assign(socket, :new_json, new_json)
     {:noreply, socket}
@@ -42,7 +43,7 @@ defmodule PortalWeb.LiveStuff.Prettify do
           class= "flex-[2] text-sm bg-slate-800"
           name="og_json"
           placeholder="paste the json!"
-          wrap="hard"
+          wrap="soft"
         ></textarea>
 
         <div class="flex-2 flex flex-col gap-4">
