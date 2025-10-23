@@ -13,7 +13,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
-  nodes = Enum.reverse(nodes)
     Enum.reduce(nodes, %{}, fn node, acc ->
       get_in(tree, List.flatten([node, :content]))
       |> visitor(acc, node)
@@ -34,14 +33,22 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> get_value()
       |> get_separator()
 
-
-    new_acc = %{acc | pairs: "#{acc.pairs}, #{new}"}
+    new_pairs = check_merge(acc.pairs, new)
+    new_acc = %{acc | pairs: new_pairs}
 
     visitor(new_list, new_acc, node)
   end
 
   defp visitor(list, acc, _node) when list == [] do
     acc
+  end
+
+  defp check_merge(old, new) when old == nil do
+    new
+  end
+
+  defp check_merge(old, new) do
+    Map.merge(old, new)
   end
 
 
@@ -61,13 +68,13 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp starts_with_bracket?(index, type, char, node) when type == :open_bracket and char == "{" do
     {:ok, 
-      %{type: "Object", name: "main", start: index, end: nil, pairs: [], address: node}
+      %{type: "Object", start: index, end: nil, pairs: nil, address: node}
     }
   end
 
   defp starts_with_bracket?(index, _type, _char, node) do
     {:error, 
-      %{type: "Improper object", name: "json", start: index, end: nil, pairs: [], address: node }
+      %{type: "Improper object", start: index, end: nil, pairs: nil, address: node }
     }
   end
 
@@ -106,12 +113,12 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp evaluate_value_type([first | tail] = _list, key) when is_int(first) do
     int = get_val(first)
-    {tail, "#{key}:#{int}"}
+    {tail, %{key => int}}
   end
  
   defp evaluate_value_type([first, second, third | tail] = _list, key) when is_string(first, second, third) do
     string = get_val(second)
-    {tail, "#{key}:\"#{string}\""}
+    {tail, %{key => "#{string}"}}
   end
   
   defp evaluate_value_type(list, key) when list == [] do 
@@ -127,7 +134,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> Enum.join()
 
     new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
-    {new_tail, "#{key}:#{val}"}
+    {new_tail, %{key => val}}
   end
 
 
@@ -140,11 +147,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_separator([first | tail] = _list, key_val) when is_comma(first) do
-    {tail, "#{key_val}"}
+    {tail, key_val}
   end
 
   defp get_separator(list, key_val) when list == [] do
-    {[], "#{key_val}"}
+    {[], key_val}
   end
 
 
