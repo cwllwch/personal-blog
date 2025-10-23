@@ -13,6 +13,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
+  nodes = Enum.reverse(nodes)
     Enum.reduce(nodes, %{}, fn node, acc ->
       get_in(tree, List.flatten([node, :content]))
       |> visitor(acc, node)
@@ -22,33 +23,54 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   # Orchestrates the node verification rules. Start by initiating an accumulator which
   # will be passed around every rule
-  defp visitor(list, acc, node) when acc == %{} do
+  defguardp is_new_node?(first) when elem(elem(first, 1), 0) == :open_bracket 
+
+  defp visitor([first | _tail] = list, acc, node) when acc == %{} and is_new_node?(first) do
     {list, acc} = create_node(list, node)
-    visitor(list, acc, node)
+    acc = %{List.last(node) => acc}
+    visitor(list, acc, node, List.last(node))
   end
 
-  defp visitor(list, acc, node) when list != [] do
+  defp visitor(list, acc, node) do
+    {list, pre_acc} = create_node(list, node)
+    address = List.last(node)
+    acc = Map.put_new(acc, address, pre_acc)
+    |> IO.inspect()
+    visitor(list, acc, node, address)
+  end
+
+  defp visitor(list, acc, node, address) when list != [] and not is_map_key(acc, address) do
+    {new_list, new} = 
+      get_key(list)
+      |> get_value()
+      |> get_separator()
+    new_acc = put_in(acc[address][:pairs], new)
+
+    visitor(new_list, new_acc, node, address)
+  end  
+
+  defp visitor(list, acc, node, address) when list != [] and is_map_key(acc, address) do
     {new_list, new} = 
       get_key(list)
       |> get_value()
       |> get_separator()
 
-    new_pairs = check_merge(acc.pairs, new)
-    new_acc = %{acc | pairs: new_pairs}
 
-    visitor(new_list, new_acc, node)
+    new_acc = update_in(acc[address].pairs, &(check_merge(&1, new)))
+
+    visitor(new_list, new_acc, node, address)
   end
 
-  defp visitor(list, acc, _node) when list == [] do
+  defp visitor(list, acc, _node, _address) when list == [] do
     acc
   end
 
-  defp check_merge(old, new) when old == nil do
+  defp check_merge(old, new) when old == [] do
     new
   end
 
   defp check_merge(old, new) do
-    Map.merge(old, new)
+    List.flatten([[old], [new]])
   end
 
 
@@ -68,13 +90,13 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp starts_with_bracket?(index, type, char, node) when type == :open_bracket and char == "{" do
     {:ok, 
-      %{type: "Object", start: index, end: nil, pairs: nil, address: node}
+      %{type: "Object", start: index, end: nil, pairs: [], address: node}
     }
   end
 
   defp starts_with_bracket?(index, _type, _char, node) do
     {:error, 
-      %{type: "Improper object", start: index, end: nil, pairs: nil, address: node }
+      %{type: "Improper object", start: index, end: nil, pairs: [], address: node }
     }
   end
 
@@ -82,8 +104,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     %{acc | address: node, end: index}
   end
   
-  defp ends_with_bracket?(index, _type, _char, acc, node) do
-    %{acc | acc.type => "Improper object", address: node, end: index}
+  defp ends_with_bracket?(index, _type, _char, acc, _node) do
+    %{acc | acc.type => "Improper object", end: index}
   end
 
 
