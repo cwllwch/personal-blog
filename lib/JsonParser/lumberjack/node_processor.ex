@@ -13,32 +13,59 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
-  nodes 
-  |> Enum.reverse()
+  nodes =
+  Enum.reverse(nodes)
   |> Enum.reduce(%{}, fn node, acc ->
+      IO.inspect(acc)
       get_in(tree, List.flatten([node, :content]))
+      |> IO.inspect()
       |> visitor(acc, node)
     end)
+
+  Logger.info(
+  %{
+      message: "successfully ",
+      start: nodes[0].start, 
+      end: nodes[0].end, 
+      type: nodes[0].type
+    }
+  )
+
+  nodes[0].pairs
   end
 
   # Orchestrates the node verification rules. Start by initiating an accumulator which
   # will be passed around every rule
   defguardp is_new_node?(first) when elem(elem(first, 1), 0) == :open_bracket 
 
-  defp visitor([first | _tail] = list, acc, node) when acc == %{} and is_new_node?(first) do
-    {list, acc} = create_node(list, node)
-    acc = %{List.last(node) => acc}
-    visitor(list, acc, node, List.last(node))
+  defp visitor([first | tail] = list, acc, node) when acc == %{} and is_new_node?(first) do
+    try do
+      {list, acc} = create_node(list, node)
+      acc = %{List.last(node) => acc}
+      visitor(list, acc, node, List.last(node))
+    rescue 
+      e ->
+        [s, t, f, g, h, i, j | _rest] = tail
+        context = List.to_string(List.flatten([get_val(first), get_val(s), get_val(t), get_val(f), get_val(g), get_val(h), get_val(i), get_val(j)]))
+        formatted = Exception.format_error(e, __STACKTRACE__)
+        Logger.error(%{
+          message: "Unexpected error",
+          error: formatted.general,
+          node: node,
+          context: context,
+          acc_paths: acc
+        })
+    end
   end
 
-  defp visitor(list, acc, node) do
+  defp visitor([first | _tail] = list, acc, node) when acc != %{} and is_new_node?(first) do
     {list, pre_acc} = create_node(list, node)
     address = List.last(node)
-    acc = Map.put_new(acc, address, pre_acc)
+    acc = Map.put_new(%{}, address, pre_acc)
     visitor(list, acc, node, address)
   end
 
-  defp visitor(list, acc, node, address) when list != [] and not is_map_key(acc, address) do
+  defp visitor([first | _tail] = list, acc, node, address) when list != [] and not is_new_node?(first) do
     {new_list, new, acc} = 
       get_key(list)
       |> get_value()
@@ -272,3 +299,5 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     |> Enum.map_join(fn {_indexes, {_type, char}} -> char end) 
   end
 end
+
+

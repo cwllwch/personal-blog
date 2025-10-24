@@ -6,6 +6,8 @@ defmodule JsonParser.Lumberjack.Fertilizer do
   of addresses to the nodes in the map for convenience. 
   """
 
+  require Logger
+
   defguardp are_siblings?(node1, node2, diff) when length(node1) == length(node2) and node1 != node2 and length(diff) == 1
   
   def main(tree, addresses, tokens) do
@@ -58,7 +60,7 @@ defmodule JsonParser.Lumberjack.Fertilizer do
 
     diff = elem(node2, 0) -- elem(node1, 0)
 
-check_necessity(node1, node2, diff,  acc)
+    check_necessity(node1, node2, diff, acc)
     |> fill_intermediaries(new_list)
   end
 
@@ -67,23 +69,27 @@ check_necessity(node1, node2, diff,  acc)
 
   defp check_necessity(node1, node2, diff, list) when are_siblings?(elem(node1, 0), elem(node2, 0), diff) do
     difference = elem(node2, 1) - elem(node1, 1)
-    if difference > 2 do
+    if difference >= 1 do
+      
+      Logger.debug(%{diff: diff, node1: node1, node2: node2, list: list})
       parent = List.delete_at(elem(node2, 0), -1)
       
-      new_tuple1 = {parent, elem(node1, 1) + 1}
-      new_tuple2 = {parent, elem(node2, 1) - 1}
+      new_tuple1 = {parent, elem(node1, 1)}
+      new_tuple2 = {parent, elem(node2, 1)}
 
       [list, new_tuple1, new_tuple2] 
       |> List.flatten()
-      |> Enum.dedup()
       |> List.keysort(1)
 
     else
+      Logger.debug(%{diff: diff})
       list  
    end
   end
 
-  defp check_necessity(_node1, _node2, _diff, list), do: list
+  defp check_necessity(_node1, _node2, _diff, list) do 
+    list
+  end
 
 
   defp insert_content(list, tree, tokens) when length(list) > 1 do
@@ -94,39 +100,47 @@ check_necessity(node1, node2, diff,  acc)
 
     insert_content(new_list, acc, tokens)
   end
-  
-  defp insert_content(list, tree, tokens) when length(list) == 1 do
-    {pointer, _} = List.pop_at(list, 0)
 
-    acc = evaluate_iterate(pointer, tokens, tree)
-
-    insert_content([], acc, tokens)
-  end
-
-  defp insert_content(list, tree, _tokens) when list == [], do: tree
-
-  defp evaluate_iterate(pointer, tokens, tree) do
-    {address, index} = pointer
-
-    iterate(address, index..index, tokens, tree)
-  end
+  defp insert_content([_head | tails ] = _list, tree, _tokens) when tails == [], do: tree
 
   defp evaluate_iterate(start, finish, tokens, tree) do
-    {node1, pre_s_index} = start
-    {node2, pre_f_index} = finish 
-
-    start_index = pre_s_index
-    finish_index = pre_f_index - 1
+    {node1, start_index} = start
+    {node2, finish_index} = finish 
 
     cond do 
-    {length(node1) <= length(node2)} ->
-      iterate(node1, start_index..finish_index, tokens, tree)
-    {length(node1) > length(node2)} ->
-      iterate(node2, start_index..finish_index, tokens, tree)
+    length(node1) < length(node2) ->
+      finish_index = finish_index - 1
+      Logger.debug(%{
+        message: "adding from #{start_index} to #{finish_index} into", 
+        node_added: node1, 
+        node_ignored: node2})
+      iterate(node1, start_index, finish_index, tokens, tree)
+    length(node1) == length(node2) && node1 != node2 ->
+      finish_index = finish_index - 1
+      Logger.debug(%{
+        message: "adding from #{start_index} to #{finish_index} into", 
+        node_added: node1, 
+        node_ignored: node2})
+      iterate(node1, start_index, finish_index, tokens, tree)
+    node1 == node2 ->
+      finish_index = finish_index
+      Logger.debug(%{
+        message: "adding from #{start_index} to #{finish_index} into", 
+        node_added: node1, 
+        node_ignored: node2})
+      iterate(node1, start_index, finish_index, tokens, tree)
+    length(node1) > length(node2) ->
+      finish_index = finish_index - 1
+      Logger.debug(%{
+        message: "adding from #{start_index} to #{finish_index} into", 
+        node_added: node2, 
+        node_ignored: node1})
+      iterate(node2, start_index, finish_index, tokens, tree)
     end
   end
 
-  defp iterate(address, range, tokens, tree) do
+  defp iterate(address, start, finish, tokens, tree) do
+    range = start..finish
     content = 
     Enum.reduce(range, %{}, 
       fn index, acc ->
