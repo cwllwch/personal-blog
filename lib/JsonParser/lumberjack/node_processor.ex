@@ -13,11 +13,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
-  nodes = Enum.reverse(nodes)
-    Enum.reduce(nodes, %{}, fn node, acc ->
+  nodes 
+  |> Enum.reverse()
+  |> Enum.reduce(%{}, fn node, acc ->
       get_in(tree, List.flatten([node, :content]))
       |> visitor(acc, node)
-      |> IO.inspect()
     end)
   end
 
@@ -35,42 +35,34 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {list, pre_acc} = create_node(list, node)
     address = List.last(node)
     acc = Map.put_new(acc, address, pre_acc)
-    |> IO.inspect()
     visitor(list, acc, node, address)
   end
 
   defp visitor(list, acc, node, address) when list != [] and not is_map_key(acc, address) do
-    {new_list, new} = 
+    {new_list, new, acc} = 
       get_key(list)
       |> get_value()
+      |> maybe_insert_node(acc, address)
       |> get_separator()
+
     new_acc = put_in(acc[address][:pairs], new)
 
     visitor(new_list, new_acc, node, address)
   end  
 
   defp visitor(list, acc, node, address) when list != [] and is_map_key(acc, address) do
-    {new_list, new} = 
+    {new_list, new, acc} = 
       get_key(list)
       |> get_value()
+      |> maybe_insert_node(acc, address)
       |> get_separator()
 
-
     new_acc = update_in(acc[address].pairs, &(check_merge(&1, new)))
-
     visitor(new_list, new_acc, node, address)
   end
 
-  defp visitor(list, acc, _node, _address) when list == [] do
+  defp visitor(_list, acc, _node, _address) do
     acc
-  end
-
-  defp check_merge(old, new) when old == [] do
-    new
-  end
-
-  defp check_merge(old, new) do
-    List.flatten([[old], [new]])
   end
 
 
@@ -121,18 +113,24 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
 
 # Rules for evaluating values.
-  defguard is_colon(token) when elem(elem(token, 1), 0) == :colon  
-  defguard is_int(first) when elem(elem(first, 1), 0) == :int
-  defguard is_start_of_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
+  defguard is_comma(token) when elem(elem(token, 1), 0) == :comma
+  defguardp is_colon(token) when elem(elem(token, 1), 0) == :colon 
+  defguardp is_int(first) when elem(elem(first, 1), 0) == :int
+  defguardp is_start_of_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
+  defguardp is_node_slot(first, second) when is_colon(first) and elem(first, 0) + 2 < elem(second, 0) and is_comma(second)
 
   defp get_value({list, key} = _tuple) do
     get_value(list, key)
+  end
+  
+  defp get_value([first, second | _tail] = list, key) when is_node_slot(first, second) do
+    {:insert_node, list, key}
   end
 
   defp get_value([first | new_list] = _list, key) when is_colon(first) do
     evaluate_value_type(new_list, key)  
   end
-
+  
   defp evaluate_value_type([first | tail] = _list, key) when is_int(first) do
     int = get_val(first)
     {tail, %{key => int}}
@@ -144,7 +142,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
   
   defp evaluate_value_type(list, key) when list == [] do 
-    {list, key}
+    {:insert_node, list, key}
   end
 
   defp evaluate_value_type([first, second | tail] = list, key) when is_start_of_string(first, second) do
@@ -158,29 +156,90 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
     {new_tail, %{key => val}}
   end
+  
+  defp maybe_insert_node({command, [first, second | tail ] = list, key} = _tuple, acc, address) when command == :insert_node do
+    start = elem(first, 0)
+    finish = elem(second, 0)
+    address_to_add = Map.keys(acc) |> Enum.reject(&(&1 == address)) |> List.first()
 
+    case correct?(start, finish, acc, address_to_add) do
+      :ok ->
+        key_val = %{key => acc[address_to_add].pairs}
 
+        new_acc = Map.reject(acc, fn {k, _v} -> k == address_to_add end)
+
+        {List.flatten([[second], [tail]]), key_val, new_acc}
+      :error ->
+        {list, key, acc}
+    end 
+  end
+
+  # So, this guy here is a thing. Because I am consuming the list to be able to tell when I'm done with it, 
+  # there's also no metadata to go off of when I get to the last node because it has been consumed + there 
+  # is no next node. So, in order to cope with a nested object on the last key of an object, I will simply 
+  # need to trust that my logic above is correct. Can't double check it with correct?() since there's nothing
+  # to go off of. So trust me on this one. It needs to be correct. :)
+  defp maybe_insert_node({command, list, key} = _tuple, acc, address) when command == :insert_node and list == [] do
+    address_to_add = Map.keys(acc) |> Enum.reject(&(&1 == address)) |> List.first()
+    key_val = %{key => acc[address_to_add].pairs}
+    new_acc = Map.reject(acc, fn {k, _v} -> k == address_to_add end)
+    {[], key_val, new_acc}
+  end
+
+  defp maybe_insert_node({list, key} = _tuple, acc, _address) do
+    {list, key, acc}
+  end
 
 # Rules for evaluating separation of key-value pairs or other elements
-  defguard is_comma(token) when elem(elem(token, 1), 0) == :comma
-
-  defp get_separator({list, key_val} = _tuple) do
-    get_separator(list, key_val)
+  defp get_separator({list, key_val, acc} = _tuple) do
+    get_separator(list, key_val, acc)
   end
 
-  defp get_separator([first | tail] = _list, key_val) when is_comma(first) do
-    {tail, key_val}
+  defp get_separator([first | tail] = _list, key_val, acc) when is_comma(first) do
+    {tail, key_val, acc}
   end
 
-  defp get_separator(list, key_val) when list == [] do
-    {[], key_val}
+  defp get_separator(list, key_val, acc) when list == [] do
+    {[], key_val, acc}
   end
+
+
 
 
 # Helper functions
   defp get_val(tuple) do
     elem(elem(tuple, 1), 1)
   end
+
+  defp correct?(start, finish, acc, address) do
+    node_start = acc[address].start 
+    node_end = acc[address].end 
+
+    if start + 1 == node_start && finish - 1 == node_end do
+      :ok
+      else
+      Logger.error(
+      %{message: "Got a wrong call node insertion request", 
+        acc: acc,
+        address: address,
+        requested_start_index: node_start,
+        requested_start_end: node_end,
+        actual_start: start,
+        actual_end: finish
+        }
+      )  
+       :error
+    end
+  end
+
+  defp check_merge(old, new) when old == [] do
+    new
+  end
+
+  defp check_merge(old, new) do
+    List.flatten([[old], [new]])
+  end
+
 
 
 
