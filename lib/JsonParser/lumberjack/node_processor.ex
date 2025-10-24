@@ -18,7 +18,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   |> Enum.reduce(%{}, fn node, acc ->
       IO.inspect(acc)
       get_in(tree, List.flatten([node, :content]))
-      |> IO.inspect()
       |> visitor(acc, node)
     end)
 
