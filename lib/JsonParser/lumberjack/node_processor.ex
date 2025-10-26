@@ -130,6 +130,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 # Rules for evaluating the keys. 
   defguard is_string(first, second, third) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string and elem(elem(third, 1), 0) == :quote
   defguardp is_start_of_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
+  
   defp get_key([first, second, third | tail] = _list) when is_string(first, second, third) do
     string = get_val(second)
     {tail, "\"#{string}\""}
@@ -146,19 +147,24 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defguardp is_colon(token) when elem(elem(token, 1), 0) == :colon 
   defguardp is_int(first) when elem(elem(first, 1), 0) == :int
   defguardp is_node_slot(first, second) when is_colon(first) and elem(first, 0) + 2 < elem(second, 0) and is_comma(second)
+  defguardp is_empty_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :quote
+  defguardp is_bool(first) when elem(elem(first, 1), 1) == "true" or elem(elem(first, 1), 1) == "false" 
 
+  # unwrap the tuple
   defp get_value({list, key} = _tuple) do
     get_value(list, key)
   end
   
+  # basic logic check (is this a correctly formatted value?)
   defp get_value([first, second | _tail] = list, key) when is_node_slot(first, second) do
     {:insert_node, list, key}
   end
 
   defp get_value([first | new_list] = _list, key) when is_colon(first) do
-    evaluate_value_type(new_list, key)  
+    evaluate_value_type(new_list, key)
   end
-  
+
+  # basic format detection rules 
   defp evaluate_value_type([first | tail] = _list, key) when is_int(first) do
     int = get_val(first)
     {tail, %{key => int}}
@@ -168,16 +174,25 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     string = get_val(second)
     {tail, %{key => "#{string}"}}
   end
+
+  defp evaluate_value_type([first, second, third | tail ] = _list, key) when is_empty_string(first, second) and is_comma(third) do
+    {List.flatten([[third], [tail]]), %{key => ""}}
+  end
   
   defp evaluate_value_type(list, key) when list == [] do 
     {:insert_node, list, key}
   end
 
   defp evaluate_value_type([first, second | _tail ] = list, key) when is_start_of_string(first, second) do
-    {val, new_tail} = get_end_of_proper_string(list)
+    {new_tail, val} = get_end_of_proper_string(list)
     {new_tail, %{key => val}}
   end
+
+  defp evaluate_value_type([first | tail ] = _list, key) when is_bool(first) do
+    {tail, %{key => first}}
+  end
   
+  # if the value is a node
   defp maybe_insert_node({command, [first, second | tail ] = list, key} = _tuple, acc, address) when command == :insert_node do
     start = elem(first, 0)
     finish = elem(second, 0)
@@ -237,7 +252,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> Enum.join()
 
     new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
-    {string, new_tail}
+    {new_tail, string}
   end
 
   defp get_val(tuple) do

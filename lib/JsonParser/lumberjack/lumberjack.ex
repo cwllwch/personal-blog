@@ -10,15 +10,24 @@ defmodule JsonParser.Lumberjack do
   alias JsonParser.Lumberjack.Fertilizer
   alias JsonParser.Lumberjack.NodeProcessor
 
+  require Logger 
+
 
   @spec main(list(tuple())) :: {:ok, map(), list()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
-
+  start = Time.utc_now()
     case TreeBuilder.main(tokens) do
-
       {:ok, tree, nodes} ->
+        result = 
         Fertilizer.main(tree, nodes, tokens)
         |> NodeProcessor.main(nodes)
+
+        finish = Time.utc_now()
+        diff = Time.diff(start, finish)
+        Logger.info([message: diff])
+        
+        result 
+
       {:error, reason} -> 
         {:error, reason}
     end
