@@ -17,9 +17,8 @@ defmodule JsonParser.Lumberjack do
     case TreeBuilder.main(tokens) do
 
       {:ok, tree, nodes} ->
-      nodes
         Fertilizer.main(tree, nodes, tokens)
-#        |> NodeProcessor.main(nodes)
+        |> NodeProcessor.main(nodes)
       {:error, reason} -> 
         {:error, reason}
     end

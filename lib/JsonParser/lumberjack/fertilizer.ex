@@ -70,19 +70,16 @@ defmodule JsonParser.Lumberjack.Fertilizer do
   defp check_necessity(node1, node2, diff, list) when are_siblings?(elem(node1, 0), elem(node2, 0), diff) do
     difference = elem(node2, 1) - elem(node1, 1)
     if difference >= 1 do
-      
-      Logger.debug(%{diff: diff, node1: node1, node2: node2, list: list})
       parent = List.delete_at(elem(node2, 0), -1)
       
-      new_tuple1 = {parent, elem(node1, 1)}
-      new_tuple2 = {parent, elem(node2, 1)}
+      new_tuple1 = {parent, elem(node1, 1) + 1}
+      new_tuple2 = {parent, elem(node2, 1) - 1}
 
       [list, new_tuple1, new_tuple2] 
       |> List.flatten()
       |> List.keysort(1)
 
     else
-      Logger.debug(%{diff: diff})
       list  
    end
   end

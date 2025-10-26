@@ -16,7 +16,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   nodes =
   Enum.reverse(nodes)
   |> Enum.reduce(%{}, fn node, acc ->
-      IO.inspect(acc)
       get_in(tree, List.flatten([node, :content]))
       |> visitor(acc, node)
     end)
@@ -130,10 +129,14 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
 # Rules for evaluating the keys. 
   defguard is_string(first, second, third) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string and elem(elem(third, 1), 0) == :quote
- 
+  defguardp is_start_of_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
   defp get_key([first, second, third | tail] = _list) when is_string(first, second, third) do
     string = get_val(second)
     {tail, "\"#{string}\""}
+  end
+
+  defp get_key([first, second | _tail] = list) when is_start_of_string(first, second) do
+    get_end_of_proper_string(list)
   end
 
 
@@ -142,7 +145,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defguard is_comma(token) when elem(elem(token, 1), 0) == :comma
   defguardp is_colon(token) when elem(elem(token, 1), 0) == :colon 
   defguardp is_int(first) when elem(elem(first, 1), 0) == :int
-  defguardp is_start_of_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
   defguardp is_node_slot(first, second) when is_colon(first) and elem(first, 0) + 2 < elem(second, 0) and is_comma(second)
 
   defp get_value({list, key} = _tuple) do
@@ -171,15 +173,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {:insert_node, list, key}
   end
 
-  defp evaluate_value_type([first, second | tail] = list, key) when is_start_of_string(first, second) do
-    {end_index, _} = List.keyfind(tail, {:quote, "\""}, 1)
-    {start_index, _} = first
-    val = 
-      Enum.filter(list, fn {i, _val} -> i >= start_index && i <= end_index end)
-      |> Enum.reduce([], fn v, acc -> acc ++ [get_val(v)] end)
-      |> Enum.join()
-
-    new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
+  defp evaluate_value_type([first, second | _tail ] = list, key) when is_start_of_string(first, second) do
+    {val, new_tail} = get_end_of_proper_string(list)
     {new_tail, %{key => val}}
   end
   
@@ -233,6 +228,18 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
 
 # Helper functions
+  defp get_end_of_proper_string([first, second | tail] = list) when elem(elem(first, 1), 0) == :quote do
+    {end_index, _} = List.keyfind(tail, {:quote, "\""}, 1)
+    {start_index, _} = second
+    string = 
+      Enum.filter(list, fn {i, _val} -> i >= start_index && i <= end_index end)
+      |> Enum.reduce([], fn v, acc -> acc ++ [get_val(v)] end)
+      |> Enum.join()
+
+    new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
+    {string, new_tail}
+  end
+
   defp get_val(tuple) do
     elem(elem(tuple, 1), 1)
   end
