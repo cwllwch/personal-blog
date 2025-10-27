@@ -7,7 +7,7 @@ defmodule JsonParser.Lumberjack do
   allow us to evaluate the tree with rules and transform it.
   """
   alias JsonParser.Lumberjack.TreeBuilder
-  alias JsonParser.Lumberjack.Fertilizer
+  alias JsonParser.Lumberjack.Fertilizer 
   alias JsonParser.Lumberjack.NodeProcessor
 
   require Logger 
@@ -23,8 +23,11 @@ defmodule JsonParser.Lumberjack do
         |> NodeProcessor.main(nodes)
 
         finish = Time.utc_now()
-        diff = Time.diff(start, finish)
-        Logger.info([message: diff])
+        diff = Time.diff(finish, start, :microsecond) / 1_000 # get with high precision but convert to ms
+        Logger.info([
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        processing_time: diff
+        ])
         
         result 
 

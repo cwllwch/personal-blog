@@ -107,31 +107,37 @@ defmodule JsonParser.Lumberjack.Fertilizer do
     cond do 
     length(node1) < length(node2) ->
       finish_index = finish_index - 1
-      Logger.debug(%{
-        message: "adding from #{start_index} to #{finish_index} into", 
+      Logger.debug([
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        message: "adding from #{start_index} to #{finish_index}", 
         node_added: node1, 
-        node_ignored: node2})
+        node_ignored: node2
+        ])
       iterate(node1, start_index, finish_index, tokens, tree)
     length(node1) == length(node2) && node1 != node2 ->
       finish_index = finish_index - 1
-      Logger.debug(%{
-        message: "adding from #{start_index} to #{finish_index} into", 
+      Logger.debug([
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        message: "adding from #{start_index} to #{finish_index}", 
         node_added: node1, 
-        node_ignored: node2})
+        node_ignored: node2
+        ])
       iterate(node1, start_index, finish_index, tokens, tree)
     node1 == node2 ->
-      finish_index = finish_index
-      Logger.debug(%{
-        message: "adding from #{start_index} to #{finish_index} into", 
+        finish_index = finish_index
+      Logger.debug([
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        message: "adding from #{start_index} to #{finish_index}", 
         node_added: node1, 
-        node_ignored: node2})
+        node_ignored: node2])
       iterate(node1, start_index, finish_index, tokens, tree)
     length(node1) > length(node2) ->
       finish_index = finish_index - 1
-      Logger.debug(%{
-        message: "adding from #{start_index} to #{finish_index} into", 
+      Logger.debug([
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        message: "adding from #{start_index} to #{finish_index}", 
         node_added: node2, 
-        node_ignored: node1})
+        node_ignored: node1])
       iterate(node2, start_index, finish_index, tokens, tree)
     end
   end
