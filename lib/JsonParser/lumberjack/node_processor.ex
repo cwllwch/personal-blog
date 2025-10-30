@@ -16,7 +16,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   nodes =
   Enum.reverse(nodes)
   |> Enum.reduce(%{}, fn node, acc ->
-        Logger.info([node: node])
         get_in(tree, List.flatten([node, :content]))
         |> visitor(acc, node)
     end)
@@ -163,20 +162,30 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defguardp is_node_slot(first, second) when is_colon(first) and elem(first, 0) + 2 < elem(second, 0) and is_comma_or_bracket(second) 
   defguardp is_empty_string(first, second) when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :quote
   defguardp is_bool(first) when elem(elem(first, 1), 1) == "true" or elem(elem(first, 1), 1) == "false" 
+  defguardp is_value_list(first, second) when elem(elem(first, 1), 0) == :colon and elem(elem(second, 1), 0) == :open_square
+
+  
 
   # unwrap the tuple
   defp get_value({list, key} = _tuple) do
     get_value(list, key)
   end
   
+
   # basic logic check (is this a correctly formatted value?)
   defp get_value([first, second | _tail] = list, key) when is_node_slot(first, second) do
     {:insert_node, list, key}
   end
 
+  defp get_value([first, second | new_list] = _list, key) when is_value_list(first, second) do
+    {:insert_list, new_list, key}
+  end
+
   defp get_value([first | new_list] = _list, key) when is_colon(first) do
     evaluate_value_type(new_list, key)
   end
+
+  
 
   # basic format detection rules 
   defp evaluate_value_type([first | tail] = _list, key) when is_int(first) do
@@ -206,6 +215,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {tail, %{key => get_val(first)}}
   end
   
+
+
   # if the value is a node
   defp maybe_insert_node({command, [first, second | tail ] = list, key} = _tuple, acc, address) when command == :insert_node and list != [] do
     start = elem(first, 0)
@@ -222,6 +233,16 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       :error ->
         {list, key, acc}
     end 
+  end
+
+  defp maybe_insert_node({command, [first, second | tail] = _list, key} = _tuple, prev_acc, address) when command == :insert_list do
+    final_index = get_final_square(tail)
+
+    filtered = Enum.reject(tail, fn t -> elem(t, 0) > final_index || elem(elem(t, 1), 0) != :comma end)
+
+
+
+    {tail, filtered, %{}}
   end
 
   # So, this guy here is a thing. Because I am consuming the list to be able to tell when I'm done with it, 
@@ -255,7 +276,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
           message: "inserted node",
           target: full_address,
           inserted: last,
-          new_acc: new_acc
         ])
 
         {[], key_val, new_acc}
@@ -268,7 +288,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
           message: "inserted node",
           target: full_address,
           inserted: child,
-          new_acc: new_acc
         ])
 
       {[], key_val, new_acc}
@@ -340,7 +359,25 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp check_merge(old, new) do
     List.flatten([[old], [new]])
   end
+ 
+ defp get_final_square(tail) do
+    final = 
+      Enum.filter(tail, fn t -> 
+        elem(elem(t, 1), 0) == :close_square 
+      end)
 
+      
+    if length(final) > 1 do 
+      List.keysort(final, 0)
+      |> List.first()
+      |> elem(1)
+    
+    else 
+      [tuple] = final
+      IO.inspect(tuple)
+      elem(tuple, 1)
+    end
+ end
 
 
 
