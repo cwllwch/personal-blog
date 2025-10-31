@@ -43,7 +43,7 @@ defmodule PortalWeb do
         layouts: [html: PortalWeb.Layouts]
 
       import Plug.Conn
-      import PortalWeb.Gettext
+      use Gettext, backend: PortalWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -85,7 +85,7 @@ defmodule PortalWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import PortalWeb.CoreComponents
-      import PortalWeb.Gettext
+      use Gettext, backend: PortalWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

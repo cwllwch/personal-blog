@@ -1,39 +1,39 @@
 <header class="px-4 sm:px-6 lg:px-8">
   <div class="flex items-center justify-between border-b border-emerald-400 py-4 text-sm">
     <h1>
-      <%= assigns[:page] || "cwllwch" %>
+      {assigns[:page] || "cwllwch"}
     </h1>
     <div class="flex space-x-4">
       <a href={~p"/"}>
         <.button class="flex items-center">
           <.icon name="hero-home" class="h-5 w-5 text-white" />
-            <div class="ml-2 hidden md:block">
-              home
-            </div>
+          <div class="ml-2 hidden md:block">
+            home
+          </div>
         </.button>
       </a>
       <a href={~p"/about"}>
         <.button class="flex items-center">
-          <.icon name="hero-user" class="h-5 w-5 text-white"/>
-            <div class="ml-2 hidden md:block">
-              about
-            </div>
+          <.icon name="hero-user" class="h-5 w-5 text-white" />
+          <div class="ml-2 hidden md:block">
+            about
+          </div>
         </.button>
       </a>
       <a href={~p"/contact"}>
         <.button class="flex items-center">
-          <.icon name="hero-envelope" class="h-5 w-5 text-white"/>
-            <div class="ml-2 hidden md:block">
-              contact 
-            </div>
+          <.icon name="hero-envelope" class="h-5 w-5 text-white" />
+          <div class="ml-2 hidden md:block">
+            contact
+          </div>
         </.button>
       </a>
       <a href="https://github.com/cwllwch/">
-        <.button class="flex items-center"> 
-          <.icon name="hero-code-bracket-square" class="h-5 w-5 text-white"/>
-            <div class="ml-2 hidden md:block">
-              github
-            </div>
+        <.button class="flex items-center">
+          <.icon name="hero-code-bracket-square" class="h-5 w-5 text-white" />
+          <div class="ml-2 hidden md:block">
+            github
+          </div>
         </.button>
       </a>
     </div>
@@ -43,7 +43,7 @@
   <div class="mx-auto max-w-7xl">
     <.flash_group flash={@flash} />
     <div class="mb-8 bg-zinc-900 rounded-lg p-6">
-    <%= @inner_content %>
+      {@inner_content}
     </div>
   </div>
 </main>
