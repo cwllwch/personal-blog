@@ -257,8 +257,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     Logger.info("filtered list: #{filtered}")
 
-
-
     {tail, filtered, %{}}
   end
 

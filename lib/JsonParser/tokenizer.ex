@@ -93,7 +93,6 @@ defmodule JsonParser.Tokenizer do
     acc
   end
 
-
   defp get_type(char) when char == "{" do
     {:open_bracket, char}
   end
@@ -101,7 +100,7 @@ defmodule JsonParser.Tokenizer do
   defp get_type(char) when char == "}" do
     {:close_bracket, char}
   end
-  
+
   defp get_type(char) when char == "\"" do
     {:quote, char}
   end
