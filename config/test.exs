@@ -9,7 +9,9 @@ config :portal, Portal.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "portal_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database: "portal_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
