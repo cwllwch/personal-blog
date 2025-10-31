@@ -5,7 +5,7 @@ defmodule PortalWeb.Gettext do
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import PortalWeb.Gettext
+      use Gettext, backend: PortalWeb.Gettext
 
       # Simple translation
       gettext("Here is the string to translate")
@@ -20,5 +20,5 @@ defmodule PortalWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :portal
+  use Gettext.Backend, otp_app: :portal
 end
