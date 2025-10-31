@@ -93,17 +93,41 @@ defmodule JsonParser.Tokenizer do
     acc
   end
 
+
+  defp get_type(char) when char == "{" do
+    {:open_bracket, char}
+  end
+
+  defp get_type(char) when char == "}" do
+    {:close_bracket, char}
+  end
+  
+  defp get_type(char) when char == "\"" do
+    {:quote, char}
+  end
+
+  defp get_type(char) when char == ":" do
+    {:colon, char}
+  end
+
+  defp get_type(char) when char == "," do
+    {:comma, char}
+  end
+
+  defp get_type(char) when char == "[" do
+    {:open_square, char}
+  end
+
+  defp get_type(char) when char == "]" do
+    {:close_square, char}
+  end
+
+  defp get_type(char) when char == "\\n" do
+    {:newline, char}
+  end
+
   defp get_type(char) do
-    case char do
-      "{" -> {:open_bracket, char}
-      "}" -> {:close_bracket, char}
-      "\"" -> {:quote, char}
-      ":" -> {:colon, char}
-      "," -> {:comma, char}
-      "[" -> {:open_square, char}
-      "]" -> {:close_square, char}
-      _ -> string_or_int(char)
-    end
+    string_or_int(char)
   end
 
   defp string_or_int(char) do

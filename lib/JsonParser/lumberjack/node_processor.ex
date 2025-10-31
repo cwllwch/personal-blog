@@ -113,7 +113,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
         {new_list, acc}
 
       {:error, _} ->
-        format_error(check, list)
+        format_error({:error, {f_index, f_type, f_char}}, list)
     end
   end
 
@@ -131,7 +131,9 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp ends_with_bracket?(index, _type, _char, acc, _node) do
-    %{acc | acc.type => "Improper object", end: index}
+    Logger.info(inspect(acc))
+    Logger.info(inspect(index))
+    %{acc | type: "Improper object", end: index}
   end
 
   # Rules for evaluating the keys.
@@ -252,6 +254,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     filtered =
       Enum.reject(tail, fn t -> elem(t, 0) > final_index || elem(elem(t, 1), 0) != :comma end)
+
+    Logger.info("filtered list: #{filtered}")
+
+
 
     {tail, filtered, %{}}
   end
@@ -385,19 +391,18 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> elem(1)
     else
       [tuple] = final
-      Logger.debug(tuple)
       elem(tuple, 1)
     end
   end
 
   # Error formatting
-  defp format_error({check, {index, _type, char}} = _tuple, list)
-       when check == :error and index < 5 do
+  defp format_error({status, {index, _type, char}} = _tuple, list)
+       when status == :error and index < 5 do
     preview = make_preview(list, index)
     {:error, preview, char}
   end
 
-  defp format_error({_check, {index, type, char}} = _tuple, list) do
+  defp format_error({_status, {index, type, char}} = _tuple, list) do
     preview = make_preview(list, index)
 
     Logger.error(%{
