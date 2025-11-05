@@ -26,9 +26,16 @@ defmodule JsonParser.Lumberjack do
         # get with high precision but convert to ms
         diff = Time.diff(finish, start, :microsecond) / 1_000
 
-        Logger.info(
+        Logger.info([
           source: "[" <> Path.basename(__ENV__.file) <> "]",
-          processing_time: diff
+          processing_time_ms: diff,
+          token_length: length(tokens),
+          nodes: length(nodes),
+          map_depth: List.last(nodes) |> length(),
+          total_memory_mb: :erlang.memory(:total) / 1_000_000,
+          process_memory_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
+          ],
+        ansi_color: :green
         )
 
         result

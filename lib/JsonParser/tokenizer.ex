@@ -125,6 +125,22 @@ defmodule JsonParser.Tokenizer do
     {:newline, char}
   end
 
+  defp get_type(char) when char == " " do
+    {:empty_string, char}
+  end
+
+  defp get_type(char) when char == "null" do
+    {:null, char}
+  end
+
+  defp get_type(char) when char == "true" do
+    {:true, char}
+  end
+
+  defp get_type(char) when char == "false" do
+    {:false, char}
+  end
+
   defp get_type(char) do
     string_or_int(char)
   end
