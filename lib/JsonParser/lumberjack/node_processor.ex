@@ -333,6 +333,37 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 # Rules for inserting values into a list
   defp insert_into_list(
           prev_acc,
+          [first, second, third | tail] = _list_elements,
+          address,
+          key
+        )
+          when is_string(first, second, third) do
+
+    old_pair = get_key_values(prev_acc, address, key) 
+    non_key = get_non_key_values(prev_acc, address, key)
+
+    if old_pair == nil do
+      new_val = List.flatten([non_key], [%{key => ["null"]}])
+      Logger.debug([
+        message: "starting new list with a null value", 
+        non_key: non_key, 
+        new_val: new_val
+        ])
+      complete_acc = put_in(prev_acc[address][:pairs], [non_key, %{key => [new_val]}])
+      {complete_acc, tail}
+    else
+      new_val = List.flatten([old_pair[key]], ["null"])
+      Logger.debug([
+        message: "inserting null value into list", 
+        non_key: non_key, 
+        new_val: new_val
+      ])
+      {put_in(prev_acc[address][:pairs], [non_key, %{key => new_val}]), tail}
+    end
+  end
+
+  defp insert_into_list(
+          prev_acc,
           [first, second | tail] = _list_elements,
           address,
           key
