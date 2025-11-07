@@ -72,7 +72,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "put_in/3",
-      target: address
+      target: address,
+      new: new
     )
 
     if new != nil do
@@ -262,15 +263,23 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     start = elem(first, 0)
     finish = elem(second, 0)
 
+    full_address = get_in(acc[address], [:address])
+    
     case correct?(start, finish, acc, address) do
       :ok ->
-        key_val = %{key => acc[address].pairs}
+        child = Map.reject(acc, fn {k, v} ->
+                    k == address
+                    || v[:address] == full_address
+                    && v[:address] -- [k] == full_address 
+                    end) 
+                  |> Map.keys()
+                  |> List.first()
 
-        new_acc = Map.reject(acc, fn {k, _v} -> k == address end)
+        key_val = %{key => acc[child].pairs}
 
-        Logger.info(new_acc, ansi_color: :green)
+        new_acc = Map.reject(acc, fn {k, _v} -> k == child end)
 
-        {List.flatten([[second], [tail]]), key_val, new_acc}
+        {tail, key_val, new_acc}
 
       :error ->
         {list, key, acc}
@@ -353,9 +362,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     end
   end
 
-  defp maybe_insert_node({:end_list, elements, key}, acc, _address, new_tail) when elements == [] do
-    Logger.info([new: new_tail], ansi_color: :red) 
-    {new_tail, key, acc}
+  defp maybe_insert_node({:end_list, elements, _key}, acc, _address, new_tail) when elements == [] do
+    {new_tail, nil, acc}
   end
   
   # Rules for inserting values into a list
@@ -369,7 +377,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     old_pair = get_key_values(prev_acc, address, key) 
     non_key = get_non_key_values(prev_acc, address, key)
-    val = "\"" <> elem(elem(second, 1), 1) <> "\""
+    val = elem(elem(second, 1), 1)
 
     conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
   end
@@ -541,7 +549,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     keys = Map.get(map, key)
     if keys != nil  do
       Enum.reduce(keys, %{}, fn k, acc -> 
-        Map.merge(acc, k) end)
+        Map.merge(acc, k)
+      end)
     else
       map
     end
@@ -614,17 +623,15 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp correct?(start, finish, acc, address) do
-      
     node_start = acc[address].start
     node_end = acc[address].end
 
-    if start + 1 == node_start && finish - 1 == node_end do
+    if start + 1 > node_start && finish - 1 < node_end do
       :ok
     else
       Logger.error(%{
         source: "[" <> Path.basename(__ENV__.file) <> "]",
         message: "Got a wrong call node insertion request",
-        acc: acc,
         address: address,
         requested_start_index: node_start,
         requested_start_end: node_end,
