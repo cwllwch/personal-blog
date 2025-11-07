@@ -21,6 +21,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       end)
 
     Logger.info(%{
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
       message: "successfully ",
       start: nodes[0].start,
       end: nodes[0].end,
@@ -39,8 +40,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     acc = %{List.last(node) => acc}
 
     Logger.debug(
-      function: "map.put_new/3",
-      source: "[" <> Path.basename(__ENV__.file) <> "]"
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "map.put_new/3"
     )
 
     visitor(list, acc, node, List.last(node))
@@ -52,8 +53,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     acc = Map.put_new(acc, address, pre_acc)
 
     Logger.debug(
-      function: "map.put_new/3",
       source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "map.put_new/3",
       target: address
     )
 
@@ -69,8 +70,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> get_separator()
 
     Logger.debug(
-      function: "put_in/3",
       source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "put_in/3",
       target: address
     )
 
@@ -92,8 +93,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     new_acc = update_in(acc[address][:pairs], &check_merge(&1, new))
 
     Logger.debug(
-      function: "update_in/3",
       source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "update_in/3",
       target: address
     )
 
@@ -139,58 +140,68 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   # Rules for evaluating the keys.
   defguard is_string(first, second, third)
-           when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string and
-                  elem(elem(third, 1), 0) == :quote
+           when elem(elem(first, 1), 0) == :quote 
+              and elem(elem(second, 1), 0) == :string 
+              and elem(elem(third, 1), 0) == :quote
 
   defguardp is_start_of_string(first, second)
-            when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :string
+            when elem(elem(first, 1), 0) == :quote 
+              and elem(elem(second, 1), 0) == :string
 
-  defguardp is_null(first) when elem(elem(first, 1), 1) == "null"
+  defguardp is_bool(first)
+            when elem(elem(first, 1), 0) == :true
+              or elem(elem(first, 1), 0) == :false 
+              or elem(elem(first, 1), 0) == :null
 
+  defguardp is_whitespace(first) when elem(elem(first, 1), 0) == :empty_string 
+
+  
   defp get_key([first, second, third | tail] = _list) when is_string(first, second, third) do
     string = get_val(second)
     {tail, "#{string}"}
-  end
-
-# functions to handle keys
-  defp get_key([first | tail] = _list) when is_null(first) do
-    {:null, tail}
   end
 
   defp get_key([first, second | _tail] = list) when is_start_of_string(first, second) do
     get_end_of_proper_string(list)
   end
 
+  defp get_key([first | tail] = _list) when is_whitespace(first) do
+    get_key(tail)
+  end
+
   # Rules for evaluating values.
   defguard is_comma(token) when elem(elem(token, 1), 0) == :comma
 
   defguard is_comma_or_bracket(token)
-           when elem(elem(token, 1), 0) == :comma or elem(elem(token, 1), 0) == :close_bracket
+           when elem(elem(token, 1), 0) == :comma 
+            or elem(elem(token, 1), 0) == :close_bracket
 
-  defguardp is_colon(token) when elem(elem(token, 1), 0) == :colon
+  defguardp is_colon(token) 
+            when elem(elem(token, 1), 0) == :colon
 
-  defguardp is_int(first) when elem(elem(first, 1), 0) == :int
+  defguardp is_int(first) 
+            when elem(elem(first, 1), 0) == :int
 
   defguardp is_node_slot(first, second)
-            when is_colon(first) and elem(first, 0) + 2 < elem(second, 0) and
-                   is_comma_or_bracket(second)
+            when is_colon(first) 
+              and elem(first, 0) + 2 < elem(second, 0) 
+              and is_comma_or_bracket(second)
 
   defguardp is_empty_string(first, second)
-            when elem(elem(first, 1), 0) == :quote and elem(elem(second, 1), 0) == :quote
+            when elem(elem(first, 1), 0) == :quote 
+            and elem(elem(second, 1), 0) == :quote
 
-  defguardp is_bool(first)
-            when elem(elem(first, 1), 0) == :true or elem(elem(first, 1), 0) == :false
+  defguardp is_value_list(first)
+            when elem(elem(first, 1), 0) == :open_square
 
-  defguardp is_value_list(first, second)
-            when elem(elem(first, 1), 0) == :colon and elem(elem(second, 1), 0) == :open_square
+  defguardp is_final_element(first) 
+            when elem(elem(first, 1), 0) == :close_square
+
 
   # unwrap the tuple
-  defp get_value({:null, list} = _tuple) do
-    {list, %{"null" => :null}}
-  end
-
   defp get_value({list, key} = _tuple) do
-    get_value(list, key)
+    Enum.reject(list, fn t -> elem(elem(t, 1), 0) == :empty_string end)
+    |> get_value(key)
   end
 
   # basic logic check (is this a correctly formatted value?)
@@ -198,18 +209,22 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {:insert_node, list, key}
   end
 
-  defp get_value([first, second | new_list] = _list, key) when is_value_list(first, second) do
-    {:start_list, new_list, key}
-  end
-
   defp get_value([first | new_list] = _list, key) when is_colon(first) do
     evaluate_value_type(new_list, key)
   end
 
-  # basic format detection rules
+  defp get_value([first | tail] = _list, key) when is_whitespace(first) do
+    get_value(tail, key)
+  end
+
+  # format detection rules
   defp evaluate_value_type([first | tail] = _list, key) when is_int(first) do
     int = get_val(first)
     {tail, %{key => int}}
+  end
+
+  defp evaluate_value_type([first | new_list] = _list, key) when is_value_list(first) do
+    {:start_list, new_list, key}
   end
 
   defp evaluate_value_type([first, second, third | tail] = _list, key)
@@ -237,18 +252,23 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {tail, %{key => get_val(first)}}
   end
 
+  defp evaluate_value_type([first | tail] = _list, key) when is_whitespace(first) do
+    evaluate_value_type(tail, key)
+  end
+
   # if the value is a node
   defp maybe_insert_node({command, [first, second | tail] = list, key} = _tuple, acc, address)
        when command == :insert_node and list != [] do
     start = elem(first, 0)
     finish = elem(second, 0)
-    address_to_add = Map.keys(acc[address]) |> Enum.reject(&(&1 == address)) |> List.first()
 
-    case correct?(start, finish, acc, address_to_add) do
+    case correct?(start, finish, acc, address) do
       :ok ->
-        key_val = %{key => acc[address_to_add].pairs}
+        key_val = %{key => acc[address].pairs}
 
-        new_acc = Map.reject(acc, fn {k, _v} -> k == address_to_add end)
+        new_acc = Map.reject(acc, fn {k, _v} -> k == address end)
+
+        Logger.info(new_acc, ansi_color: :green)
 
         {List.flatten([[second], [tail]]), key_val, new_acc}
 
@@ -273,6 +293,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       new_acc = Map.reject(prev_acc, fn {k, _v} -> k == last end)
 
       Logger.debug(
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
         message: "inserted node",
         target: full_address,
         inserted: last
@@ -285,6 +306,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       new_acc = Map.reject(prev_acc, fn {k, _v} -> k == child end)
 
       Logger.debug(
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
         message: "inserted node",
         target: full_address,
         inserted: child
@@ -292,6 +314,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
       {[], key_val, new_acc}
     end
+  end
+
+  defp maybe_insert_node({list, key} = _tuple, acc, _address) do
+    {list, key, acc}
   end
 
 # Rules for inserting elements in a list. They are a bit tricky cause 
@@ -302,35 +328,37 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address
        )
        when command == :start_list do
-    final_index = elem(get_final_square(tail), 0)
-
+    final_index = get_final_square(tail)
     list_elements =
-      Enum.reject(tail, fn t -> elem(t, 0) > final_index || elem(elem(t, 1), 0) == :close_bracket end)
+      Enum.reject(tail, fn t -> 
+        elem(t, 0) > final_index || 
+        elem(elem(t, 1), 0) == :close_bracket || 
+        elem(elem(t, 1), 0) == :empty_string  
+      end)
 
-    {new_acc, _} = insert_into_list(prev_acc, list_elements, address, key) 
-    # first element needs to be forced in, without consuming the separators. 
-    # This is because you don't start with a comma, but you need to end after one
+    new_tail = Enum.filter(tail, fn t -> 
+      elem(t, 0) > final_index 
+    end)
 
-    maybe_insert_node({:cont_list, list_elements, key}, new_acc, address)
+    maybe_insert_node({:cont_list, list_elements, key}, prev_acc, address, new_tail)
   end
 
-  defp maybe_insert_node({:cont_list, elements, key}, acc, address) when elements != [] do
-    Logger.debug("new accumulator is #{inspect(acc[address][:pairs])}")
-
+  defp maybe_insert_node({:cont_list, elements, key}, acc, address, new_tail) do
     {new_acc, remaining_elements} = insert_into_list(acc, elements, address, key)
 
-    maybe_insert_node({:cont_list, remaining_elements, key}, new_acc, address)
+    if remaining_elements != [] do
+      maybe_insert_node({:cont_list, remaining_elements, key}, new_acc, address, new_tail)
+    else
+      maybe_insert_node({:end_list, remaining_elements, key}, new_acc, address, new_tail)
+    end
   end
 
-  defp maybe_insert_node({:cont_list, elements, key}, acc, _address) when  elements == [] do
-    {[], key, acc}
+  defp maybe_insert_node({:end_list, elements, key}, acc, _address, new_tail) when elements == [] do
+    Logger.info([new: new_tail], ansi_color: :red) 
+    {new_tail, key, acc}
   end
   
-  defp maybe_insert_node({list, key} = _tuple, acc, _address) do
-    {list, key, acc}
-  end
-
-# Rules for inserting values into a list
+  # Rules for inserting values into a list
   defp insert_into_list(
           prev_acc,
           [first, second, third | tail] = _list_elements,
@@ -341,26 +369,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     old_pair = get_key_values(prev_acc, address, key) 
     non_key = get_non_key_values(prev_acc, address, key)
+    val = "\"" <> elem(elem(second, 1), 1) <> "\""
 
-    if old_pair == nil do
-      new_val = List.flatten([non_key], [%{key => ["null"]}])
-      Logger.debug([
-        message: "starting new list with a null value", 
-        non_key: non_key, 
-        new_val: new_val
-        ])
-      complete_acc = put_in(prev_acc[address][:pairs], [non_key, %{key => [new_val]}])
-      {complete_acc, tail}
-    else
-      new_val = List.flatten([old_pair[key]], ["null"])
-      Logger.debug([
-        message: "inserting null value into list", 
-        non_key: non_key, 
-        new_val: new_val
-      ])
-      {put_in(prev_acc[address][:pairs], [non_key, %{key => new_val}]), tail}
-    end
+    conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
   end
+
 
   defp insert_into_list(
           prev_acc,
@@ -368,29 +381,61 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
           address,
           key
         )
-          when is_null(first) and is_comma(second) do
+          when is_int(first) and is_comma(second) do
+
+    old_pair = get_key_values(prev_acc, address, key) 
+    non_key = get_non_key_values(prev_acc, address, key)
+    val = elem(elem(first, 1), 1)
+
+    conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
+ end
+
+
+  defp insert_into_list(
+          prev_acc,
+          [first, second | tail] = _list_elements,
+          address,
+          key
+        )
+          when is_int(first) and is_comma(second) do
+
+    old_pair = get_key_values(prev_acc, address, key) 
+    non_key = get_non_key_values(prev_acc, address, key)
+    val = elem(elem(first, 1), 1)
+
+    conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
+  end
+ 
+ 
+ defp insert_into_list(
+          prev_acc,
+          [first, second | tail] = _list_elements,
+          address,
+          key
+        )
+          when is_bool(first) and is_comma(second) do
 
     old_pair = get_key_values(prev_acc, address, key) 
     non_key = get_non_key_values(prev_acc, address, key)
 
-    if old_pair == nil do
-      new_val = List.flatten([non_key], [%{key => ["null"]}])
-      Logger.debug([
-        message: "starting new list with a null value", 
-        non_key: non_key, 
-        new_val: new_val
-        ])
-      complete_acc = put_in(prev_acc[address][:pairs], [non_key, %{key => [new_val]}])
-      {complete_acc, tail}
-    else
-      new_val = List.flatten([old_pair[key]], ["null"])
-      Logger.debug([
-        message: "inserting null value into list", 
-        non_key: non_key, 
-        new_val: new_val
-      ])
-      {put_in(prev_acc[address][:pairs], [non_key, %{key => new_val}]), tail}
-    end
+    val = elem(elem(first, 1), 1)
+    
+    conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
+  end
+
+ defp insert_into_list(
+          prev_acc,
+          [first, second | tail] = _list_elements,
+          address,
+          key
+        )
+          when is_bool(first) and is_comma(second) do
+
+    old_pair = get_key_values(prev_acc, address, key) 
+    non_key = get_non_key_values(prev_acc, address, key)
+    val = elem(elem(first, 1), 1)
+
+    conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
   end
 
   defp insert_into_list(
@@ -406,28 +451,91 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     old_pair = get_key_values(new_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
-    if old_pair == nil do
-      Logger.debug([
-        message: "starting new list with a new node", 
-        non_key: non_key, 
-        key_val: key_val,
-      ])
-      complete_acc = put_in(new_acc[address][:pairs], [non_key, %{key => [key_val]}])
-      {complete_acc, tail}
-
-    else
-      new_val = List.flatten([old_pair[key]], [key_val])
-      Logger.debug([
-      message: "adding node to previously existing list", 
-      key_val: key_val,
-      non_key: non_key, 
-      new_val: new_val
-      ])
-      
-      complete_acc = put_in(new_acc[address][:pairs], [non_key, %{key => new_val}])
-      {complete_acc, tail}
-    end
+    conditional_insert(non_key, old_pair, key_val, new_acc, address, key, tail)
   end
+
+  defp insert_into_list(
+          prev_acc, 
+          [first | tail] = _list_elements, 
+          address, 
+          key
+          ) 
+            when is_final_element(first) 
+            and tail == [] 
+            do
+    {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
+
+    key_val = maybe_merge_maps(key_val, key)
+    old_pair = get_key_values(new_acc, address, key)
+    non_key = get_non_key_values(prev_acc, address, key)
+
+    conditional_insert(non_key, old_pair, key_val, new_acc, address, key, tail)
+  end
+  
+  defp insert_into_list(
+          prev_acc, 
+          [first | tail] = _list_elements, 
+          _address, 
+          _key
+          )
+          when is_whitespace(first) do
+    {prev_acc, tail}
+  end
+
+  defp conditional_insert(non_key, old_pair, val, acc, address, key, tail) 
+    when old_pair == nil 
+    and non_key == nil do
+    Logger.debug([
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      message: "starting new list with a new node and no other key value pairs", 
+      non_key: non_key, 
+      new_val: val,
+    ])
+    complete_acc = put_in(acc[address][:pairs], [%{key => [val]}])
+    {complete_acc, tail}
+  end
+  
+  defp conditional_insert(non_key, old_pair, val, acc, address, key, tail) 
+    when old_pair == nil 
+    and non_key != nil do 
+    Logger.debug([
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      message: "starting new list with a new node and non related key value pairs", 
+      non_key: non_key, 
+      new_val: val,
+    ])
+    complete_acc = put_in(acc[address][:pairs], [non_key, %{key => [val]}])
+    {complete_acc, tail}
+  end
+  
+  defp conditional_insert(non_key, old_pair, val, acc, address, key, tail) 
+    when old_pair != nil 
+    and non_key == nil do
+    new_val = List.flatten([old_pair[key]], [val])
+    Logger.debug([
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      message: "adding value to previously existing list with no other key value pairs", 
+      non_key: non_key, 
+      new_val: new_val,
+    ])
+    complete_acc = put_in(acc[address][:pairs], [%{key => [new_val]}])
+    {complete_acc, tail}
+  end
+
+  defp conditional_insert(non_key, old_pair, val, acc, address, key, tail) 
+    when old_pair != nil 
+    and non_key != nil do 
+    new_val = List.flatten([old_pair[key]], [val])
+    Logger.debug([
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      message: "starting new list with a new node and non related key value pairs", 
+      non_key: non_key, 
+      new_val: new_val,
+    ])
+    complete_acc = put_in(acc[address][:pairs], [non_key, %{key => [new_val]}])
+    {complete_acc, tail}
+  end
+
 
   defp maybe_merge_maps(map, key) do
     keys = Map.get(map, key)
@@ -442,7 +550,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp get_key_values(acc, address, key) do
     value = get_in(acc[address][:pairs])
-    Enum.find(value, fn m -> Map.keys(m) == [key] end)
+    if value == nil do
+      nil
+    else
+      Enum.find(value, fn m -> Map.keys(m) == [key] end)
+    end
   end
 
   defp get_non_key_values(acc, address, key) do
@@ -502,6 +614,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp correct?(start, finish, acc, address) do
+      
     node_start = acc[address].start
     node_end = acc[address].end
 
@@ -509,6 +622,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       :ok
     else
       Logger.error(%{
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
         message: "Got a wrong call node insertion request",
         acc: acc,
         address: address,
@@ -544,10 +658,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       length(final) > 1 -> 
         List.keysort(final, 0)
         |> List.first()
-        |> elem(1)
+        |> elem(0)
       length(final) == 1 ->
         [tuple] = final
-        elem(tuple, 1)
+        elem(tuple, 0)
       true ->
         {index, _} = List.last(tail)
         f_index = index + 1
@@ -572,6 +686,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     preview = make_preview(list, index, 3)
 
     Logger.error(%{
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
       message: "non-error passed to error handler",
       params: [
         err_message: message,

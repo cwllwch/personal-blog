@@ -49,6 +49,7 @@ defmodule JsonParser.Tokenizer do
     cond do
       current_type == :string || (current_type == :whitespace && prev_type == :quote) ->
         new_char = {prev_index, :string, "#{prev_val}#{current_val}"}
+        |> bool_override()
         acc = [new_char]
         maybe_concat(acc, new_char, new_list)
 
@@ -59,6 +60,7 @@ defmodule JsonParser.Tokenizer do
 
       true ->
         new_char = {prev_index + 1, current_type, current_val}
+        |> bool_override()
         acc = [char, new_char]
         maybe_concat(acc, new_char, new_list)
     end
@@ -74,6 +76,7 @@ defmodule JsonParser.Tokenizer do
     cond do
       current_type == :string && prev_type == :string ->
         new_char = {prev_index, :string, "#{prev_val}#{current_val}"}
+        |> bool_override()
         new_acc = List.replace_at(acc, prev_index, new_char)
         maybe_concat(new_acc, new_char, new_list)
 
@@ -84,6 +87,7 @@ defmodule JsonParser.Tokenizer do
 
       true ->
         new_char = {prev_index + 1, current_type, current_val}
+        |> bool_override()
         new_acc = List.insert_at(acc, prev_index + 1, new_char)
         maybe_concat(new_acc, new_char, new_list)
     end
@@ -128,19 +132,7 @@ defmodule JsonParser.Tokenizer do
   defp get_type(char) when char == " " do
     {:empty_string, char}
   end
-
-  defp get_type(char) when char == "null" do
-    {:null, char}
-  end
-
-  defp get_type(char) when char == "true" do
-    {:true, char}
-  end
-
-  defp get_type(char) when char == "false" do
-    {:false, char}
-  end
-
+ 
   defp get_type(char) do
     string_or_int(char)
   end
@@ -157,5 +149,22 @@ defmodule JsonParser.Tokenizer do
       else
         {:string, char}
       end
+  end
+
+  defp bool_override({i, _t, c} = _tuple) when c == "false" do
+    {i, :false, c}
+  end
+
+  defp bool_override({i, _t, c} = _tuple) when c == "true" do
+    {i, :true, c}
+  end
+
+  defp bool_override({i, _t, c} = _tuple) when c == "null" do
+    {i, :null, c}
+  end
+
+
+  defp bool_override(tuple) do
+    tuple
   end
 end
