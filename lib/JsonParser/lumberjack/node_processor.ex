@@ -328,7 +328,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {list, key, acc}
   end
 
-  # Rules for inserting elements in a list. They are a bit tricky cause 
+  # Rules for inserting elements in a list. They are a bit tricky cause
   # you can have anything in them, including key-value pairs.
   defp maybe_insert_node(
          {command, [_first | tail] = _list, key} = _tuple,
