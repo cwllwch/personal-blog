@@ -22,7 +22,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     Logger.info(%{
       source: "[" <> Path.basename(__ENV__.file) <> "]",
-      message: "successfully ",
+      message: "successfully parsed json string",
       start: nodes[0].start,
       end: nodes[0].end,
       type: nodes[0].type
@@ -229,7 +229,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp evaluate_value_type([first, second, third | tail] = _list, key)
        when is_string(first, second, third) do
     string = get_val(second)
-    {tail, %{key => "#{string}"}}
+    {tail, %{key => "\"#{string}\""}}
   end
 
   defp evaluate_value_type([first, second, third | tail] = _list, key)
@@ -358,7 +358,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     if remaining_elements != [] do
       maybe_insert_node({:cont_list, remaining_elements, key}, new_acc, address, new_tail)
-    else
+    else   
       maybe_insert_node({:end_list, remaining_elements, key}, new_acc, address, new_tail)
     end
   end
@@ -448,6 +448,22 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
        )
        when is_comma(first) do
     {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
+
+    key_val = maybe_merge_maps(key_val, key)
+    old_pair = get_key_values(new_acc, address, key)
+    non_key = get_non_key_values(prev_acc, address, key)
+
+    conditional_insert(non_key, old_pair, key_val, new_acc, address, key, tail)
+  end
+
+  defp insert_into_list(
+         prev_acc,
+         [first | tail] = _list_elements,
+         address,
+         key
+       )
+       when elem(elem(first, 1), 1) == :open_square do
+    {_, key_val, new_acc} = maybe_insert_node({:start_list, [], key}, prev_acc, address)
 
     key_val = maybe_merge_maps(key_val, key)
     old_pair = get_key_values(new_acc, address, key)
@@ -599,7 +615,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> Enum.join()
 
     new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
-    {new_tail, string}
+    {new_tail, "\"" <> string <> "\""}
   end
 
   defp get_children(prev_acc, address) do
