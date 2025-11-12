@@ -15,6 +15,7 @@ defmodule JsonParser.Lumberjack do
   @spec main(list(tuple())) :: {:ok, map(), list()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
     start = Time.utc_now()
+    mem_before = elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
 
     case TreeBuilder.main(tokens) do
       {:ok, tree, nodes} ->
@@ -34,7 +35,8 @@ defmodule JsonParser.Lumberjack do
             nodes: length(nodes),
             map_depth: List.last(nodes) |> length(),
             total_memory_mb: :erlang.memory(:total) / 1_000_000,
-            process_memory_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
+            process_memory_before: mem_before,
+            process_memory_after_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
           ],
           ansi_color: :green
         )

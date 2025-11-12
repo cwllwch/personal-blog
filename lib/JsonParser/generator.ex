@@ -19,59 +19,86 @@ defmodule JsonParser.Generator do
   @spec main(map()) :: String.t()
   def main(ast) do
 
-    #IO.inspect("{ " <> orchestrate(ast) <> " }")
+    IO.inspect(orchestrate(ast))
 
     ast
 
   end
 
+  ## Orchestrate the iteration of getting keys and values.
+
   defp orchestrate(ast) do
-    [f_key | remaining_keys] = get_key(ast)
-    f_val = get_val(ast, f_key)
+    keys = get_key(ast)
 
-    Logger.info([
-      source: "[" <> Path.basename(__ENV__.file) <> "]",
-      function: "orchestrate/1",
-      remaining_keys: length(remaining_keys),
-      f_key: f_key,
-      f_val: f_val
-    ], 
-    ansi_color: :light_magenta)
+    orchestrate(ast, keys)
+  end
+  
+  defp orchestrate(map, keys) when length(keys) == 1 do
+  Logger.info([
+    source: "[" <> Path.basename(__ENV__.file) <> "]",
+    function: "orchestrate/2",
+    condition: "found single key at the start",
+    key: List.first(keys)
+  ])
 
-    orchestrate(ast, {f_key, f_val}, remaining_keys)
+    val = get_val(map, keys)
+    "{#{List.first(keys)}: #{val}}"
   end
 
-  defp orchestrate(ast, {key,  val}, remaining_keys) when remaining_keys != [] and is_list(val) do
+  defp orchestrate(map, keys) when length(keys) > 1 do
+  Logger.info([
+    source: "[" <> Path.basename(__ENV__.file) <> "]",
+    function: "orchestrate/2",
+    condition: "found multiple keys at the start",
+    key:  List.first(keys)
+  ])
     
+    [key | remaining] = keys
+    val = get_val(map, [key])
+
+    acc = "{#{key}: #{val}} \n"
+
+    new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, key) end)
+
+    orchestrate(new_map, remaining, acc)
   end
 
-  defp orchestrate(ast, {key, val}, remaining_keys) when remaining_keys == [] and is_list(val) do
-    evaluate_nested_obj(val)
+  defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail != [] do
+  Logger.info([
+    source: "[" <> Path.basename(__ENV__.file) <> "]",
+    function: "orchestrate/2",
+    condition: "found multiple keys at the start and will accumulate results",
+    key: first
+  ])
+
+  val = get_val(map, [first])
+
+  new_acc = "#{acc} {#{first}: #{val}}"
+
+  new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, first) end)
+
+  orchestrate(new_map, tail, new_acc)
   end
 
-  defp orchestrate(ast, {key, val}, remaining_keys) when remaining_keys == [] and is_binary(val) do
-    "{#{key}: #{val}}"
+  defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail == [] do
+  Logger.info([
+    source: "[" <> Path.basename(__ENV__.file) <> "]",
+    function: "orchestrate/2",
+    condition: "found multiple keys at the start, ending accumulation of objects",
+    key: first
+  ])
+
+  val = get_val(map, [first])
+
+  new_acc = "#{acc} {#{first}: #{val}}"
+
+  IO.inspect(new_acc)
+
+  orchestrate(map, tail, new_acc)
   end
-
-  defp evaluate_nested_obj(val) when length(val) == 1 do
-    List.first(val)
-    |> get_key()
-  end
-
-  defp evaluate_nested_obj([[first | rest] | tail ] = val) when is_list(first) do
-    Logger.info("am here!")
-  end
-
-  defp evaluate_nested_obj([first | tail] = val) when length(val) >= 2 do
-    value = orchestrate(first)
-    evaluate_nested_obj(tail, value)
-  end
-
-  defp evaluate_nested_obj(val, acc) when length(val) == 1 do
-    key = List.first(val)
-    new_val = get_val(val, [key])
-
-    "#{acc}, \n{#{key}: #{new_val}}"
+    
+  defp orchestrate(_map, keys, acc) when keys == [] do
+    acc
   end
 
   ## Key logic
@@ -80,11 +107,43 @@ defmodule JsonParser.Generator do
   end
 
   ## Value logic
-  defp get_val(map, _key) when is_list(map) do
-    orchestrate(List.first(map))
+  defp get_val(map, key) do
+    get_in(map, key)
+    |> process_val()
   end
 
-  defp get_val(map, key) when is_map(map) do
-    get_in(map, [key])
+
+  # This means the value is a list of values
+  defp process_val([head | _tail] = _val) when is_list(head) do
+    Logger.info("found a list of values") 
+    Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end)
+  end
+
+  defp process_val(val) when is_list(val) and length(val) > 1 do
+    Logger.info("found a list of maps")
+    Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end)
+  end
+
+  defp process_val(val) when is_binary(val) do
+    val
+  end
+
+  # Helpers
+
+  ## This is just for appending values when they both exist, otherwise Enum above would just delete previous acc
+  ## when hitting it 
+  @spec append(String.t(), String.t) :: String.t()
+  defp append(new, old) when old == "" do
+    new
+  end
+
+  @spec append(String.t(), String.t) :: String.t()
+  defp append(new, old) when new == "" do
+    old
+  end
+
+  @spec append(String.t(), String.t) :: String.t()
+  defp append(new, old) do
+    "#{old}, #{new}"
   end
 end
