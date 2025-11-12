@@ -19,7 +19,7 @@ defmodule JsonParser.Generator do
   @spec main(map()) :: String.t()
   def main(ast) do
 
-    IO.inspect("{ " <> orchestrate(ast) <> " }")
+    #IO.inspect("{ " <> orchestrate(ast) <> " }")
 
     ast
 
@@ -46,7 +46,7 @@ defmodule JsonParser.Generator do
   end
 
   defp orchestrate(ast, {key, val}, remaining_keys) when remaining_keys == [] and is_list(val) do
-    key = evaluate_nested_obj(val)
+    evaluate_nested_obj(val)
   end
 
   defp orchestrate(ast, {key, val}, remaining_keys) when remaining_keys == [] and is_binary(val) do
@@ -56,6 +56,10 @@ defmodule JsonParser.Generator do
   defp evaluate_nested_obj(val) when length(val) == 1 do
     List.first(val)
     |> get_key()
+  end
+
+  defp evaluate_nested_obj([[first | rest] | tail ] = val) when is_list(first) do
+    Logger.info("am here!")
   end
 
   defp evaluate_nested_obj([first | tail] = val) when length(val) >= 2 do
