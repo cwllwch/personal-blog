@@ -20,9 +20,12 @@ defmodule JsonParser.Tokenizer do
 
   def main(string) do
     last = String.length(string) - 1
+    
+    result = 
+      String.graphemes(string)
+      |> add_types(last)
 
-    String.graphemes(string)
-    |> add_types(last)
+    {:ok, result}
   end
 
   defp add_types(list, last) do

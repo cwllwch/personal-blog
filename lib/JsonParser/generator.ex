@@ -16,26 +16,31 @@ defmodule JsonParser.Generator do
 
   require Logger
 
-  @spec main(map()) :: String.t()
+  @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    orchestrate(ast)
+   try do
+     result =  orchestrate(ast)      
+     {:ok, result}
+   rescue
+    e -> 
+      {:error, Exception.message(e)}
+   end
   end
 
   ## Orchestrate the iteration of getting keys and values.
-
   defp orchestrate(ast) do
     keys = get_key(ast)
 
     orchestrate(ast, keys)
   end
-  
+
   defp orchestrate(map, keys) when length(keys) == 1 and is_map(map) do
-  Logger.debug([
-    source: "[" <> Path.basename(__ENV__.file) <> "]",
-    function: "orchestrate/2",
-    condition: "found single key at the start",
-    key: List.first(keys)
-  ])
+    Logger.debug(
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "orchestrate/2",
+      condition: "found single key at the start",
+      key: List.first(keys)
+    )
 
     val = get_val(map, keys)
     "{#{List.first(keys)}: #{val}}"
@@ -46,13 +51,13 @@ defmodule JsonParser.Generator do
   end
 
   defp orchestrate(map, keys) when length(keys) > 1 do
-  Logger.debug([
-    source: "[" <> Path.basename(__ENV__.file) <> "]",
-    function: "orchestrate/2",
-    condition: "found multiple keys at the start",
-    key:  List.first(keys)
-  ])
-    
+    Logger.debug(
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "orchestrate/2",
+      condition: "found multiple keys at the start",
+      key: List.first(keys)
+    )
+
     [key | remaining] = keys
     val = get_val(map, [key])
 
@@ -64,37 +69,37 @@ defmodule JsonParser.Generator do
   end
 
   defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail != [] do
-  Logger.debug([
-    source: "[" <> Path.basename(__ENV__.file) <> "]",
-    function: "orchestrate/2",
-    condition: "found multiple keys at the start and will accumulate results",
-    key: first
-  ])
+    Logger.debug(
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "orchestrate/2",
+      condition: "found multiple keys at the start and will accumulate results",
+      key: first
+    )
 
-  val = get_val(map, [first])
+    val = get_val(map, [first])
 
-  new_acc = "#{acc} {#{first}: #{val}}"
+    new_acc = "#{acc} {#{first}: #{val}}"
 
-  new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, first) end)
+    new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, first) end)
 
-  orchestrate(new_map, tail, new_acc)
+    orchestrate(new_map, tail, new_acc)
   end
 
   defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail == [] do
-  Logger.debug([
-    source: "[" <> Path.basename(__ENV__.file) <> "]",
-    function: "orchestrate/2",
-    condition: "found multiple keys at the start, ending accumulation of objects",
-    key: first
-  ])
+    Logger.debug(
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      function: "orchestrate/2",
+      condition: "found multiple keys at the start, ending accumulation of objects",
+      key: first
+    )
 
-  val = get_val(map, [first])
+    val = get_val(map, [first])
 
-  new_acc = "#{acc} {#{first}: #{val}}"
+    new_acc = "#{acc} {#{first}: #{val}}"
 
-  orchestrate(map, tail, new_acc)
+    orchestrate(map, tail, new_acc)
   end
-    
+
   defp orchestrate(_map, keys, acc) when keys == [] do
     acc
   end
@@ -114,12 +119,10 @@ defmodule JsonParser.Generator do
     |> process_val()
   end
 
-
   # This means the value is a list of values
   defp process_val([head | _tail] = _val) when is_list(head) do
-    Logger.debug("found a list of values") 
+    Logger.debug("found a list of values")
     "\n[" <> Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "\n]"
-
   end
 
   defp process_val(val) when is_list(val) and length(val) > 1 do
@@ -134,18 +137,18 @@ defmodule JsonParser.Generator do
   # Helpers
 
   ## This is just for appending values when they both exist, otherwise Enum above would just delete previous acc
-  ## when hitting it 
-  @spec append(String.t(), String.t) :: String.t()
+  ## when hitting it
+  @spec append(String.t(), String.t()) :: String.t()
   defp append(new, old) when old == "" do
     new
   end
 
-  @spec append(String.t(), String.t) :: String.t()
+  @spec append(String.t(), String.t()) :: String.t()
   defp append(new, old) when new == "" do
     old
   end
 
-  @spec append(String.t(), String.t) :: String.t()
+  @spec append(String.t(), String.t()) :: String.t()
   defp append(new, old) do
     "#{old}, #{new}"
   end
