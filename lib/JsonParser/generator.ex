@@ -18,13 +18,13 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-   try do
-     result =  orchestrate(ast)      
-     {:ok, result}
-   rescue
-    e -> 
-      {:error, Exception.message(e)}
-   end
+    result = orchestrate(ast)
+
+    if is_binary(result) do
+      {:ok, result}
+    else
+      {:error, "Error generating string"}
+    end
   end
 
   ## Orchestrate the iteration of getting keys and values.

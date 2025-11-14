@@ -23,12 +23,12 @@ defmodule JsonParser.Main do
   end
 
   def parse_this(not_json) do
-  with {:ok, tokens} <- Tokenizer.main(not_json),
-       {:ok, ast} <- Lumberjack.main(tokens),
-       {:ok, result} <- Generator.main(ast) do
-     {:ok, result}
-       else
-       {:error, reason} -> {:error, reason}
-     end
+    with {:ok, tokens} <- Tokenizer.main(not_json),
+         {:ok, ast} <- Lumberjack.main(tokens),
+         {:ok, result} <- Generator.main(ast) do
+      {:ok, result}
+    else
+      {:error, reason} -> {:error, reason}
+    end
   end
 end
