@@ -1,5 +1,6 @@
 defmodule JsonParser.Main do
   alias Jason
+  alias JsonParser.Generator
   alias JsonParser.Lumberjack
   alias JsonParser.Tokenizer
   require String
@@ -22,13 +23,12 @@ defmodule JsonParser.Main do
   end
 
   def parse_this(not_json) do
-    Tokenizer.main(not_json)
-    |> Lumberjack.main()
-
-    #    |> Jason.encode!()
-    #    |> enum.reduce([], fn tuple, acc ->
-    #      string = "index: #{elem(tuple, 0)} | type: #{elem(tuple, 1)} | value: #{elem(tuple, 2)}\n"
-    #      list.insert_at(acc, -1, string)
-    #      end)
+    with {:ok, tokens} <- Tokenizer.main(not_json),
+         {:ok, ast} <- Lumberjack.main(tokens),
+         {:ok, result} <- Generator.main(ast) do
+      {:ok, result}
+    else
+      {:error, reason} -> {:error, reason}
+    end
   end
 end

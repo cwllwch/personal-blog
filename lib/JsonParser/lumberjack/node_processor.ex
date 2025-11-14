@@ -22,7 +22,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     Logger.info(%{
       source: "[" <> Path.basename(__ENV__.file) <> "]",
-      message: "successfully ",
+      message: "successfully parsed json string",
       start: nodes[0].start,
       end: nodes[0].end,
       type: nodes[0].type
@@ -229,7 +229,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp evaluate_value_type([first, second, third | tail] = _list, key)
        when is_string(first, second, third) do
     string = get_val(second)
-    {tail, %{key => "#{string}"}}
+    {tail, %{key => "\"#{string}\""}}
   end
 
   defp evaluate_value_type([first, second, third | tail] = _list, key)
@@ -599,7 +599,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       |> Enum.join()
 
     new_tail = Enum.reject(list, fn {i, _v} -> i < end_index + 1 end)
-    {new_tail, string}
+    {new_tail, "\"" <> string <> "\""}
   end
 
   defp get_children(prev_acc, address) do
