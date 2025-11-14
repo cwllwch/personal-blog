@@ -26,9 +26,6 @@ defmodule JsonParser.Main do
     Tokenizer.main(not_json)
     |> Lumberjack.main()
     |> Generator.main()
-
-    #      string = "index: #{elem(tuple, 0)} | type: #{elem(tuple, 1)} | value: #{elem(tuple, 2)}\n"
-    #      list.insert_at(acc, -1, string)
-    #      end)
+    |> Jason.encode!(pretty: true)
   end
 end

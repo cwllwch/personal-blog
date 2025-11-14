@@ -18,11 +18,7 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: String.t()
   def main(ast) do
-
-    IO.inspect(orchestrate(ast))
-
-    ast
-
+    orchestrate(ast)
   end
 
   ## Orchestrate the iteration of getting keys and values.
@@ -33,8 +29,8 @@ defmodule JsonParser.Generator do
     orchestrate(ast, keys)
   end
   
-  defp orchestrate(map, keys) when length(keys) == 1 do
-  Logger.info([
+  defp orchestrate(map, keys) when length(keys) == 1 and is_map(map) do
+  Logger.debug([
     source: "[" <> Path.basename(__ENV__.file) <> "]",
     function: "orchestrate/2",
     condition: "found single key at the start",
@@ -45,8 +41,12 @@ defmodule JsonParser.Generator do
     "{#{List.first(keys)}: #{val}}"
   end
 
+  defp orchestrate(val, keys) when is_binary(val) and keys == val do
+    val
+  end
+
   defp orchestrate(map, keys) when length(keys) > 1 do
-  Logger.info([
+  Logger.debug([
     source: "[" <> Path.basename(__ENV__.file) <> "]",
     function: "orchestrate/2",
     condition: "found multiple keys at the start",
@@ -64,7 +64,7 @@ defmodule JsonParser.Generator do
   end
 
   defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail != [] do
-  Logger.info([
+  Logger.debug([
     source: "[" <> Path.basename(__ENV__.file) <> "]",
     function: "orchestrate/2",
     condition: "found multiple keys at the start and will accumulate results",
@@ -81,7 +81,7 @@ defmodule JsonParser.Generator do
   end
 
   defp orchestrate(map, [first | tail] = keys, acc) when keys != [] and tail == [] do
-  Logger.info([
+  Logger.debug([
     source: "[" <> Path.basename(__ENV__.file) <> "]",
     function: "orchestrate/2",
     condition: "found multiple keys at the start, ending accumulation of objects",
@@ -92,8 +92,6 @@ defmodule JsonParser.Generator do
 
   new_acc = "#{acc} {#{first}: #{val}}"
 
-  IO.inspect(new_acc)
-
   orchestrate(map, tail, new_acc)
   end
     
@@ -102,12 +100,16 @@ defmodule JsonParser.Generator do
   end
 
   ## Key logic
-  defp get_key(map) do
-    Map.keys(map)
+  defp get_key(key) when is_map(key) do
+    Map.keys(key)
+  end
+
+  defp get_key(key) when is_binary(key) do
+    key
   end
 
   ## Value logic
-  defp get_val(map, key) do
+  defp get_val(map, key) when is_map(map) do
     get_in(map, key)
     |> process_val()
   end
@@ -115,12 +117,13 @@ defmodule JsonParser.Generator do
 
   # This means the value is a list of values
   defp process_val([head | _tail] = _val) when is_list(head) do
-    Logger.info("found a list of values") 
-    Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end)
+    Logger.debug("found a list of values") 
+    "\n[" <> Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "\n]"
+
   end
 
   defp process_val(val) when is_list(val) and length(val) > 1 do
-    Logger.info("found a list of maps")
+    Logger.debug("found a list of maps")
     Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end)
   end
 
