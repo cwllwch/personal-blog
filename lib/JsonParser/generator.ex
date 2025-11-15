@@ -16,13 +16,18 @@ defmodule JsonParser.Generator do
 
   require Logger
 
-  @spec main(map()) :: String.t()
+  @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    orchestrate(ast)
+    result = orchestrate(ast)
+
+    if is_binary(result) do
+      {:ok, result}
+    else
+      {:error, "Error generating string"}
+    end
   end
 
   ## Orchestrate the iteration of getting keys and values.
-
   defp orchestrate(ast) do
     keys = get_key(ast)
 

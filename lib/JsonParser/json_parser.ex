@@ -23,15 +23,12 @@ defmodule JsonParser.Main do
   end
 
   def parse_this(not_json) do
-    result =
-      Tokenizer.main(not_json)
-      |> Lumberjack.main()
-      |> Generator.main()
-
-    if result do
-      Jason.Formatter.pretty_print(result)
+    with {:ok, tokens} <- Tokenizer.main(not_json),
+         {:ok, ast} <- Lumberjack.main(tokens),
+         {:ok, result} <- Generator.main(ast) do
+      {:ok, result}
     else
-      "Error: #{result}"
+      {:error, reason} -> {:error, reason}
     end
   end
 end

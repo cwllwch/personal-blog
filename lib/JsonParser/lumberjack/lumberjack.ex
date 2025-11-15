@@ -12,7 +12,7 @@ defmodule JsonParser.Lumberjack do
 
   require Logger
 
-  @spec main(list(tuple())) :: {:ok, map(), list()} | {:error, String.t()}
+  @spec main(list(tuple())) :: {:ok, map()} | {:error, String.t()}
   def main(tokens) when tokens != [] do
     start = Time.utc_now()
     mem_before = elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
@@ -41,7 +41,7 @@ defmodule JsonParser.Lumberjack do
           ansi_color: :green
         )
 
-        result
+        {:ok, result}
 
       {:error, reason} ->
         {:error, reason}
