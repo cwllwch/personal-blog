@@ -3,6 +3,6 @@ defmodule PortalWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "this page!"
+    assert html_response(conn, 200) =~ "homepage"
   end
 end

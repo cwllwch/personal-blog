@@ -1,8 +1,8 @@
 defmodule JsonParser.Main do
   alias Jason
+  alias JsonParser.Generator
   alias JsonParser.Lumberjack
   alias JsonParser.Tokenizer
-  alias JsonParser.Generator
   require String
   require Logger
 
@@ -23,16 +23,15 @@ defmodule JsonParser.Main do
   end
 
   def parse_this(not_json) do
-    result = Tokenizer.main(not_json)
+    result =
+      Tokenizer.main(not_json)
       |> Lumberjack.main()
       |> Generator.main()
-      
-      if result do
-        IO.inspect(result)
-        Jason.Formatter.pretty_print(result)
-        |> IO.inspect()
-      else
-        "Error: #{result}"
-      end
+
+    if result do
+      Jason.Formatter.pretty_print(result)
+    else
+      "Error: #{result}"
+    end
   end
 end

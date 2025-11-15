@@ -27,8 +27,11 @@ defmodule PortalWeb.LiveStuff.Prettify do
 
   def handle_event("prettify", %{"_action" => "send", "og_json" => og_json}, socket) do
     new_json = JP.prettify(og_json)
-    socket = assign(socket, :new_json, new_json)
-    |> assign(og_json: "")
+
+    socket =
+      assign(socket, :new_json, new_json)
+      |> assign(og_json: "")
+
     {:noreply, socket}
   end
 
@@ -42,11 +45,11 @@ defmodule PortalWeb.LiveStuff.Prettify do
       this is intended to take a weird nearly-compliant json and turn it back into
       something that is compliant. This was made with a specific kind of corruption
       that comes along when log parsers go through a json and for whatever reason
-      fill it with stuff such as \\" instead of \" and adding other characters in 
-      the middle of the string. 
+      fill it with stuff such as \\" instead of \" and adding other characters in
+      the middle of the string.
     </p>
 
-    <hr class="emerald-400">
+    <hr class="emerald-400" />
     <form phx-submit="prettify" class="flex flex-row gap-4 items-center justify-center py-8">
       <textarea
         style="width:40%; height:36rem; color:black; font-size:14px"

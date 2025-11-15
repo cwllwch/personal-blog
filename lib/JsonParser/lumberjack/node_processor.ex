@@ -150,15 +150,15 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
                    elem(elem(second, 1), 0) == :string
 
   defguardp is_start_of_unquoted_string(first)
-            when elem(elem(first, 1), 0) == :string 
+            when elem(elem(first, 1), 0) == :string
 
   defguardp is_colon(token)
             when elem(elem(token, 1), 0) == :colon
 
   defguardp is_unquoted_string(first, second)
-            when elem(elem(first, 1), 0) == :string and 
-                  is_colon(second)
-  
+            when elem(elem(first, 1), 0) == :string and
+                   is_colon(second)
+
   defguardp is_bool(first)
             when elem(elem(first, 1), 0) == true or
                    elem(elem(first, 1), 0) == false or
@@ -178,7 +178,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   # Get the key if string is not wrapped by quotes
   defp get_key([first, second | tail] = _list) when is_unquoted_string(first, second) do
     string = get_val(first)
-    {[second | tail], string}   
+    {[second | tail], string}
   end
 
   defp get_key([_first | tail] = _list) do
@@ -244,7 +244,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     string = get_val(second)
     {tail, %{key => "\"#{string}\""}}
   end
-  
+
   defp evaluate_value_type([first | tail] = _list, key)
        when is_start_of_unquoted_string(first) do
     {new_tail, string} = get_end_of_unquoted_string([first | tail])
@@ -261,7 +261,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {new_tail, val} = get_end_of_proper_string(list)
     {new_tail, %{key => val}}
   end
-  
+
   defp evaluate_value_type(list, key) when list == [] do
     {:insert_node, list, key}
   end
@@ -383,7 +383,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     if remaining_elements != [] do
       maybe_insert_node({:cont_list, remaining_elements, key}, new_acc, address, new_tail)
-    else   
+    else
       maybe_insert_node({:end_list, remaining_elements, key}, new_acc, address, new_tail)
     end
   end
@@ -628,7 +628,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {[], nil, acc}
   end
 
-  defp get_separator([first | tail] = _list, key_val, acc) when tail != [] and is_map(key_val) and not is_comma(first) do
+  defp get_separator([first | tail] = _list, key_val, acc)
+       when tail != [] and is_map(key_val) and not is_comma(first) do
     get_separator({tail, %{key_val | warning: acc}, acc})
   end
 
@@ -663,8 +664,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_end_of_unquoted_string([first, second | tail] = list)
-       when elem(elem(first, 1), 0) == :string
-       and tail != [] do
+       when elem(elem(first, 1), 0) == :string and
+              tail != [] do
     {end_index, _tuple} = Enum.reject(tail, fn t -> get_type(t) == :string end) |> List.first()
     {start_index, _} = second
 
@@ -679,7 +680,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp get_end_of_unquoted_string([first | _tail] = _list)
        when elem(elem(first, 1), 0) == :string do
-       {[], "#{get_val(first)}"}
+    {[], "#{get_val(first)}"}
   end
 
   defp correct?(start, finish, acc, address) do
