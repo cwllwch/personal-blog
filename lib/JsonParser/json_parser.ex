@@ -23,9 +23,16 @@ defmodule JsonParser.Main do
   end
 
   def parse_this(not_json) do
-    Tokenizer.main(not_json)
-    |> Lumberjack.main()
-    |> Generator.main()
-    |> Jason.encode!(pretty: true)
+    result = Tokenizer.main(not_json)
+      |> Lumberjack.main()
+      |> Generator.main()
+      
+      if result do
+        IO.inspect(result)
+        Jason.Formatter.pretty_print(result)
+        |> IO.inspect()
+      else
+        "Error: #{result}"
+      end
   end
 end
