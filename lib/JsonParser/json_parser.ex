@@ -30,5 +30,5 @@ defmodule JsonParser.Main do
     else
       {:error, reason} -> {:error, reason}
     end
-  end
+  end 
 end

@@ -17,16 +17,13 @@ defmodule JsonParser.Lumberjack do
     start = Time.utc_now()
     mem_before = elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
 
-    case TreeBuilder.main(tokens) do
-      {:ok, tree, nodes} ->
-        result =
-          Fertilizer.main(tree, nodes, tokens)
-          |> NodeProcessor.main(nodes)
-
+    with {:ok, tree, nodes} <- TreeBuilder.main(tokens),
+         {:ok, pre_ast} <- Fertilizer.main(tree, nodes, tokens),
+         {:ok, result} <- NodeProcessor.main(pre_ast, nodes) 
+      do
+        # Log metrics and info
         finish = Time.utc_now()
-        # get with high precision but convert to ms
         diff = Time.diff(finish, start, :microsecond) / 1_000
-
         Logger.info(
           [
             source: "[" <> Path.basename(__ENV__.file) <> "]",
@@ -37,14 +34,12 @@ defmodule JsonParser.Lumberjack do
             total_memory_mb: :erlang.memory(:total) / 1_000_000,
             process_memory_before: mem_before,
             process_memory_after_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
-          ],
-          ansi_color: :green
+          ], ansi_color: :green
         )
-
-        {:ok, result}
-
-      {:error, reason} ->
-        {:error, reason}
+       {:ok, result}
+    else
+      {:error, error} -> 
+        {:error, error}
     end
   end
 

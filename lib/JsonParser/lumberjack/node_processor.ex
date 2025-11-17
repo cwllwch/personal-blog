@@ -1,15 +1,15 @@
 defmodule JsonParser.Lumberjack.NodeProcessor do
   @moduledoc """
   The final step in the AST processing pipeline.
-  This module will take the tree and addresses and process each node 
-  in order to make them into a proper AST. 
+  This module will take the tree and addresses and process each node
+  in order to make them into a proper AST.
   """
 
   require Logger
   require Exception
 
   @doc """
-  Gets the structure of the tree and the address of the nodes, then builds essentially 
+  Gets the structure of the tree and the address of the nodes, then builds essentially
   a new tree.
   """
   def main(tree, nodes) do
@@ -28,7 +28,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       type: nodes[0].type
     })
 
-    nodes[0].pairs |> List.first()
+    result = nodes[0].pairs |> List.first()
+    {:ok, result}
   end
 
   # Orchestrates the node verification rules. Start by initiating an accumulator which
@@ -237,6 +238,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp evaluate_value_type([first | new_list] = _list, key) when is_value_list(first) do
     {:start_list, new_list, key}
+  end
+
+
+  defp evaluate_value_type(list, key) when list == [] do
+    {:insert_node, list, key}
   end
 
   defp evaluate_value_type([first, second, third | tail] = _list, key)
