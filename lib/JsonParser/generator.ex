@@ -18,7 +18,8 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    result = orchestrate(ast)
+    Logger.info([ast: ast])
+    result = "{" <> orchestrate(ast) <> "}"
 
     if is_binary(result) do
       {:ok, result}
@@ -43,7 +44,7 @@ defmodule JsonParser.Generator do
     )
 
     val = get_val(map, keys)
-    "{#{List.first(keys)}: #{val}}"
+    "#{List.first(keys)}: #{val}"
   end
 
   defp orchestrate(val, keys) when is_binary(val) and keys == val do
@@ -61,7 +62,7 @@ defmodule JsonParser.Generator do
     [key | remaining] = keys
     val = get_val(map, [key])
 
-    acc = "{#{key}: #{val}} \n"
+    acc = "#{key}: #{val}, \n"
 
     new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, key) end)
 
@@ -78,7 +79,7 @@ defmodule JsonParser.Generator do
 
     val = get_val(map, [first])
 
-    new_acc = "#{acc} {#{first}: #{val}}"
+    new_acc = "#{acc}, #{first}: #{val}"
 
     new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, first) end)
 
@@ -95,7 +96,7 @@ defmodule JsonParser.Generator do
 
     val = get_val(map, [first])
 
-    new_acc = "#{acc} {#{first}: #{val}}"
+    new_acc = "#{acc}, #{first}: #{val}"
 
     orchestrate(map, tail, new_acc)
   end
@@ -127,7 +128,7 @@ defmodule JsonParser.Generator do
 
   defp process_val(val) when is_list(val) and length(val) > 1 do
     Logger.debug("found a list of maps")
-    Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end)
+   "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
   end
 
   defp process_val(val) when is_binary(val) do

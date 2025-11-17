@@ -21,6 +21,7 @@ defmodule JsonParser.Lumberjack do
          {:ok, pre_ast} <- Fertilizer.main(tree, nodes, tokens),
          {:ok, result} <- NodeProcessor.main(pre_ast, nodes) 
       do
+      Logger.info([nodes: pre_ast], ansi_color: :red)
         # Log metrics and info
         finish = Time.utc_now()
         diff = Time.diff(finish, start, :microsecond) / 1_000

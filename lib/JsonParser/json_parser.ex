@@ -14,11 +14,13 @@ defmodule JsonParser.Main do
   def prettify(json) do
     case Jason.decode(json) do
       {:ok, parsed} ->
-        Jason.encode!(parsed, pretty: true)
+        result = Jason.encode!(parsed, pretty: true)
+        {:ok, result}
 
       {:error, reason} ->
         Logger.info(reason)
-        parse_this(json)
+        result = parse_this(json)
+        {:parsed, result}
     end
   end
 
@@ -26,7 +28,8 @@ defmodule JsonParser.Main do
     with {:ok, tokens} <- Tokenizer.main(not_json),
          {:ok, ast} <- Lumberjack.main(tokens),
          {:ok, result} <- Generator.main(ast) do
-      {:ok, result}
+         Logger.info([ast: ast], ansi_color: :cyan)
+        result
     else
       {:error, reason} -> {:error, reason}
     end

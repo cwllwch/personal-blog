@@ -50,7 +50,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
 
     cond do
-      current_type == :string || (current_type == :whitespace && prev_type == :quote) ->
+      current_type == :string || (current_type == :empty_string && prev_type == :quote) ->
         new_char =
           {prev_index, :string, "#{prev_val}#{current_val}"}
           |> bool_override()
@@ -156,7 +156,7 @@ defmodule JsonParser.Tokenizer do
       whitespace? = Regex.match?(~r/[[:cntrl:][:blank:]]/, char)
 
       if whitespace? == true do
-        {:whitespace, char}
+        {:empty_string, char}
       else
         {:string, char}
       end
