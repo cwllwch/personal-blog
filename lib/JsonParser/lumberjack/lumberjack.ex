@@ -19,27 +19,28 @@ defmodule JsonParser.Lumberjack do
 
     with {:ok, tree, nodes} <- TreeBuilder.main(tokens),
          {:ok, pre_ast} <- Fertilizer.main(tree, nodes, tokens),
-         {:ok, result} <- NodeProcessor.main(pre_ast, nodes) 
-      do
-      Logger.info([nodes: pre_ast], ansi_color: :red)
-        # Log metrics and info
-        finish = Time.utc_now()
-        diff = Time.diff(finish, start, :microsecond) / 1_000
-        Logger.info(
-          [
-            source: "[" <> Path.basename(__ENV__.file) <> "]",
-            processing_time_ms: diff,
-            token_length: length(tokens),
-            nodes: length(nodes),
-            map_depth: List.last(nodes) |> length(),
-            total_memory_mb: :erlang.memory(:total) / 1_000_000,
-            process_memory_before: mem_before,
-            process_memory_after_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
-          ], ansi_color: :green
-        )
-       {:ok, result}
+         {:ok, result} <- NodeProcessor.main(pre_ast, nodes) do
+      # Log metrics and info
+      finish = Time.utc_now()
+      diff = Time.diff(finish, start, :microsecond) / 1_000
+
+      Logger.info(
+        [
+          source: "[" <> Path.basename(__ENV__.file) <> "]",
+          processing_time_ms: diff,
+          token_length: length(tokens),
+          nodes: length(nodes),
+          map_depth: List.last(nodes) |> length(),
+          total_memory_mb: :erlang.memory(:total) / 1_000_000,
+          process_memory_before: mem_before,
+          process_memory_after_mb: elem(:erlang.process_info(self(), :memory), 1) / 1_000_000
+        ],
+        ansi_color: :green
+      )
+
+      {:ok, result}
     else
-      {:error, error} -> 
+      {:error, error} ->
         {:error, error}
     end
   end

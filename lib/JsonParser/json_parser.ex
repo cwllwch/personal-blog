@@ -28,10 +28,9 @@ defmodule JsonParser.Main do
     with {:ok, tokens} <- Tokenizer.main(not_json),
          {:ok, ast} <- Lumberjack.main(tokens),
          {:ok, result} <- Generator.main(ast) do
-         Logger.info([ast: ast], ansi_color: :cyan)
-        result
+      result
     else
       {:error, reason} -> {:error, reason}
     end
-  end 
+  end
 end

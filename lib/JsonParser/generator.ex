@@ -18,7 +18,7 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    Logger.info([ast: ast])
+    Logger.info(ast: ast)
     result = "{" <> orchestrate(ast) <> "}"
 
     if is_binary(result) do
@@ -128,7 +128,7 @@ defmodule JsonParser.Generator do
 
   defp process_val(val) when is_list(val) and length(val) > 1 do
     Logger.debug("found a list of maps")
-   "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
+    "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
   end
 
   defp process_val(val) when is_binary(val) do

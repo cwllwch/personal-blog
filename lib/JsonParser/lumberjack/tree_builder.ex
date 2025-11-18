@@ -9,7 +9,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
     with {:ok, tree} <- find_brackets(tokens),
          {:ok, nodes} <- get_tree_struct(tree) do
       {:ok, tree, nodes}
-    else 
+    else
       error -> {:error, error}
     end
   end
@@ -90,7 +90,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
           |> Enum.filter(&is_integer(&1))
 
         if new == [] do
-           acc
+          acc
         else
           acc ++ add_nodes(path, new)
         end

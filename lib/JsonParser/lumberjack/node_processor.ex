@@ -170,7 +170,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp get_key([first, second, third | tail] = _list) when is_string(first, second, third) do
     string = get_val(second)
-    {tail, "#{string}"}
+    {tail, "\"#{string}\""}
   end
 
   defp get_key([first, second | _tail] = list) when is_start_of_string(first, second) do
@@ -241,7 +241,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {:start_list, new_list, key}
   end
 
-
   defp evaluate_value_type(list, key) when list == [] do
     {:insert_node, list, key}
   end
@@ -255,7 +254,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp evaluate_value_type([first | tail] = _list, key)
        when is_start_of_unquoted_string(first) do
     {new_tail, string} = get_end_of_unquoted_string([first | tail])
-    Logger.warning([string: string, new_tail: new_tail, key: key, first: first])
     {new_tail, %{key => "\"#{string}\""}}
   end
 
@@ -521,7 +519,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     conditional_insert(non_key, old_pair, key_val, new_acc, address, key, tail)
   end
-  
+
   defp insert_into_list(
          prev_acc,
          [first | tail] = _list_elements,
@@ -674,7 +672,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp get_end_of_unquoted_string([first, second | tail] = list)
        when elem(elem(first, 1), 0) == :string and
-            elem(elem(second, 1), 0) == :string and
+              elem(elem(second, 1), 0) == :string and
               tail != [] do
     {end_index, _tuple} = Enum.reject(tail, fn t -> get_type(t) == :string end) |> List.first()
     {start_index, _} = second

@@ -12,10 +12,11 @@ defmodule JsonParser.Lumberjack.Fertilizer do
             when length(node1) == length(node2) and node1 != node2 and length(diff) == 1
 
   def main(tree, addresses, tokens) do
-    result = 
-    get_checkpoints(tree, addresses)
-    |> fill_intermediaries
-    |> insert_content(tree, tokens)
+    result =
+      get_checkpoints(tree, addresses)
+      |> fill_intermediaries
+      |> insert_content(tree, tokens)
+
     {:ok, result}
   end
 
