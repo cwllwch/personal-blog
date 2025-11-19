@@ -165,7 +165,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
             when elem(elem(first, 1), 0) == true or
                    elem(elem(first, 1), 0) == false or
                    elem(elem(first, 1), 0) == :null
-
+ 
   defguardp is_whitespace(first) when elem(elem(first, 1), 0) == :empty_string
 
   defp get_key([first, second, third | tail] = _list) when is_string(first, second, third) do
