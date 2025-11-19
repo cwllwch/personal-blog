@@ -13,25 +13,34 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
-    nodes =
-      Enum.reverse(nodes)
-      |> Enum.reduce(%{}, fn node, acc ->
-        get_in(tree, List.flatten([node, :content]))
-        |> visitor(acc, node)
-      end)
+    try do
+      nodes =
+        Enum.reverse(nodes)
+        |> Enum.reduce(%{}, fn node, acc ->
+          get_in(tree, List.flatten([node, :content]))
+          |> visitor(acc, node)
+        end)
 
-    Logger.info(%{
-      source: "[" <> Path.basename(__ENV__.file) <> "]",
-      message: "successfully parsed json string",
-      start: nodes[0].start,
-      end: nodes[0].end,
-      pairs: nodes[0].pairs,
-      type: nodes[0].type
-    })
+      Logger.info(%{
+        source: "[" <> Path.basename(__ENV__.file) <> "]",
+        message: "successfully parsed json string",
+        start: nodes[0].start,
+        end: nodes[0].end,
+        type: nodes[0].type
+      })
 
-    result = nodes[0].pairs 
+      result = nodes[0].pairs 
 
-    {:ok, result}
+      {:ok, result}
+    rescue e ->
+      [{module, function, arity, meta} | _] = __STACKTRACE__
+      Logger.info([
+        message: "unhandled exception",
+        location: inspect(meta[:file]) <> " at " <> inspect(meta[:line]),
+        mfa: "#{module} - #{function}/#{length(arity)}, arguments given"
+      ])
+      {:error, "Error inserting data into the nodes: " <> Exception.message(e)}
+    end
   end
 
   # Orchestrates the node verification rules. Start by initiating an accumulator which
@@ -59,8 +68,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "map.put_new/3",
       target: address,
-      node: node,
-      acc: acc
+      node: node
     )
 
     visitor(list, acc, node, address)
@@ -77,10 +85,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "put_in/3",
-      target: address,
-      new_list_length: new_list,
-      new: new,
-      acc: acc
+      target: address
     )
 
     if new != nil do
@@ -189,7 +194,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_key([_first | tail] = _list) do
-    Logger.info(tail)
     get_key(tail)
   end
 

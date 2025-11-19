@@ -60,7 +60,7 @@ defmodule JsonParser.Generator do
     keys = get_key(head)
     |> List.first()
 
-    Logger.info([
+    Logger.debug([
       source: "[#{Path.basename(__ENV__.file)}]",
       function: "orchestrate/1",
       condition: "found a list of keywords at the start",
@@ -171,24 +171,32 @@ defmodule JsonParser.Generator do
 
   ## Value logic
   defp get_val(map, key) when is_map(map) do
-    Logger.info([key: key, map: map] )
     get_in(map, key)
     |> process_val()
   end
 
   # This means the value is a list of values
   defp process_val([head | _tail] = _val) when is_list(head) do
-    Logger.debug("found a list of values")
-    "\n[" <> Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "\n]"
+    Logger.debug([
+      source: "[#{Path.basename(__ENV__.file)}]",
+      message: "found a list of values",
+    ])
+    "\n[" <> Enum.reduce(head, "", fn m, acc ->  orchestrate(m) |> add_brackets() |> append(acc) end) <> "\n]"
   end
 
   defp process_val([head | tail] = _val) when is_map(head) and tail == [] do
-    Logger.debug([message: "found a map", head: head])
+    Logger.debug([
+      source: "[#{Path.basename(__ENV__.file)}]",
+      message: "found a map", head: head
+      ])
     "{#{orchestrate(head)}}"
   end
 
   defp process_val([head | tail] = val) when is_map(head) and tail != [] do
-    Logger.debug("found a list of maps")
+    Logger.debug([
+      source: "[#{Path.basename(__ENV__.file)}]",
+      message: "found a list of maps"
+      ])
     "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
   end
 
@@ -213,5 +221,10 @@ defmodule JsonParser.Generator do
   @spec append(String.t(), String.t()) :: String.t()
   defp append(new, old) do
     "#{old}, #{new}"
+  end
+
+  ## add brackets to separate when needed
+  defp add_brackets(string) do
+    "{#{string}}"
   end
 end

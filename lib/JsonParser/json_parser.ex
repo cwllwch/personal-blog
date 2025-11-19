@@ -14,7 +14,7 @@ defmodule JsonParser.Main do
   def prettify(json) do
     case Jason.decode(json) do
       {:ok, parsed} ->
-        result = Jason.encode!(parsed, pretty: true)
+        result = Jason.encode(parsed, pretty: true)
         {:ok, result}
 
       {:error, _reason} ->

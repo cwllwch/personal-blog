@@ -41,6 +41,7 @@ defmodule JsonParser.Lumberjack do
       {:ok, result}
     else
       {:error, error} ->
+        Logger.warning(error)
         {:error, error}
     end
   end

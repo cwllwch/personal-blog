@@ -29,8 +29,8 @@ defmodule PortalWeb.Components.CustomComponents do
     ~H"""
     <div class="flex h-svh md:aspect-[5/4] p-3 bg-white rounded-xl 
                 shadow-xl shadow-lime-400/30 ring ring-lime-400/60
-                whitespace-pre-wrap"
-      >{Jason.Formatter.pretty_print(@message)}
+                whitespace-pre-wrap overflow-scroll" 
+      >{Jason.Formatter.pretty_print(elem(@message, 1))}
     </div>
     """
   end
@@ -38,8 +38,8 @@ defmodule PortalWeb.Components.CustomComponents do
   def display_text(%{level: :parsed} = assigns) do
     ~H"""
     <div class="flex h-[36rem] aspect-[5/4] p-3 bg-white rounded-xl 
-                shadow-xl shadow-amber-400/30 ring ring-amber-400/60
-                whitespace-pre-wrap"
+                shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
+                whitespace-pre-wrap overflow-scroll"
       >{Jason.Formatter.pretty_print(@message)}
     </div>
     """
@@ -50,7 +50,7 @@ defmodule PortalWeb.Components.CustomComponents do
     <div class="flex h-[36rem] aspect-[5/4] p-3 bg-white rounded-xl 
                 shadow-xl shadow-red-400/30 ring ring-red-400/60
                 whitespace-pre-wrap"
-        >{@message}
+        >{inspect(@message)}
     </div>
     """
   end

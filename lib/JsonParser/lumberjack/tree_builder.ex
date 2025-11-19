@@ -4,13 +4,18 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
   It returns both the tree based on the positions of the brackets, and a list with node 
   addresses for later use. 
   """
+  require Logger
 
   def main(tokens) do
-    with {:ok, tree} <- find_brackets(tokens),
-         {:ok, nodes} <- get_tree_struct(tree) do
+  try do
+      {:ok, tree} = find_brackets(tokens)
+      {:ok, nodes} = get_tree_struct(tree) 
       {:ok, tree, nodes}
-    else
-      error -> {:error, error}
+    rescue e ->
+      [{_module, _function, _arity, meta} | _] = __STACKTRACE__
+      Logger.warning([line: meta[:line], file: meta[:file], message: Exception.message(e)])
+      Logger.debug([stacktrace: __STACKTRACE__])
+      {:error, Exception.message(e)}
     end
   end
 
@@ -41,8 +46,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
         process_brackets(new_brackets, new_acc, level, [0], 0)
 
       type == :close_bracket ->
-        {:ok, new_acc} = get_and_update_in(acc, [level], &{:ok, Map.merge(%{end: index}, &1)})
-        new_acc
+        get_and_update_in(acc, [level], &{:ok, Map.merge(%{end: index}, &1)})
     end
   end
 
