@@ -18,23 +18,73 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    Logger.info(ast: ast)
-    result = "{" <> orchestrate(ast) <> "}"
-
-    if is_binary(result) do
+    try do 
+      result = "{" <> orchestrate(ast) <> "}"
       {:ok, result}
-    else
-      {:error, "Error generating string"}
+    rescue 
+      e in [ArgumentError] ->
+        {:error, "argument: " <> Exception.message(e)}
+      e ->
+        [{module, function, arity, meta} | _] = __STACKTRACE__
+        Logger.warning([
+          message: "unhandled exception", 
+          exception: Exception.message(e), 
+          mfa: "#{module} - #{function}/#{length(arity)}, arguments given: #{inspect(arity)}",
+          location: inspect(meta[:file]) <> " at " <> inspect(meta[:line])
+        ])
+        {:error, "Error generating string: #{Exception.message(e)}"}
     end
   end
 
   ## Orchestrate the iteration of getting keys and values.
-  defp orchestrate(ast) do
+  defp orchestrate(ast) when is_map(ast) do
     keys = get_key(ast)
 
     orchestrate(ast, keys)
   end
 
+  defp orchestrate([head | tail] = _list) when tail == [] do
+    orchestrate(head, get_key(head))
+  end
+
+  defp orchestrate([head | tail] = _list) when tail != [] and is_map(head) do
+    keys = get_key(head)
+
+    acc = "#{keys}: #{get_val(head, keys)}"
+
+    orchestrate(tail, acc)
+  end
+
+  # starts an accumulator for lists of maps 
+  defp orchestrate([head | tail] = _list) when tail != [] and is_map(head) do
+    keys = get_key(head)
+    |> List.first()
+
+    Logger.info([
+      source: "[#{Path.basename(__ENV__.file)}]",
+      function: "orchestrate/1",
+      condition: "found a list of keywords at the start",
+      key: keys
+    ])
+
+    acc = orchestrate(head, keys)
+
+    orchestrate(tail, acc)
+  end
+
+  defp orchestrate([head | tail] = _list, acc) when head != [] do 
+    key = get_key(head)
+
+    new_acc = "#{acc}, #{orchestrate(head, key)}"
+
+    orchestrate(tail, new_acc)
+  end
+
+  defp orchestrate(list, acc) when list == [] do 
+    acc
+  end
+
+  # returns in case of just one map
   defp orchestrate(map, keys) when length(keys) == 1 and is_map(map) do
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
@@ -50,7 +100,8 @@ defmodule JsonParser.Generator do
   defp orchestrate(val, keys) when is_binary(val) and keys == val do
     val
   end
-
+  
+  # starts the accumulator for a list of maps
   defp orchestrate(map, keys) when length(keys) > 1 do
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
@@ -62,7 +113,7 @@ defmodule JsonParser.Generator do
     [key | remaining] = keys
     val = get_val(map, [key])
 
-    acc = "#{key}: #{val}, \n"
+    acc = "#{key}: #{val}"
 
     new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, key) end)
 
@@ -100,22 +151,27 @@ defmodule JsonParser.Generator do
 
     orchestrate(map, tail, new_acc)
   end
-
+  
+  # returns after processing the list of maps
   defp orchestrate(_map, keys, acc) when keys == [] do
     acc
   end
 
   ## Key logic
+
+  # when there is just one key but many vals
   defp get_key(key) when is_map(key) do
     Map.keys(key)
   end
 
+  # single key
   defp get_key(key) when is_binary(key) do
     key
   end
 
   ## Value logic
   defp get_val(map, key) when is_map(map) do
+    Logger.info([key: key, map: map] )
     get_in(map, key)
     |> process_val()
   end
@@ -126,7 +182,12 @@ defmodule JsonParser.Generator do
     "\n[" <> Enum.reduce(head, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "\n]"
   end
 
-  defp process_val(val) when is_list(val) and length(val) > 1 do
+  defp process_val([head | tail] = _val) when is_map(head) and tail == [] do
+    Logger.debug([message: "found a map", head: head])
+    "{#{orchestrate(head)}}"
+  end
+
+  defp process_val([head | tail] = val) when is_map(head) and tail != [] do
     Logger.debug("found a list of maps")
     "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
   end

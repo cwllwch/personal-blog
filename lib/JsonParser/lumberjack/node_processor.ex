@@ -29,7 +29,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       type: nodes[0].type
     })
 
-    result = nodes[0].pairs |> List.first()
+    result = nodes[0].pairs 
+
     {:ok, result}
   end
 
@@ -43,7 +44,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
-      function: "map.put_new/3"
+      function: "visitor-entrypoint"
     )
 
     visitor(list, acc, node, List.last(node))
@@ -57,7 +58,9 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     Logger.debug(
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "map.put_new/3",
-      target: address
+      target: address,
+      node: node,
+      acc: acc
     )
 
     visitor(list, acc, node, address)
@@ -75,11 +78,13 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "put_in/3",
       target: address,
-      new: new
+      new_list_length: new_list,
+      new: new,
+      acc: acc
     )
 
     if new != nil do
-      new_acc = put_in(acc[address][:pairs], List.flatten([acc[address][:pairs], new]))
+      new_acc = update_in(acc[address][:pairs], &check_merge(&1, new))
       visitor(new_list, new_acc, node, address)
     else
       visitor(new_list, acc, node, address)
@@ -184,6 +189,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_key([_first | tail] = _list) do
+    Logger.info(tail)
     get_key(tail)
   end
 
@@ -636,7 +642,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp get_separator([first | tail] = _list, key_val, acc)
        when tail != [] and is_map(key_val) and not is_comma(first) do
-    Logger.warning(key_val: key_val)
     get_separator({tail, key_val, acc})
   end
 
@@ -669,7 +674,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       end
     end)
   end
-
+ 
+  # handles a multi-word string, which means this needs to iterate the tail until it finds a 
+  # thing that is not a string - please note that whitespace is already excluded by this point
+  # as it would break other parts of the generator
   defp get_end_of_unquoted_string([first, second | tail] = list)
        when elem(elem(first, 1), 0) == :string and
               elem(elem(second, 1), 0) == :string and
@@ -686,8 +694,18 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {new_tail, string}
   end
 
-  defp get_end_of_unquoted_string([first | _tail] = _list)
-       when elem(elem(first, 1), 0) == :string do
+  # handles a one-word string that immediately ends in a comma. meaning no iteration needed
+  defp get_end_of_unquoted_string([first, second | tail] = _list)
+       when elem(elem(first, 1), 0) == :string
+       and elem(elem(second, 1), 0) == :comma
+       and tail != [] do
+    {List.flatten([second, tail]), "#{get_val(first)}"}
+  end
+
+  # handles end of doc unquoted string, which would fail previous checks
+  defp get_end_of_unquoted_string([first | tail] = _list)
+       when elem(elem(first, 1), 0) == :string
+       and tail == [] do
     {[], "#{get_val(first)}"}
   end
 

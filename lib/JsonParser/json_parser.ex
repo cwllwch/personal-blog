@@ -17,18 +17,25 @@ defmodule JsonParser.Main do
         result = Jason.encode!(parsed, pretty: true)
         {:ok, result}
 
-      {:error, reason} ->
-        Logger.info(reason)
-        result = parse_this(json)
-        {:parsed, result}
+      {:error, _reason} ->
+        parse_this(json)
+        |> handle_result()
     end
+  end
+
+  defp handle_result({:ok, result} = _tuple) do
+    {:parsed, result}
+  end
+
+  defp handle_result({:error, reason} = _tuple) do
+    {:error, reason}
   end
 
   def parse_this(not_json) do
     with {:ok, tokens} <- Tokenizer.main(not_json),
          {:ok, ast} <- Lumberjack.main(tokens),
          {:ok, result} <- Generator.main(ast) do
-      result
+      {:ok, result}
     else
       {:error, reason} -> {:error, reason}
     end
