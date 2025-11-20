@@ -18,6 +18,8 @@ defmodule JsonParser.Tokenizer do
     ]
   """
 
+  @list_to_concat [:string, :comma, :empty_string, :colon, :int, :open_bracket, :close_bracket] 
+
   def main(string) do
     last = String.length(string) - 1
 
@@ -50,7 +52,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
 
     cond do
-      current_type == :string || (current_type == :empty_string && prev_type == :quote) ->
+      current_type in @list_to_concat && prev_type == :string ->
         new_char =
           {prev_index, :string, "#{prev_val}#{current_val}"}
           |> bool_override()
@@ -81,7 +83,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
 
     cond do
-      current_type == :string && prev_type == :string ->
+      current_type in @list_to_concat && prev_type == :string ->
         new_char =
           {prev_index, :string, "#{prev_val}#{current_val}"}
           |> bool_override()
@@ -116,7 +118,7 @@ defmodule JsonParser.Tokenizer do
     {:close_bracket, char}
   end
 
-  defp get_type(char) when char == "\"" or char == "\\\"" or char == "\\\\\\\\\"" do
+  defp get_type(char) when char == "\"" do
     {:quote, "\""}
   end
 
@@ -138,6 +140,10 @@ defmodule JsonParser.Tokenizer do
 
   defp get_type(char) when char == "\\n" do
     {:newline, char}
+  end
+
+  defp get_type(char) when char == "\\" do
+    {:escape, char}
   end
 
   defp get_type(char) when char == " " do

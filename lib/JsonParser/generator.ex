@@ -19,7 +19,7 @@ defmodule JsonParser.Generator do
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
     try do 
-      result = "{" <> orchestrate(ast) <> "}"
+      result = "{" <> orchestrate(ast) <> "\n}"
       {:ok, result}
     rescue 
       e in [ArgumentError] ->
@@ -75,7 +75,7 @@ defmodule JsonParser.Generator do
   defp orchestrate([head | tail] = _list, acc) when head != [] do 
     key = get_key(head)
 
-    new_acc = "#{acc}, #{orchestrate(head, key)}"
+    new_acc = "#{acc},\n #{orchestrate(head, key)}"
 
     orchestrate(tail, new_acc)
   end
@@ -130,7 +130,7 @@ defmodule JsonParser.Generator do
 
     val = get_val(map, [first])
 
-    new_acc = "#{acc}, #{first}: #{val}"
+    new_acc = "#{acc} \n#{first}: #{val}"
 
     new_map = Map.reject(map, fn {k, _v} -> String.contains?(k, first) end)
 
@@ -147,7 +147,7 @@ defmodule JsonParser.Generator do
 
     val = get_val(map, [first])
 
-    new_acc = "#{acc}, #{first}: #{val}"
+    new_acc = "#{acc} \n#{first}: #{val}"
 
     orchestrate(map, tail, new_acc)
   end
@@ -181,7 +181,7 @@ defmodule JsonParser.Generator do
       source: "[#{Path.basename(__ENV__.file)}]",
       message: "found a list of values",
     ])
-    "\n[" <> Enum.reduce(head, "", fn m, acc ->  orchestrate(m) |> add_brackets() |> append(acc) end) <> "\n]"
+    "[" <> Enum.reduce(head, ", ", fn m, acc ->  orchestrate(m) |> add_brackets() |> append(acc) end) <> "\n]"
   end
 
   defp process_val([head | tail] = _val) when is_map(head) and tail == [] do
@@ -220,7 +220,7 @@ defmodule JsonParser.Generator do
 
   @spec append(String.t(), String.t()) :: String.t()
   defp append(new, old) do
-    "#{old}, #{new}"
+    "\n#{old},\n #{new}"
   end
 
   ## add brackets to separate when needed

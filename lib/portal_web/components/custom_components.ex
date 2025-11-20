@@ -37,11 +37,11 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :parsed} = assigns) do
     ~H"""
-    <div class="flex h-[36rem] aspect-[5/4] p-3 bg-white rounded-xl 
+    <div class="flex h-[42rem] aspect-[5/4] p-3 bg-white rounded-xl 
                 shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
-                whitespace-pre-wrap overflow-scroll"
-      >{Jason.Formatter.pretty_print(@message)}
-    </div>
+                whitespace-pre-wrap overflow-scroll text-pretty"
+      >{Jason.Formatter.pretty_print(@message)} 
+      </div>
     """
   end
 
