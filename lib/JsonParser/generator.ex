@@ -30,7 +30,7 @@ defmodule JsonParser.Generator do
       Logger.warning(
         message: "unhandled exception",
         exception: Exception.message(e),
-        mfa: "#{module} - #{function}/#{length(arity)}, arguments given: #{inspect(arity)}",
+        mfa: "#{module} - #{function}, arguments given: #{inspect(arity)}",
         location: inspect(meta[:file]) <> " at " <> inspect(meta[:line])
       )
 
