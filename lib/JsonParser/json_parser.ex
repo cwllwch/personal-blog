@@ -14,12 +14,21 @@ defmodule JsonParser.Main do
   def prettify(json) do
     case Jason.decode(json) do
       {:ok, parsed} ->
-        Jason.encode!(parsed, pretty: true)
+        result = Jason.encode(parsed, pretty: true)
+        {:ok, result}
 
-      {:error, reason} ->
-        Logger.info(reason)
+      {:error, _reason} ->
         parse_this(json)
+        |> handle_result()
     end
+  end
+
+  defp handle_result({:ok, result} = _tuple) do
+    {:parsed, result}
+  end
+
+  defp handle_result({:error, reason} = _tuple) do
+    {:error, reason}
   end
 
   def parse_this(not_json) do

@@ -18,6 +18,8 @@ defmodule JsonParser.Tokenizer do
     ]
   """
 
+  @list_to_concat [:string, :empty_string, :colon, :int, :open_bracket, :close_bracket]
+
   def main(string) do
     last = String.length(string) - 1
 
@@ -50,7 +52,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
 
     cond do
-      current_type == :string || (current_type == :whitespace && prev_type == :quote) ->
+      current_type in @list_to_concat && prev_type == :string ->
         new_char =
           {prev_index, :string, "#{prev_val}#{current_val}"}
           |> bool_override()
@@ -81,7 +83,7 @@ defmodule JsonParser.Tokenizer do
     {current_type, current_val} = get_type(precursor_char)
 
     cond do
-      current_type == :string && prev_type == :string ->
+      current_type in @list_to_concat && prev_type == :string ->
         new_char =
           {prev_index, :string, "#{prev_val}#{current_val}"}
           |> bool_override()
@@ -117,7 +119,7 @@ defmodule JsonParser.Tokenizer do
   end
 
   defp get_type(char) when char == "\"" do
-    {:quote, char}
+    {:quote, "\""}
   end
 
   defp get_type(char) when char == ":" do
@@ -140,6 +142,10 @@ defmodule JsonParser.Tokenizer do
     {:newline, char}
   end
 
+  defp get_type(char) when char == "\\" do
+    {:escape, char}
+  end
+
   defp get_type(char) when char == " " do
     {:empty_string, char}
   end
@@ -156,7 +162,7 @@ defmodule JsonParser.Tokenizer do
       whitespace? = Regex.match?(~r/[[:cntrl:][:blank:]]/, char)
 
       if whitespace? == true do
-        {:whitespace, char}
+        {:empty_string, char}
       else
         {:string, char}
       end

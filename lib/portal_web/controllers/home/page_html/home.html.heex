@@ -5,22 +5,25 @@
   test stuff and learn new things. Feel free to check the code on github above.
 </p>
 
-<div class="@container">
-  <div class="flex flex-col px-4 py-8 gap-6 sm:grid sm:grid-cols-2 lg:grid-cols-3">
-    <a href="https://github.com/cwllwch/personal-blog">
-      <div class="aspect-[3/2] w-full overflow-hidden rounded-lg 
+<div class="grid grid-cols-1 m-5 gap-3 p-3 rounded-xl 
+            md:grid-cols-2 
+            lg:grid-cols-3 lg:grid-flow-row 
+            dark:bg-stone-800/20 light:bg-teal-300">
+  <a
+    href={~p"/prettify-my-json"}
+    class="lg:col-span-2 lg:row-span-1 lg:aspect-auto
+      aspect-[3/2] w-full overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
-      flex items-center justify-center">
-        this page
-      </div>
-    </a>
-
-    <a href={~p"/prettify-my-json"}>
-      <div class="aspect-[3/2] w-max-150px overflow-hidden rounded-lg 
+      flex items-center justify-center"
+  >
+    the json prettifier
+  </a>
+  <a
+    href="https://github.com/cwllwch/personal-blog"
+    class="aspect-[3/2] w-full overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
-      flex items-center justify-center">
-        the json prettifier
-      </div>
-    </a>
-  </div>
+      flex items-center justify-center"
+  >
+    this page
+  </a>
 </div>
