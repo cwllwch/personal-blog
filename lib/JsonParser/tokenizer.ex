@@ -18,7 +18,7 @@ defmodule JsonParser.Tokenizer do
     ]
   """
 
-  @list_to_concat [:string, :empty_string, :colon, :int, :open_bracket, :close_bracket] 
+  @list_to_concat [:string, :empty_string, :colon, :int, :open_bracket, :close_bracket]
 
   def main(string) do
     last = String.length(string) - 1

@@ -13,38 +13,38 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   a new tree.
   """
   def main(tree, nodes) do
-    try do
-      nodes =
-        Enum.reverse(nodes)
-        |> Enum.reduce(%{}, fn node, acc ->
-          get_in(tree, List.flatten([node, :content]))
-          |> visitor(acc, node)
-        end)
+    nodes =
+      Enum.reverse(nodes)
+      |> Enum.reduce(%{}, fn node, acc ->
+        get_in(tree, List.flatten([node, :content]))
+        |> visitor(acc, node)
+      end)
 
-      Logger.info(%{
-        source: "[" <> Path.basename(__ENV__.file) <> "]",
-        message: "successfully parsed json string",
-        start: nodes[0].start,
-        end: nodes[0].end,
-        type: nodes[0].type
-      })
+    Logger.info(%{
+      source: "[" <> Path.basename(__ENV__.file) <> "]",
+      message: "successfully parsed json string",
+      start: nodes[0].start,
+      end: nodes[0].end,
+      type: nodes[0].type
+    })
 
-      result = nodes[0].pairs 
+    result = nodes[0].pairs
 
-      {:ok, result}
-    rescue e ->
+    {:ok, result}
+  rescue
+    e ->
       [first, second | _] = __STACKTRACE__
-      {mo_f, f_f, a_f,  me_f} = first
+      {mo_f, f_f, a_f, me_f} = first
       {mo_s, f_s, a_s, me_s} = second
 
-      Logger.warning([
+      Logger.warning(
         message: "unhandled exception",
         location: inspect(me_f[:file]) <> " at " <> inspect(me_f[:line]),
         mfa: "#{mo_f} - #{f_f}/#{length(List.flatten([a_f]))}, arguments given: #{inspect(a_f)}",
         context: "#{mo_s} - #{f_s}/#{a_s} at #{me_s[:line]}, arguments given: #{inspect(a_s)}"
-      ])
+      )
+
       {:error, "Error inserting data into the nodes: " <> Exception.message(e)}
-    end
   end
 
   # Orchestrates the node verification rules. Start by initiating an accumulator which
@@ -172,13 +172,13 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
             when elem(elem(token, 1), 0) == :colon
 
   defguardp is_unquoted_string(first)
-            when elem(elem(first, 1), 0) == :string 
+            when elem(elem(first, 1), 0) == :string
 
   defguardp is_bool(first)
             when elem(elem(first, 1), 0) == true or
                    elem(elem(first, 1), 0) == false or
                    elem(elem(first, 1), 0) == :null
- 
+
   defguardp is_whitespace(first) when elem(elem(first, 1), 0) == :empty_string
 
   defguard is_escape(token) when elem(elem(token, 1), 0) == :escape
@@ -199,13 +199,12 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_key([first | tail] = _list) do
-    Logger.debug("ignoring key #{inspect(first)}") 
+    Logger.debug("ignoring key #{inspect(first)}")
     get_key(tail)
   end
 
   # Rules for evaluating values.
   defguard is_comma(token) when elem(elem(token, 1), 0) == :comma
-
 
   defguard is_comma_or_bracket(token)
            when elem(elem(token, 1), 0) == :comma or
@@ -248,12 +247,12 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     evaluate_value_type(new_list, key)
   end
 
-  # Idea here is to move forward in case of no pattern recognized. 
-  # This approach is easier than ignoring all the escapes and 
-  # other weird stuff manually, but does come with the cost of 
+  # Idea here is to move forward in case of no pattern recognized.
+  # This approach is easier than ignoring all the escapes and
+  # other weird stuff manually, but does come with the cost of
   # potentially ignoring what the algorithm needs to catch.
   defp get_value([first | tail] = _list, key) do
-    Logger.debug("ignoring value #{inspect(first)}") 
+    Logger.debug("ignoring value #{inspect(first)}")
     get_value(tail, key)
   end
 
@@ -279,7 +278,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp evaluate_value_type([first | _tail] = list, key)
        when is_start_of_unquoted_string(first) do
-       Logger.debug([key: key, list: list], ansi_color: :red)
+    Logger.debug([key: key, list: list], ansi_color: :red)
     {new_tail, string} = get_end_of_unquoted_string(list)
     {new_tail, %{key => "\"#{string}\""}}
   end
@@ -309,8 +308,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {tail, %{key => get_val(first)}}
   end
 
-  # Catch-all case: remove the unrecognized pattern and move forward. 
-  # Most of what falls here should be whitespace, escapes, etc.  
+  # Catch-all case: remove the unrecognized pattern and move forward.
+  # Most of what falls here should be whitespace, escapes, etc.
   defp evaluate_value_type([_first | tail] = _list, key) do
     evaluate_value_type(tail, key)
   end
@@ -702,8 +701,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       end
     end)
   end
- 
-  # handles a multi-word string, which means this needs to iterate the tail until it finds a 
+
+  # handles a multi-word string, which means this needs to iterate the tail until it finds a
   # thing that is not a string - please note that whitespace is already excluded by this point
   # as it would break other parts of the generator
   defp get_end_of_unquoted_string([first, second | tail] = list)
@@ -724,16 +723,16 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   # handles a one-word string that immediately ends in a comma. meaning no iteration needed
   defp get_end_of_unquoted_string([first, second | tail] = _list)
-       when elem(elem(first, 1), 0) == :string
-       and elem(elem(second, 1), 0) == :comma
-       and tail != [] do
+       when elem(elem(first, 1), 0) == :string and
+              elem(elem(second, 1), 0) == :comma and
+              tail != [] do
     {List.flatten([second, tail]), "#{get_val(first)}"}
   end
 
   # handles end of doc unquoted string, which would fail previous checks
   defp get_end_of_unquoted_string([first | tail] = _list)
-       when elem(elem(first, 1), 0) == :string
-       and tail == [] do
+       when elem(elem(first, 1), 0) == :string and
+              tail == [] do
     {[], "#{get_val(first)}"}
   end
 

@@ -18,22 +18,23 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    try do 
-      result = "{" <> orchestrate(ast) <> "\n}"
-      {:ok, result}
-    rescue 
-      e in [ArgumentError] ->
-        {:error, "argument: " <> Exception.message(e)}
-      e ->
-        [{module, function, arity, meta} | _] = __STACKTRACE__
-        Logger.warning([
-          message: "unhandled exception", 
-          exception: Exception.message(e), 
-          mfa: "#{module} - #{function}/#{length(arity)}, arguments given: #{inspect(arity)}",
-          location: inspect(meta[:file]) <> " at " <> inspect(meta[:line])
-        ])
-        {:error, "Error generating string: #{Exception.message(e)}"}
-    end
+    result = "{" <> orchestrate(ast) <> "\n}"
+    {:ok, result}
+  rescue
+    e in [ArgumentError] ->
+      {:error, "argument: " <> Exception.message(e)}
+
+    e ->
+      [{module, function, arity, meta} | _] = __STACKTRACE__
+
+      Logger.warning(
+        message: "unhandled exception",
+        exception: Exception.message(e),
+        mfa: "#{module} - #{function}/#{length(arity)}, arguments given: #{inspect(arity)}",
+        location: inspect(meta[:file]) <> " at " <> inspect(meta[:line])
+      )
+
+      {:error, "Error generating string: #{Exception.message(e)}"}
   end
 
   ## Orchestrate the iteration of getting keys and values.
@@ -55,24 +56,25 @@ defmodule JsonParser.Generator do
     orchestrate(tail, acc)
   end
 
-  # starts an accumulator for lists of maps 
+  # starts an accumulator for lists of maps
   defp orchestrate([head | tail] = _list) when tail != [] and is_map(head) do
-    keys = get_key(head)
-    |> List.first()
+    keys =
+      get_key(head)
+      |> List.first()
 
-    Logger.debug([
+    Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
       function: "orchestrate/1",
       condition: "found a list of keywords at the start",
       key: keys
-    ])
+    )
 
     acc = orchestrate(head, keys)
 
     orchestrate(tail, acc)
   end
 
-  defp orchestrate([head | tail] = _list, acc) when head != [] do 
+  defp orchestrate([head | tail] = _list, acc) when head != [] do
     key = get_key(head)
 
     new_acc = "#{acc},\n #{orchestrate(head, key)}"
@@ -80,7 +82,7 @@ defmodule JsonParser.Generator do
     orchestrate(tail, new_acc)
   end
 
-  defp orchestrate(list, acc) when list == [] do 
+  defp orchestrate(list, acc) when list == [] do
     acc
   end
 
@@ -100,7 +102,7 @@ defmodule JsonParser.Generator do
   defp orchestrate(val, keys) when is_binary(val) and keys == val do
     val
   end
-  
+
   # starts the accumulator for a list of maps
   defp orchestrate(map, keys) when length(keys) > 1 do
     Logger.debug(
@@ -151,7 +153,7 @@ defmodule JsonParser.Generator do
 
     orchestrate(map, tail, new_acc)
   end
-  
+
   # returns after processing the list of maps
   defp orchestrate(_map, keys, acc) when keys == [] do
     acc
@@ -177,26 +179,27 @@ defmodule JsonParser.Generator do
 
   # This means the value is a list of values
   defp process_val([head | _tail] = _val) when is_list(head) do
-    Logger.debug([
+    Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a list of values",
-    ])
-    "[" <> Enum.reduce(head, ", ", fn m, acc ->  orchestrate(m) |> add_brackets() |> append(acc) end) <> "\n]"
+      message: "found a list of values"
+    )
+
+    "[" <>
+      Enum.reduce(head, ", ", fn m, acc -> orchestrate(m) |> add_brackets() |> append(acc) end) <>
+      "\n]"
   end
 
   defp process_val([head | tail] = _val) when is_map(head) and tail == [] do
-    Logger.debug([
-      source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a map", head: head
-      ])
+    Logger.debug(source: "[#{Path.basename(__ENV__.file)}]", message: "found a map", head: head)
     "{#{orchestrate(head)}}"
   end
 
   defp process_val([head | tail] = val) when is_map(head) and tail != [] do
-    Logger.debug([
+    Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
       message: "found a list of maps"
-      ])
+    )
+
     "{" <> Enum.reduce(val, "", fn m, acc -> orchestrate(m) |> append(acc) end) <> "}"
   end
 

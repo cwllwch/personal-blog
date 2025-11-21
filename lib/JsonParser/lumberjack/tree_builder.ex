@@ -7,16 +7,15 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
   require Logger
 
   def main(tokens) do
-  try do
-      {:ok, tree} = find_brackets(tokens)
-      {:ok, nodes} = get_tree_struct(tree) 
-      {:ok, tree, nodes}
-    rescue e ->
+    {:ok, tree} = find_brackets(tokens)
+    {:ok, nodes} = get_tree_struct(tree)
+    {:ok, tree, nodes}
+  rescue
+    e ->
       [{_module, _function, _arity, meta} | _] = __STACKTRACE__
-      Logger.warning([line: meta[:line], file: meta[:file], message: Exception.message(e)])
-      Logger.debug([stacktrace: __STACKTRACE__])
+      Logger.warning(line: meta[:line], file: meta[:file], message: Exception.message(e))
+      Logger.debug(stacktrace: __STACKTRACE__)
       {:error, Exception.message(e)}
-    end
   end
 
   defp find_brackets(tokens) do
