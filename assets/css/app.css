@@ -17,3 +17,45 @@ p {
     letter-spacing: 0.03em;
     color: #9ca3af;
 }
+
+@media screen and (max-width: 750px) {
+		.p_grid {
+				display: flex;
+				flex-flow: column wrap;
+				justify-content: space-around;
+				height: 60rem;
+		}
+
+		.btn-container {
+				display: flex; 
+				flex-wrap: wrap; 
+				flex-direction: column;
+				gap: 5px;
+				padding-top: 20%;
+				align-items: center;
+				justify-content: middle;
+		}
+
+		.about {
+				display: none;
+		}
+}
+
+@media screen and (min-width: 751px) {
+		.p_grid {
+				display: flex;
+				flex-flow: row wrap;
+				justify-content: space-between;
+				width: 100%;
+		}
+
+		.btn-container { 
+				display: flex;
+				flex-wrap: wrap; 
+				flex-direction: column;
+				gap: 5px;
+				padding-top: 20%;
+				align-items: center;
+				justify-content: middle;
+		}
+}

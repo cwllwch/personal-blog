@@ -18,8 +18,7 @@ defmodule PortalWeb.Components.CustomComponents do
   def display_text(%{level: :normal} = assigns) do
     ~H"""
     <textarea name={@name} 
-        class="mt-2 aspect-[9/16] md:aspect-[6/4]  
-              bg-white rounded-xl text-gray-500"
+        class="bg-white rounded-xl text-gray-500 h-full w-full"
               >result will show up here
     </textarea>
     """
@@ -27,7 +26,7 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :valid} = assigns) do
     ~H"""
-    <div class="flex h-svh md:aspect-[5/4] p-3 bg-white rounded-xl 
+    <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-lime-400/30 ring ring-lime-400/60
                 whitespace-pre-wrap overflow-scroll" 
       >{Jason.Formatter.pretty_print(elem(@message, 1))}
@@ -37,9 +36,9 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :parsed} = assigns) do
     ~H"""
-    <div class="flex h-[42rem] aspect-[5/4] p-3 bg-white rounded-xl 
+    <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
-                whitespace-pre-wrap overflow-scroll text-pretty"
+                whitespace-pre-wrap overflow-scroll"
       >{Jason.Formatter.pretty_print(@message)} 
       </div>
     """
@@ -47,10 +46,10 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :error} = assigns) do
     ~H"""
-    <div class="flex h-[36rem] aspect-[5/4] p-3 bg-white rounded-xl 
+    <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-red-400/30 ring ring-red-400/60
-                whitespace-pre-wrap"
-        >{inspect(@message)}
+                whitespace-pre-wrap overflow-scroll"
+        >is this really a json? check if you have an extra bracket around, that really confuses me
     </div>
     """
   end

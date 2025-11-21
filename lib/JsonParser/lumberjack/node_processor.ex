@@ -163,7 +163,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defguardp is_start_of_string(first, second)
             when elem(elem(first, 1), 0) == :quote and
-                   elem(elem(second, 1), 0) == :string
+                   elem(elem(second, 1), 0) in [:string, :int, true, false, :null, :escape]
 
   defguardp is_start_of_unquoted_string(first)
             when elem(elem(first, 1), 0) == :string
@@ -199,7 +199,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_key([first | tail] = _list) do
-    Logger.info("ignoring key #{inspect(first)}") 
+    Logger.debug("ignoring key #{inspect(first)}") 
     get_key(tail)
   end
 
@@ -253,7 +253,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   # other weird stuff manually, but does come with the cost of 
   # potentially ignoring what the algorithm needs to catch.
   defp get_value([first | tail] = _list, key) do
-    Logger.info("ignoring value #{inspect(first)}") 
+    Logger.debug("ignoring value #{inspect(first)}") 
     get_value(tail, key)
   end
 
@@ -277,10 +277,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     {tail, %{key => "\"#{string}\""}}
   end
 
-  defp evaluate_value_type([first | tail] = list, key)
+  defp evaluate_value_type([first | _tail] = list, key)
        when is_start_of_unquoted_string(first) do
-       Logger.info([key: key, list: list], ansi_color: :red)
-    {new_tail, string} = get_end_of_unquoted_string([first | tail])
+       Logger.debug([key: key, list: list], ansi_color: :red)
+    {new_tail, string} = get_end_of_unquoted_string(list)
     {new_tail, %{key => "\"#{string}\""}}
   end
 
@@ -669,14 +669,13 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_separator([first | tail] = _list, key_val, acc) do
-    Logger.info("ignoring value #{inspect(first)}")
+    Logger.debug("ignoring value #{inspect(first)}")
     get_separator(tail, key_val, acc)
   end
 
   # Helper functions
   defp get_end_of_proper_string([first, second | tail] = list)
        when elem(elem(first, 1), 0) == :quote do
-       Logger.info(tail)
     {end_index, _} = List.keyfind(tail, {:quote, "\""}, 1) || List.last(tail)
     {start_index, _} = second
 
