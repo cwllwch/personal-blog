@@ -1,15 +1,47 @@
+name: portal
+
 services:
+  proxy: 
+    container_name: proxy
+    image: traefik:v3.6
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    configs:
+      - source: traefik_cfg
+        target: /etc/traefik/traefik.yml
+    links: 
+    - "portal:backend"
+
+  portal: 
+    build: .
+    env_file: .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portal.rule=Host(`portal.localhost`)
+      - traefik.http.routers.portal.entrypoints=websecure
+      - traefik.http.routers.portal.tls=true
+      - traefik.http.services.portal.loadbalancer.server.port=4000
+      - traefik.http.services.portal.loadbalancer.sticky.cookie=true
+    links: 
+    - "db:postgres"
+
   db:
     image: postgres:16
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: portal_dev
+    container_name: postgres
+    restart: unless-stopped
+    env_file:
+      .env
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
-      
+
 volumes:
   pgdata:
 
+configs: 
+  traefik_cfg:
+    file: ./traefik.yml

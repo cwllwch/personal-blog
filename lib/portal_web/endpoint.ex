@@ -11,8 +11,17 @@ defmodule PortalWeb.Endpoint do
     same_site: "Lax"
   ]
 
+  @check_origin (case Mix.env() do
+    :dev -> false
+    :test -> false 
+    _ -> true
+  end)
+
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
+    websocket:  [
+    connect_info: [session: @session_options],
+    check_origin: @check_origin
+    ],
     longpoll: [connect_info: [session: @session_options]]
 
   # Serve at "/" the static files from "priv/static" directory.
@@ -51,3 +60,4 @@ defmodule PortalWeb.Endpoint do
   plug Plug.Session, @session_options
   plug PortalWeb.Router
 end
+
