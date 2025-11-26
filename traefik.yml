@@ -14,17 +14,48 @@ entrypoints:
   websecure:
     address: ":443"
 
-  traefik:
-    address: ":8080"
+  metrics:
+    address: ":8082"
 
 log:
   level: DEBUG
+  format: json
+
+accesslog:
+  format: json
+  fields: 
+    defaultMode: keep
+    names: 
+      RequestPath: keep
+      RequestMethod: keep
+      RequestHost: keep
+      RequestAddr: keep
+      RequestProtocol: keep
+    headers:
+      defaultMode: keep
+      names:
+        User-Agent: keep
+        X-Forwarded-For: keep
+        Referer: keep
+
+metrics: 
+  prometheus: 
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true
+    entryPoint: metrics
+    manualRouting: false
 
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
 
+experimental:
+  plugins:
+    fail2ban:
+      moduleName: "github.com/tomMoulard/fail2ban"
+      version: "v0.8.9"
+
 api:
-  insecure: true
   dashboard: true

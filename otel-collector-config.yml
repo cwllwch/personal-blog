@@ -1,0 +1,135 @@
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'traefik'
+          scrape_interval: 30s
+          static_configs: 
+            - targets: ['proxy:8082']
+              labels: 
+                service: traefik
+        
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 60s
+    timeout: 50s
+    api_version: "1.47"
+
+    container_labels_to_metric_labels:
+      com.docker.compose.service: service
+
+    metrics:
+      container.uptime:
+        enabled: true
+      container.restarts:
+        enabled: true
+      container.cpu.utilization:
+        enabled: true
+      container.memory.percent:
+        enabled: true
+
+  otlp: 
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  filelog:
+    include:
+      - /var/lib/docker/containers/*/*.log
+    exclude:
+      - /var/lib/docker/containers/*otel-collector*.log
+      - /var/lib/docker/containers/*vlogs*.log
+      - /var/lib/docker/containers/*victoria-logs*.log
+      - /var/lib/docker/containers/*dozzle*.log
+    start_at: end
+    poll_interval: 3s
+    include_file_path: true
+    include_file_name: false
+    operators:
+      - type: json_parser
+        id: parse_docker_json
+        parse_from: body
+        parse_to: attributes.docker
+        timestamp:
+          parse_from: attributes.docker.time
+          layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+
+      - field: attributes.time
+        type: remove
+
+      - type: regex_parser
+        if: "attributes?.attrs?.tag != nil"
+        regex: ^(?P<name>[^\|]+)\|(?P<image_name>[^\|]+)\|(?P<id>[^$]+)$
+        parse_from: attributes.attr.tag
+
+      - type: move 
+        if: "attributes?.name != nil"
+        from: attributes.name
+        to: resource["docker.container.name"]
+
+      - type: move
+        from: attributes.docker.log
+        to: body
+      
+      - type: move
+        from: attributes.docker.stream
+        to: attributes.stream
+processors:
+  resource:
+    attributes:
+      - key: service.name
+        value: resource["docker.container.name"]
+        action: insert
+      - key: environment
+        value: ${MIX_ENV}
+        action: insert
+
+  batch:
+    timeout: 20s
+    send_batch_size: 2048
+
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+
+  resourcedetection:
+    detectors: [docker]
+    timeout: 5s
+
+  attributes/docker:
+    actions:
+      - key: container.name
+        action: extract
+        pattern: '^/?(?P<container_name>.+)$'
+      - key: service
+        from_attribute: com.docker.compose.service
+        action: upsert
+
+exporters:
+  prometheusremotewrite:
+    endpoint: http://victoria-metrics:8428/api/v1/write
+    tls:
+      insecure: true
+
+  loki:
+      endpoint: http://vlogs:9428/insert/loki/api/v1/push
+      tls: 
+        insecure: true
+
+extensions: 
+  health_check:
+    endpoint: :13133
+    
+service: 
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [prometheus, docker_stats, otlp]
+      processors: [memory_limiter, resourcedetection, attributes/docker, batch]
+      exporters: [prometheusremotewrite]
+    logs: 
+      receivers: [filelog, otlp]
+      processors: [memory_limiter, resourcedetection, resource, batch]
+      exporters: [loki]

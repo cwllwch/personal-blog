@@ -20,7 +20,6 @@ config :portal, PortalWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {0, 0, 0, 0}, port: 4000],
-  check_origin: false, # Only for dev environment
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "BRc8Ko4DwPFp8Tk3hrf/qz2HLNIoCvfR4zL3Q705/7YYjVui+1hz3B0gry37b/wy",
@@ -54,7 +53,7 @@ config :portal, PortalWeb.Endpoint,
 
 # Watch static and templates for browser reloading.
 config :portal, PortalWeb.Endpoint,
-  url: [host: "https://portal.localhost"],
+  url: [host: "portal.localhost"],
   live_reload: [
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
