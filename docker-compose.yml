@@ -1,15 +1,202 @@
+name: portal
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+    tag: "{{.Name}}"
+
 services:
-  db:
-    image: postgres:16
+  proxy: 
+    container_name: portal-proxy
+    image: traefik:v3.6.2
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    labels:
+      # Add a route to the dashboard from websecure
+      - traefik.enable=true
+
+      # Router to dashboard
+      - traefik.http.routers.dashboard.rule=Host(`traefik.${PHX_HOST}`)       
+      - traefik.http.routers.dashboard.entrypoints=websecure 
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.service=api@internal
+
+      # Secure the dashboard - can only access it from localhost
+      - traefik.http.middlewares.local-ipallow.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12
+      - traefik.http.routers.dashboard.middlewares=local-ipallow@docker,monitor-auth
+      - traefik.http.middlewares.monitor-auth.basicAuth.usersFile=/run/secrets/htpasswd
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+    configs:
+      - source: traefik_cfg
+        target: /etc/traefik/traefik.yml
+    networks: 
+      - traefik
+      - obs
+    secrets:
+      - htpasswd
+    logging: *default-logging
+
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:v1.106.1
+    restart: unless-stopped
+    volumes: 
+      - ./vmagent.yml:/etc/vmagent/vmagent.yml
+      - vmagent-data:/vmagent-data
+    command:
+      - '--promscrape.config=/etc/vmagent/vmagent.yml'
+      - '--remoteWrite.url=http://metrics:8428/api/v1/write'
+    networks:
+      - obs
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.0
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    networks:
+      - obs
+
+  victoria-metrics: 
+    container_name: metrics
+    image: victoriametrics/victoria-metrics:v1.106.1
+    restart: unless-stopped
+    command:
+      - '--storageDataPath=/victoria-metrics-data'
+      - '--retentionPeriod=30d'
+      - '--httpListenAddr=:8428'
+    volumes:
+      - vm-data:/victoria-metrics-data
+    depends_on:
+      - vmagent
+    networks:
+      - obs
+
+  grafana: 
+    image: grafana/grafana:12.1
+    container_name: grafana
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: portal_dev
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=victoriametrics-logs-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning:/etc/grafana/provisioning
+    env_file:
+      - .env
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`grafana.${PHX_HOST}`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+      - traefik.docker.network=portal_traefik
+      - traefik.http.routers.grafana.middlewares=local-ipallow@docker,monitor-auth
+    networks:
+      - traefik
+      - obs
+      - database
+    depends_on: 
+      - victoria-metrics
+
+  dozzle:
+    image: amir20/dozzle:v8.8.3
+    container_name: logs
+    volumes: 
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      # Add a route to check out logs
+      - traefik.enable=true
+
+      # Router to the log service
+      - traefik.http.routers.logs.rule=Host(`logs.${PHX_HOST}`)
+      - traefik.http.routers.logs.entrypoints=websecure
+      - traefik.http.routers.logs.tls=true
+      - traefik.http.services.logs.loadbalancer.server.port=8080
+      - traefik.docker.network=portal_traefik
+
+      # Middleware to keep this available only for localhost
+      - traefik.http.routers.logs.middlewares=local-ipallow@docker,monitor-auth
+    networks:
+      - traefik
+
+  portal: 
+    container_name: server
+    build: .
+    env_file: .env
+    labels:
+      # Enable and configure Traefik
+      - traefik.enable=true
+      - traefik.http.routers.portal.rule=Host(`${PHX_HOST}`)
+      - traefik.http.routers.portal.entrypoints=websecure
+      - traefik.http.routers.portal.tls=true
+      - traefik.http.services.portal.loadbalancer.server.port=4000
+      - traefik.http.services.portal.loadbalancer.sticky.cookie=true
+      - traefik.docker.network=portal_traefik
+
+      # fail2ban middleware. Bans IPs that have had <maxretry> failed replies from the server
+      # within the past <findtime> mins.
+      - traefik.http.middlewares.fail2ban.plugin.fail2ban.rules.bantime=2h
+      - traefik.http.middlewares.fail2ban.plugin.fail2ban.rules.findtime=2m
+      - traefik.http.middlewares.fail2ban.plugin.fail2ban.rules.maxretry=15
+      - traefik.http.middlewares.fail2ban.plugin.fail2ban.rules.statuscode=401-499
+      - traefik.http.middlewares.fail2ban.plugin.fail2ban.rules.enabled=true
+      - traefik.http.routers.portal.middlewares=fail2ban@docker
+    depends_on: 
+      - db
+    networks: 
+      - traefik
+      - database
+    logging: *default-logging
+
+  db:
+    image: postgres:16.6-alpine
+    container_name: db
+    restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
-      
-volumes:
-  pgdata:
+    networks:
+      - database
+    logging: *default-logging
 
+volumes:
+  traefik-certs:
+    name: traefik_certs
+  pgdata:
+    name: pgdata
+  vm-data:
+    name: vm_data
+  vmagent-data:
+    name: vmagent_data
+  grafana-data:
+    name: grafana_data
+
+
+networks:
+  traefik:
+    driver: bridge
+  database:
+    driver: bridge
+  obs:
+    driver: bridge
+
+configs: 
+  traefik_cfg:
+    file: ./traefik.yml
+
+secrets:
+  htpasswd:
+    file: ./htpasswd

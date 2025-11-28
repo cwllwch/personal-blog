@@ -247,6 +247,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     evaluate_value_type(new_list, key)
   end
 
+  defp get_value([first, second, third | _new_list] = list, key)
+       when is_string(first, second, third) do
+    evaluate_value_type(list, key)
+  end
+
   # Idea here is to move forward in case of no pattern recognized.
   # This approach is easier than ignoring all the escapes and
   # other weird stuff manually, but does come with the cost of
@@ -668,7 +673,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   end
 
   defp get_separator([first | tail] = _list, key_val, acc) do
-    Logger.debug("ignoring value #{inspect(first)}")
+    Logger.debug("ignoring before separator #{inspect(first)}")
     get_separator(tail, key_val, acc)
   end
 
