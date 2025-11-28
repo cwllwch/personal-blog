@@ -40,3 +40,4 @@ npm-debug.log
 /certs
 .DS_Store
 .vscode/
+.ssh
