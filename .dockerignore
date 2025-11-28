@@ -35,7 +35,7 @@
 /_build/
 /deps/
 *.ez
-
+.ssh
 # Generated on crash by the VM
 erl_crash.dump
 
