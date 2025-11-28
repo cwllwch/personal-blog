@@ -12,15 +12,15 @@ defmodule PortalWeb.Endpoint do
   ]
 
   @check_origin (case Mix.env() do
-    :dev -> false
-    :test -> false 
-    _ -> true
-  end)
+                   :dev -> false
+                   :test -> false
+                   _ -> true
+                 end)
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket:  [
-    connect_info: [session: @session_options],
-    check_origin: @check_origin
+    websocket: [
+      connect_info: [session: @session_options],
+      check_origin: @check_origin
     ],
     longpoll: [connect_info: [session: @session_options]]
 
@@ -60,4 +60,3 @@ defmodule PortalWeb.Endpoint do
   plug Plug.Session, @session_options
   plug PortalWeb.Router
 end
-

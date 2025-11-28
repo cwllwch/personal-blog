@@ -29,8 +29,8 @@ defmodule PortalWeb.Components.CustomComponents do
     ~H"""
     <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-lime-400/30 ring ring-lime-400/60
-                whitespace-pre-wrap overflow-scroll"
-      >{Jason.Formatter.pretty_print(elem(@message, 1))}
+                whitespace-pre-wrap overflow-scroll">
+      {Jason.Formatter.pretty_print(elem(@message, 1))}
     </div>
     """
   end
@@ -39,8 +39,8 @@ defmodule PortalWeb.Components.CustomComponents do
     ~H"""
     <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
-                whitespace-pre-wrap overflow-scroll"
-      >{Jason.Formatter.pretty_print(@message)}
+                whitespace-pre-wrap overflow-scroll">
+      {Jason.Formatter.pretty_print(@message)}
     </div>
     """
   end
@@ -49,8 +49,8 @@ defmodule PortalWeb.Components.CustomComponents do
     ~H"""
     <div class="p-3 bg-white rounded-xl h-full w-full
                 shadow-xl shadow-red-400/30 ring ring-red-400/60
-                whitespace-pre-wrap overflow-scroll"
-      >is this really a json? check if you have an extra bracket around, that really confuses me
+                whitespace-pre-wrap overflow-scroll">
+      is this really a json? check if you have an extra bracket around, that really confuses me
     </div>
     """
   end

@@ -118,7 +118,7 @@ defmodule JsonParser.Tokenizer do
     {:close_bracket, char}
   end
 
-  defp get_type(char) when char in ["\"", "\\\""]  do
+  defp get_type(char) when char in ["\"", "\\\""] do
     {:quote, "\""}
   end
 

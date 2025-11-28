@@ -246,9 +246,9 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp get_value([first | new_list] = _list, key) when is_comma_or_bracket(first) do
     evaluate_value_type(new_list, key)
   end
-  
-  defp get_value([first, second, third | _new_list] = list, key) when 
-    is_string(first, second, third) do
+
+  defp get_value([first, second, third | _new_list] = list, key)
+       when is_string(first, second, third) do
     evaluate_value_type(list, key)
   end
 
