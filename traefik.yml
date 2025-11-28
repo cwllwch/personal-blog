@@ -13,12 +13,22 @@ entrypoints:
 
   websecure:
     address: ":443"
+    http:
+      tls:
+        certResolver: letsentcrypt
 
   metrics:
     address: ":8082"
 
+certificatesResolver:
+  letsencrypt:
+    acme:
+      email: bernardo.corais@gmail.com
+      storage: /letsencrypt/acme.json
+      tlsChallenge: {}
+      
 log:
-  level: DEBUG
+  level: INFO
   format: json
 
 accesslog:

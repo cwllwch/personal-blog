@@ -31,6 +31,7 @@ services:
       - traefik.http.middlewares.monitor-auth.basicAuth.usersFile=/run/secrets/htpasswd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
     configs:
       - source: traefik_cfg
         target: /etc/traefik/traefik.yml
@@ -53,7 +54,6 @@ services:
       - '--remoteWrite.url=http://metrics:8428/api/v1/write'
     networks:
       - obs
-    logging: *default-logging
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
@@ -63,9 +63,9 @@ services:
       - /sys:/sys:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
     networks:
       - obs
-    logging: *default-logging
 
   victoria-metrics: 
     container_name: metrics
@@ -81,7 +81,6 @@ services:
       - vmagent
     networks:
       - obs
-    logging: *default-logging
 
   grafana: 
     image: grafana/grafana:12.1
@@ -110,11 +109,10 @@ services:
       - database
     depends_on: 
       - victoria-metrics
-    logging: *default-logging
 
   dozzle:
     image: amir20/dozzle:v8.8.3
-    container_name: portal-dozzle
+    container_name: logs
     volumes: 
       - /var/run/docker.sock:/var/run/docker.sock:ro
     labels:
@@ -132,10 +130,9 @@ services:
       - traefik.http.routers.logs.middlewares=local-ipallow@docker,monitor-auth
     networks:
       - traefik
-    logging: *default-logging
 
   portal: 
-    container_name: portal-backend
+    container_name: server
     build: .
     env_file: .env
     labels:
@@ -165,7 +162,7 @@ services:
 
   db:
     image: postgres:16.6-alpine
-    container_name: portal-db
+    container_name: db
     restart: unless-stopped
     env_file:
       - .env
@@ -176,6 +173,8 @@ services:
     logging: *default-logging
 
 volumes:
+  traefik-certs:
+    name: traefik_certs
   pgdata:
     name: pgdata
   vm-data:
