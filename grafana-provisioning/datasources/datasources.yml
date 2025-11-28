@@ -11,11 +11,6 @@ datasources:
       httpMethod: POST
       timeInterval: 30s
 
-  - name: Logs
-    type: victoriametrics-logs-datasource
-    access: proxy
-    url: http://victoria-logs:9428
-
   - name: PostgreSQL
     type: postgres
     access: proxy

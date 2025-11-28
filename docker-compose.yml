@@ -5,7 +5,7 @@ x-logging: &default-logging
   options:
     max-size: "5m"
     max-file: "2"
-    tag: "{{.Name}}|{{.ImageName}}|{{.ID}}"
+    tag: "{{.Name}}"
 
 services:
   proxy: 
@@ -28,7 +28,7 @@ services:
       # Secure the dashboard - can only access it from localhost
       - traefik.http.middlewares.local-ipallow.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12
       - traefik.http.routers.dashboard.middlewares=local-ipallow@docker,monitor-auth
-      - traefik.http.middlewares.monitor-auth.basicAuth.users=admin:$$apr1$$PlO3EJ/0$$7DVI6VF6FPouwef8ycXR8.
+      - traefik.http.middlewares.monitor-auth.basicAuth.usersFile=/run/secrets/htpasswd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     configs:
@@ -37,22 +37,35 @@ services:
     networks: 
       - traefik
       - obs
+    secrets:
+      - htpasswd
     logging: *default-logging
 
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.114.0
-    container_name: otel-collector
-    user: "0:0"
+  vmagent:
+    container_name: vmagent
+    image: victoriametrics/vmagent:v1.106.1
     restart: unless-stopped
-    env_file:
-      - .env
-    command: ["--config=/etc/otel-collector-config.yml"]
     volumes: 
-      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./vmagent.yml:/etc/vmagent/vmagent.yml
+      - vmagent-data:/vmagent-data
+    command:
+      - '--promscrape.config=/etc/vmagent/vmagent.yml'
+      - '--remoteWrite.url=http://metrics:8428/api/v1/write'
     networks:
       - obs
+    logging: *default-logging
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.52.0
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    networks:
+      - obs
+    logging: *default-logging
 
   victoria-metrics: 
     container_name: metrics
@@ -65,23 +78,10 @@ services:
     volumes:
       - vm-data:/victoria-metrics-data
     depends_on:
-      - otel-collector
+      - vmagent
     networks:
       - obs
     logging: *default-logging
-
-  victoria-logs:
-    container_name: vlogs
-    image: victoriametrics/victoria-logs:v1.0.0-victorialogs
-    restart: unless-stopped
-    command:
-      - '--storageDataPath=/victoria-logs-data'
-      - '--retentionPeriod=14d'
-      - '--httpListenAddr=:9428'
-    volumes:
-      - vlogs-data:/victoria-logs-data
-    networks:
-      - obs
 
   grafana: 
     image: grafana/grafana:12.1
@@ -132,6 +132,7 @@ services:
       - traefik.http.routers.logs.middlewares=local-ipallow@docker,monitor-auth
     networks:
       - traefik
+    logging: *default-logging
 
   portal: 
     container_name: portal-backend
@@ -179,10 +180,10 @@ volumes:
     name: pgdata
   vm-data:
     name: vm_data
+  vmagent-data:
+    name: vmagent_data
   grafana-data:
     name: grafana_data
-  vlogs-data:
-    name: vlogs_data
 
 
 networks:
@@ -196,3 +197,7 @@ networks:
 configs: 
   traefik_cfg:
     file: ./traefik.yml
+
+secrets:
+  htpasswd:
+    file: ./htpasswd
