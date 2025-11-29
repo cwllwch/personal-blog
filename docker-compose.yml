@@ -19,13 +19,15 @@ services:
     - .env
     labels:
       # Add a route to the dashboard from websecure
-      - traefik.enable=true
+      - traefik.enable=true      
+
 
       # Router to dashboard
       - traefik.http.routers.dashboard.rule=Host(`traefik.${PHX_HOST}`)       
       - traefik.http.routers.dashboard.entrypoints=websecure 
       - traefik.http.routers.dashboard.tls=true
       - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
 
       # Secure the dashboard - can only access it from localhost
       - traefik.http.middlewares.local-ipallow.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12
@@ -102,6 +104,7 @@ services:
       - traefik.http.routers.grafana.rule=Host(`grafana.${PHX_HOST}`)
       - traefik.http.routers.grafana.entrypoints=websecure
       - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=letsencrypt
       - traefik.http.services.grafana.loadbalancer.server.port=3000
       - traefik.docker.network=portal_traefik
       - traefik.http.routers.grafana.middlewares=local-ipallow@docker,monitor-auth
@@ -125,6 +128,7 @@ services:
       - traefik.http.routers.logs.rule=Host(`logs.${PHX_HOST}`)
       - traefik.http.routers.logs.entrypoints=websecure
       - traefik.http.routers.logs.tls=true
+      - traefik.http.routers.logs.tls.certresolver=letsencrypt
       - traefik.http.services.logs.loadbalancer.server.port=8080
       - traefik.docker.network=portal_traefik
 
@@ -143,6 +147,7 @@ services:
       - traefik.http.routers.portal.rule=Host(`${PHX_HOST}`)
       - traefik.http.routers.portal.entrypoints=websecure
       - traefik.http.routers.portal.tls=true
+      - traefik.http.routers.portal.tls.certresolver=letsencrypt
       - traefik.http.services.portal.loadbalancer.server.port=4000
       - traefik.http.services.portal.loadbalancer.sticky.cookie=true
       - traefik.docker.network=portal_traefik
