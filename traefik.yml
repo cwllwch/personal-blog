@@ -15,7 +15,7 @@ entrypoints:
     address: ":443"
     http:
       tls:
-        certResolver: letsentcrypt
+        certResolver: letsencrypt
 
   metrics:
     address: ":8082"
