@@ -20,7 +20,7 @@ entrypoints:
   metrics:
     address: ":8082"
 
-certificatesResolver:
+certificatesResolvers:
   letsencrypt:
     acme:
       email: bernardo.corais@gmail.com
