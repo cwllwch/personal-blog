@@ -61,6 +61,8 @@ jobs:
         port: ${{ secrets.SSH_PORT }}
         script: |
           cd /home/deploy
+          echo "${{ secrets.DOCKERHUB_PAT }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
           docker compose pull
           docker system prune -f
           docker compose up -d --remove-orphans
+          docker logout
