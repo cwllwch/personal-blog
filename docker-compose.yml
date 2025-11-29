@@ -21,7 +21,6 @@ services:
       # Add a route to the dashboard from websecure
       - traefik.enable=true      
 
-
       # Router to dashboard
       - traefik.http.routers.dashboard.rule=Host(`traefik.${PHX_HOST}`)       
       - traefik.http.routers.dashboard.entrypoints=websecure 
@@ -30,8 +29,7 @@ services:
       - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
 
       # Secure the dashboard - can only access it from localhost
-      - traefik.http.middlewares.local-ipallow.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12
-      - traefik.http.routers.dashboard.middlewares=local-ipallow@docker,monitor-auth
+      - traefik.http.routers.dashboard.middlewares=monitor-auth
       - traefik.http.middlewares.monitor-auth.basicAuth.usersFile=/run/secrets/htpasswd
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -107,7 +105,7 @@ services:
       - traefik.http.routers.grafana.tls.certresolver=letsencrypt
       - traefik.http.services.grafana.loadbalancer.server.port=3000
       - traefik.docker.network=portal_traefik
-      - traefik.http.routers.grafana.middlewares=local-ipallow@docker,monitor-auth
+      - traefik.http.routers.grafana.middlewares=monitor-auth
     networks:
       - traefik
       - obs
@@ -133,7 +131,7 @@ services:
       - traefik.docker.network=portal_traefik
 
       # Middleware to keep this available only for localhost
-      - traefik.http.routers.logs.middlewares=local-ipallow@docker,monitor-auth
+      - traefik.http.routers.logs.middlewares=monitor-auth
     networks:
       - traefik
 
