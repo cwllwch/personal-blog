@@ -25,7 +25,8 @@ certificatesResolver:
     acme:
       email: bernardo.corais@gmail.com
       storage: /letsencrypt/acme.json
-      tlsChallenge: {}
+      httpChallenge: 
+        entryPoint: web
       
 log:
   level: INFO
