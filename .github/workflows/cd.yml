@@ -1,0 +1,64 @@
+name: Test, push and deploy
+
+on: 
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+    env:
+      ImageOS: ubuntu22
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Elixir
+      uses: erlef/setup-beam@61e01a43a562a89bfc54c7f9a378ff67b03e4a21
+      with:
+        elixir-version: '1.17.3'
+        otp-version: '27.0'
+
+    - name: restore dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-mix-
+
+    - name: install deps
+      run: mix deps.get
+
+    - name: test!
+      run: mix test
+
+    - name: login to dockerhub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKERHUB_PAT }}
+
+    - name: get metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: bernardocorais/test-repo
+        flavor: |
+          latest=false
+        tags: |
+          type=semver,pattern={{version}}
+
+    - name: build and push
+      id: push
+      uses: docker/build-push-action@v5
+      with:
+        context: . 
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+      
+
