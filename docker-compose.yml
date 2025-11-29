@@ -15,6 +15,8 @@ services:
       - 80:80
       - 443:443
     restart: unless-stopped
+    env_file: 
+    - .env
     labels:
       # Add a route to the dashboard from websecure
       - traefik.enable=true
@@ -133,7 +135,7 @@ services:
 
   portal: 
     container_name: server
-    image: bernardocorais/test-repo:portal-0.0.2
+    image: bernardocorais/test-repo:portal-0.0.1
     env_file: .env
     labels:
       # Enable and configure Traefik
