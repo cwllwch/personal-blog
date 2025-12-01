@@ -283,7 +283,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
 
   defp evaluate_value_type([first | _tail] = list, key)
        when is_start_of_unquoted_string(first) do
-    Logger.debug([key: key, list: list], ansi_color: :red)
+    Logger.debug([key: key, list: list])
     {new_tail, string} = get_end_of_unquoted_string(list)
     {new_tail, %{key => "\"#{string}\""}}
   end

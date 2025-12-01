@@ -21,7 +21,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
   defp find_brackets(tokens) do
     brackets =
       Enum.filter(tokens, fn char ->
-        elem(char, 1) == :open_bracket || elem(char, 1) == :close_bracket
+        elem(char, 1) in [:open_bracket, :close_bracket]
       end)
 
     acc = %{}
@@ -33,7 +33,7 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
     {:ok, acc}
   end
 
-  defp process_brackets(brackets, acc, level) when level == 0 do
+  defp process_brackets(brackets, acc, level) when level == 0 and brackets != [] do
     {token, new_brackets} = List.pop_at(brackets, 0)
     type = elem(token, 1)
     index = elem(token, 0)
@@ -49,20 +49,20 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
     end
   end
 
-  defp process_brackets(brackets, acc, level, parent, node_id) when level >= 1 do
-    {token, new_brackets} = List.pop_at(brackets, 0)
-    type = elem(token, 1)
-    index = elem(token, 0)
+  defp process_brackets(brackets, acc, level, parent, node_id) when level >= 1 and brackets != [] do
+{token, new_brackets} = List.pop_at(brackets, 0)
 
     cond do
-      type == :open_bracket ->
+      elem(token, 1) == :open_bracket ->
+        index = elem(token, 0)
         node_id = node_id + 1
         level = level + 1
         new_parent = List.insert_at(parent, -1, node_id)
         new_acc = put_in(acc, new_parent, %{parents: parent, beginning: index})
         process_brackets(new_brackets, new_acc, level, new_parent, node_id)
 
-      type == :close_bracket ->
+      elem(token, 1) == :close_bracket ->
+        index = elem(token, 0)
         {:ok, new_acc} = get_and_update_in(acc, parent, &{:ok, Map.merge(%{end: index}, &1)})
         level = level - 1
         {_, parent} = List.pop_at(parent, -1)
@@ -70,6 +70,13 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
         if level == 0 do
           process_brackets(new_brackets, new_acc, level)
         else
+          Logger.debug([
+            new_acc: new_brackets,
+            new_acc: new_acc,
+            level: level,
+            parent: parent,
+            node_id: node_id
+          ])
           process_brackets(new_brackets, new_acc, level, parent, node_id)
         end
     end
