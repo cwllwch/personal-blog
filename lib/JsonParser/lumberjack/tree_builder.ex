@@ -49,8 +49,9 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
     end
   end
 
-  defp process_brackets(brackets, acc, level, parent, node_id) when level >= 1 and brackets != [] do
-{token, new_brackets} = List.pop_at(brackets, 0)
+  defp process_brackets(brackets, acc, level, parent, node_id)
+       when level >= 1 and brackets != [] do
+    {token, new_brackets} = List.pop_at(brackets, 0)
 
     cond do
       elem(token, 1) == :open_bracket ->
@@ -70,13 +71,14 @@ defmodule JsonParser.Lumberjack.TreeBuilder do
         if level == 0 do
           process_brackets(new_brackets, new_acc, level)
         else
-          Logger.debug([
+          Logger.debug(
             new_acc: new_brackets,
             new_acc: new_acc,
             level: level,
             parent: parent,
             node_id: node_id
-          ])
+          )
+
           process_brackets(new_brackets, new_acc, level, parent, node_id)
         end
     end
