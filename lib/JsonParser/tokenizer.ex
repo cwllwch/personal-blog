@@ -18,7 +18,7 @@ defmodule JsonParser.Tokenizer do
     ]
   """
 
-  @list_to_concat [:string, :empty_string, :colon, :int]
+  @list_to_concat [:string, :empty_string]
 
   def main(string) do
     last = String.length(string) - 1
@@ -142,7 +142,7 @@ defmodule JsonParser.Tokenizer do
     {:newline, char}
   end
 
-  defp get_type(char) when char == "\\\\" do
+  defp get_type(char) when char in ["\\", "\\\\", "\\\\\\"] do
     {:escape, char}
   end
 
