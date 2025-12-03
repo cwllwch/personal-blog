@@ -2,8 +2,6 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-/* This file is for your main application CSS */
-
 h1 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -103,5 +101,29 @@ p {
 				width: 63%; 
 				height: 30rem;
 				border-radius: 1rem;
+		}
+}
+
+@layer components {
+		.vanilla-textbox {
+				@apply bg-white rounded-xl text-gray-500 h-full w-full;
+		}
+
+		.valid-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full shadow-xl 
+				shadow-lime-400/30 ring ring-lime-400/60 
+				whitespace-pre-wrap overflow-scroll;
+		}
+
+		.parsed-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full
+                shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
+                whitespace-pre-wrap overflow-scroll;
+		}
+
+		.error-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full
+                shadow-xl shadow-red-400/30 ring ring-red-400/60
+                whitespace-pre-wrap overflow-scroll;
 		}
 }
