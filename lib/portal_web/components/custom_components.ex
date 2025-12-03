@@ -17,40 +17,26 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :normal} = assigns) do
     ~H"""
-    <textarea
-      name={@name}
-      class="bg-white rounded-xl text-gray-500 h-full w-full"
-    >result will show up here
-    </textarea>
+    <textarea name={@name} class="vanilla-textbox">result will show up here</textarea>
     """
   end
 
   def display_text(%{level: :valid} = assigns) do
     ~H"""
-    <div class="p-3 bg-white rounded-xl h-full w-full
-                shadow-xl shadow-lime-400/30 ring ring-lime-400/60
-                whitespace-pre-wrap overflow-scroll">
-      {Jason.Formatter.pretty_print(elem(@message, 1))}
-    </div>
+    <div class="valid-textbox">{Jason.Formatter.pretty_print(elem(@message, 1))}</div>
     """
   end
 
   def display_text(%{level: :parsed} = assigns) do
     ~H"""
-    <div class="p-3 bg-white rounded-xl h-full w-full
-                shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
-                whitespace-pre-wrap overflow-scroll">
-      {Jason.Formatter.pretty_print(@message)}
-    </div>
+    <div class="parsed-textbox">{Jason.Formatter.pretty_print(@message)}</div>
     """
   end
 
   def display_text(%{level: :error} = assigns) do
     ~H"""
-    <div class="p-3 bg-white rounded-xl h-full w-full
-                shadow-xl shadow-red-400/30 ring ring-red-400/60
-                whitespace-pre-wrap overflow-scroll">
-      is this really a json? check if you have an extra bracket around, that really confuses me
+    <div class="error-textbox">
+      is this really a json? check if you have an extra bracket floating around
     </div>
     """
   end

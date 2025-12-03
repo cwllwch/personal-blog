@@ -53,7 +53,7 @@ config :portal, PortalWeb.Endpoint,
 
 # Watch static and templates for browser reloading.
 config :portal, PortalWeb.Endpoint,
-  url: [host: "portal.localhost"],
+  url: [host: "localhost"],
   live_reload: [
     patterns: [
       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",

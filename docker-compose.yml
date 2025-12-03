@@ -60,6 +60,9 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.52.0
     container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg
     volumes:
       - /:/rootfs:ro
       - /sys:/sys:ro
@@ -137,7 +140,7 @@ services:
 
   portal: 
     container_name: server
-    image: bernardocorais/test-repo:portal-0.0.1
+    image: bernardocorais/test-repo:portal-0.0.3
     env_file: .env
     labels:
       # Enable and configure Traefik
