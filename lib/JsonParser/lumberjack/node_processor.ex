@@ -495,6 +495,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
        when is_comma(first) do
     {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
 
+    key_val = maybe_merge_maps(key_val, key)
     old_pair = get_key_values(new_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
@@ -511,6 +512,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
        when tail == [] do
     {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
 
+    key_val = maybe_merge_maps(key_val, key)
     old_pair = get_key_values(new_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
@@ -526,6 +528,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
        when is_comma(first) do
     {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
 
+    key_val = maybe_merge_maps(key_val, key)
     old_pair = get_key_values(new_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
@@ -610,6 +613,32 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     new_pairs = existing_pairs ++ [%{key => [new_val]}]
     complete_acc = put_in(acc[address][:pairs], new_pairs)
     {complete_acc, tail}
+  end
+
+  defp maybe_merge_maps(map, key) when is_map(map) do
+    values = Map.get(map, key)
+
+    Logger.debug(
+      message: "merging maps",
+      values: values,
+      map: map,
+      key: key
+    )
+
+    cond do
+    values == nil ->
+      map
+
+    is_list(values) ->
+      map
+      
+    is_map(values) ->
+      Enum.reduce(values, %{}, fn {k, v}, acc ->
+        Map.put(acc, k, v)
+      end)
+
+    true -> map
+    end
   end
 
   defp get_key_values(acc, address, key) do
