@@ -625,12 +625,20 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       key: key
     )
 
-    if values != nil do
-      Enum.reduce(map[key], %{}, fn {k, v}, acc ->
-        Map.put(acc, k, v)
-      end)
-    else
-      map
+    cond do
+      values == nil ->
+        map
+
+      is_list(values) ->
+        map
+
+      is_map(values) ->
+        Enum.reduce(values, %{}, fn {k, v}, acc ->
+          Map.put(acc, k, v)
+        end)
+
+      true ->
+        map
     end
   end
 
