@@ -8,33 +8,30 @@ defmodule PortalWeb.PrettifierTest do
 
   test "parsing quoteless strings in keys" do
     input = "{name: \"John Doe\", age: 28, preferences: [{theme: \"dark\"}, {lang: \"eng-us\"}]}"
-    result = JsonParser.Main.prettify(input)
+    {:parsed, result} = JsonParser.Main.prettify(input)
 
     assert result ==
-             {:parsed,
-              "{\"name\": \"John Doe\",\n \"age\": 28,\n \"preferences\": [\n\n, ,\n {\"theme\": \"dark\"},\n {\"lang\": \"eng-us\"}\n]\n}"}
+             "{    \"name\": \"John Doe\",\n\n    \"age\": 28,\n\n    \"preferences\": \n        [\n            {\n\"theme\": \"dark\"},\n            {\n\"lang\": \"eng-us\"}\n        ]\n}"
   end
 
   test "parsing quoteless strings in values" do
     input =
       "{\"name\": John Doe, \"age\": 28, \"preferences\": [{\"theme\": dark}, {\"lang\": eng-us}]}"
 
-    result = JsonParser.Main.prettify(input)
+    {:parsed, result} = JsonParser.Main.prettify(input)
 
     assert result ==
-             {:parsed,
-              "{\"name\": \"John Doe\",\n \"age\": 28,\n \"preferences\": [\n\n, ,\n {\"theme\": \"dark\"},\n {\"lang\": \"eng-us\"}\n]\n}"}
+             "{    \"name\": \"John Doe\",\n\n    \"age\": 28,\n\n    \"preferences\": \n        [\n            {\n\"theme\": \"dark\"},\n            {\n\"lang\": \"eng-us\"}\n        ]\n}"
   end
 
   test "parsing with square brackets around the payload" do
     input =
       "[[{\"name\": John Doe, \"age\": 28, \"preferences\": [{\"theme\": dark}, {\"lang\": eng-us}]}]]"
 
-    result = JsonParser.Main.prettify(input)
+    {:parsed, result} = JsonParser.Main.prettify(input)
 
     assert result ==
-             {:parsed,
-              "{\"name\": \"John Doe\",\n \"age\": 28,\n \"preferences\": [\n\n, ,\n {\"theme\": \"dark\"},\n {\"lang\": \"eng-us\"}\n]\n}"}
+             "{    \"name\": \"John Doe\",\n\n    \"age\": 28,\n\n    \"preferences\": \n        [\n            {\n\"theme\": \"dark\"},\n            {\n\"lang\": \"eng-us\"}\n        ]\n}"
   end
 
   # This one is meant to test if the algorithm can ignore the extra escapes outside of strings.
@@ -44,10 +41,9 @@ defmodule PortalWeb.PrettifierTest do
     input =
       "{\\\\\\\"name\": John Doe, \\\\\\\"age\": 28, \\\\\\\"preferences\": [{\\\\\"theme\": dark}, {\\\\\"lang\": eng-us}]}]]"
 
-    result = JsonParser.Main.prettify(input)
+    {:parsed, result} = JsonParser.Main.prettify(input)
 
     assert result ==
-             {:parsed,
-              "{\"name\": \"John Doe\",\n \"age\": 28,\n \"preferences\": [\n\n, ,\n {\"theme\": \"dark\"},\n {\"lang\": \"eng-us\"}\n]\n}"}
+             "{    \"name\": \"John Doe\",\n\n    \"age\": 28,\n\n    \"preferences\": \n        [\n            {\n\"theme\": \"dark\"},\n            {\n\"lang\": \"eng-us\"}\n        ]\n}"
   end
 end

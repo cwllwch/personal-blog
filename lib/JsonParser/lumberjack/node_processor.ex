@@ -229,6 +229,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defguardp is_value_list(first)
             when elem(elem(first, 1), 0) == :open_square
 
+  defguardp is_close_square(tuple) when elem(elem(tuple, 1), 0) == :close_square
+
   # unwrap the tuple
   defp get_value({list, key} = _tuple) do
     Enum.reject(list, fn t -> elem(elem(t, 1), 0) == :empty_string end)
@@ -362,7 +364,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp maybe_insert_node({command, list, key} = _tuple, prev_acc, address)
        when command == :insert_node and list == [] do
     full_address = get_in(prev_acc[address], [:address])
-
     child = get_children(prev_acc, address)
 
     if is_list(child) do
@@ -398,28 +399,28 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     end
   end
 
+  # Rules for inserting elements in a list. They are a bit tricky cause
+  # you can have anything in them, including key-value pairs.
   defp maybe_insert_node({list, key} = _tuple, acc, _address) do
     {list, key, acc}
   end
 
-  # Rules for inserting elements in a list. They are a bit tricky cause
-  # you can have anything in them, including key-value pairs.
   defp maybe_insert_node(
-         {command, [_first | tail] = _list, key} = _tuple,
+         {command, list, key} = _tuple,
          prev_acc,
          address
        )
        when command == :start_list do
-    final_index = get_final_square(tail)
+    final_index = get_final_square(list)
 
     list_elements =
-      Enum.reject(tail, fn t ->
+      Enum.reject(list, fn t ->
         elem(t, 0) > final_index ||
           elem(elem(t, 1), 0) == :empty_string
       end)
 
     new_tail =
-      Enum.filter(tail, fn t ->
+      Enum.filter(list, fn t ->
         elem(t, 0) > final_index
       end)
 
@@ -444,11 +445,11 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   # Rules for inserting values into a list
   defp insert_into_list(
          prev_acc,
-         [first, second, third | tail] = _list_elements,
+         [first, second, third, fourth | tail] = _list_elements,
          address,
          key
        )
-       when is_string(first, second, third) do
+       when (is_string(first, second, third) and is_comma(fourth)) or is_close_square(fourth) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
     val = elem(elem(second, 1), 1)
@@ -462,7 +463,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address,
          key
        )
-       when is_int(first) and is_comma(second) do
+       when (is_int(first) and is_comma(second)) or is_close_square(second) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
     val = elem(elem(first, 1), 1)
@@ -476,7 +477,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address,
          key
        )
-       when is_bool(first) and is_comma(second) do
+       when (is_bool(first) and is_comma(second)) or is_close_square(second) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
@@ -552,7 +553,8 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       message: "starting new list with a new node and no other key value pairs",
       non_key: non_key,
-      new_val: val
+      new_val: val,
+      acc: acc
     )
 
     complete_acc = put_in(acc[address][:pairs], [%{key => [val]}])
@@ -570,7 +572,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
     )
 
     existing_pairs = get_in(acc[address][:pairs]) || []
-    new_pairs = existing_pairs ++ [%{key => [val]}]
+    new_pairs = List.flatten([existing_pairs], [%{key => [val]}])
     complete_acc = put_in(acc[address][:pairs], new_pairs)
     {complete_acc, tail}
   end
@@ -635,16 +637,25 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
   defp get_key_values(acc, address, key) do
     value = get_in(acc[address][:pairs])
 
-    if value == nil do
-      nil
-    else
-      Enum.find(value, fn m -> Map.keys(m) == [key] end)
+    cond do
+      value == nil -> nil
+      value == [] -> nil
+      is_list(value) -> Enum.find(value, fn m -> Map.keys(m) == [key] end)
+      is_map(value) -> if Map.has_key?(value, key), do: value, else: nil
+      true -> nil
     end
   end
 
   defp get_non_key_values(acc, address, key) do
-    get_in(acc[address][:pairs])
-    |> Enum.find(fn m -> Map.keys(m) != [key] end)
+    value = get_in(acc[address][:pairs])
+
+    cond do
+      value == nil -> nil
+      value == [] -> nil
+      is_list(value) -> Enum.find(value, fn m -> Map.keys(m) != [key] end)
+      is_map(value) -> if Map.has_key?(value, key), do: nil, else: value
+      true -> nil
+    end
   end
 
   # Rules for evaluating separation of key-value pairs or other elements
