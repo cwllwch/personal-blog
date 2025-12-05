@@ -29,7 +29,7 @@ defmodule PortalWeb.Components.CustomComponents do
 
   def display_text(%{level: :parsed} = assigns) do
     ~H"""
-    <div class="parsed-textbox">{Jason.Formatter.pretty_print(@message)}</div>
+    <div class="parsed-textbox">{@message}</div>
     """
   end
 
