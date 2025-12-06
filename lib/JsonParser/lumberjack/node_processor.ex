@@ -449,10 +449,10 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address,
          key
        )
-       when (is_string(first, second, third) and is_comma(fourth)) or is_close_square(fourth) do
+       when is_string(first, second, third) and (is_comma(fourth) or is_close_square(fourth)) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
-    val = elem(elem(second, 1), 1)
+    val = "\"" <> elem(elem(second, 1), 1) <> "\""
 
     conditional_insert(non_key, old_pair, val, prev_acc, address, key, tail)
   end
@@ -463,7 +463,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address,
          key
        )
-       when (is_int(first) and is_comma(second)) or is_close_square(second) do
+       when is_int(first) and (is_comma(second) or is_close_square(second)) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
     val = elem(elem(first, 1), 1)
@@ -477,7 +477,7 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          address,
          key
        )
-       when (is_bool(first) and is_comma(second)) or is_close_square(second) do
+       when is_bool(first) and (is_comma(second) or is_close_square(second)) do
     old_pair = get_key_values(prev_acc, address, key)
     non_key = get_non_key_values(prev_acc, address, key)
 
@@ -510,22 +510,6 @@ defmodule JsonParser.Lumberjack.NodeProcessor do
          key
        )
        when tail == [] do
-    {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
-
-    key_val = maybe_merge_maps(key_val, key)
-    old_pair = get_key_values(new_acc, address, key)
-    non_key = get_non_key_values(prev_acc, address, key)
-
-    conditional_insert(non_key, old_pair, key_val, new_acc, address, key, tail)
-  end
-
-  defp insert_into_list(
-         prev_acc,
-         [first | tail] = _list_elements,
-         address,
-         key
-       )
-       when is_comma(first) do
     {_, key_val, new_acc} = maybe_insert_node({:insert_node, [], key}, prev_acc, address)
 
     key_val = maybe_merge_maps(key_val, key)

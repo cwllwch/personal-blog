@@ -20,7 +20,8 @@ defmodule JsonParser.Generator do
 
   @spec main(map()) :: {:ok, bitstring()} | {:error, binary()}
   def main(ast) do
-    result = "{" <> orchestrate(ast, 1) <> "\n}"
+    result = "{\n" <> orchestrate(ast, 1) <> "\n}"
+    Logger.info(inspect(ast))
     {:ok, result}
   rescue
     e in [ArgumentError] ->
@@ -72,7 +73,8 @@ defmodule JsonParser.Generator do
       source: "[#{Path.basename(__ENV__.file)}]",
       function: "orchestrate/1",
       condition: "found a list of keywords at the start",
-      key: keys
+      key: keys,
+      counter: counter
     )
 
     acc = orchestrate(head, keys, counter)
@@ -98,11 +100,12 @@ defmodule JsonParser.Generator do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "orchestrate/2",
       condition: "found single key at the start",
-      key: List.first(keys)
+      key: List.first(keys),
+      counter: counter
     )
 
     val = get_val(map, keys, counter)
-    "\n#{add_identation(counter)}" <> "#{List.first(keys)}: #{val}"
+    add_identation(counter) <> "#{List.first(keys)}: #{val}"
   end
 
   defp orchestrate(val, keys, _counter) when is_binary(val) and keys == val do
@@ -115,7 +118,8 @@ defmodule JsonParser.Generator do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "orchestrate/2",
       condition: "found multiple keys at the start",
-      key: List.first(keys)
+      key: List.first(keys),
+      counter: counter
     )
 
     [key | remaining] = keys
@@ -135,7 +139,8 @@ defmodule JsonParser.Generator do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "orchestrate/2",
       condition: "found multiple keys at the start and will accumulate results",
-      key: first
+      key: first,
+      counter: counter
     )
 
     val = get_val(map, [first], counter)
@@ -152,7 +157,8 @@ defmodule JsonParser.Generator do
       source: "[" <> Path.basename(__ENV__.file) <> "]",
       function: "orchestrate/2",
       condition: "found multiple keys at the start, ending accumulation of objects",
-      key: first
+      key: first,
+      counter: counter
     )
 
     val = get_val(map, [first], counter)
@@ -193,7 +199,8 @@ defmodule JsonParser.Generator do
 
     Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a simple map"
+      message: "found a simple map",
+      counter: counter
     )
 
     "{#{orchestrate(val, counter)}\n#{add_identation(counter - 1)}}"
@@ -204,15 +211,15 @@ defmodule JsonParser.Generator do
 
     Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a list of maps"
+      message: "found a list of nested maps",
+      counter: counter
     )
 
     "\n#{add_identation(counter)}[\n" <>
-      add_identation(counter + 1) <>
       Enum.reduce(inner, "", fn m, acc ->
         orchestrate(m, 0)
         |> add_brackets()
-        |> append_maps(acc, counter)
+        |> append_maps(acc, counter + 1)
       end) <>
       "\n#{add_identation(counter)}]"
   end
@@ -220,7 +227,8 @@ defmodule JsonParser.Generator do
   defp process_val([[head | _t] = inner | _tail] = _val, counter) when is_binary(head) do
     Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a list of binary values"
+      message: "found a list of binary values",
+      counter: counter
     )
 
     "[" <>
@@ -233,21 +241,43 @@ defmodule JsonParser.Generator do
 
   defp process_val([head | tail] = _val, counter) when is_map(head) and tail == [] do
     counter = counter + 1
-    Logger.debug(source: "[#{Path.basename(__ENV__.file)}]", message: "found a map", head: head)
-    "#{add_identation(counter)}{#{orchestrate(head, counter)}}"
+
+    Logger.debug(
+      source: "[#{Path.basename(__ENV__.file)}]",
+      message: "found a map",
+      head: head,
+      counter: counter
+    )
+
+    "{\n#{add_identation(counter)}#{orchestrate(head, counter)}\n#{add_identation(counter)}}\n"
   end
 
-  defp process_val([head | tail] = val, counter) when is_map(head) and tail != [] do
+  defp process_val([head | tail] = val, counter)
+       when is_map(head) and tail != [] and length(tail) <= 2 do
     counter = counter + 1
 
     Logger.debug(
       source: "[#{Path.basename(__ENV__.file)}]",
-      message: "found a list of maps"
+      message: "found a short list of maps",
+      counter: counter
     )
 
     "{" <>
-      Enum.reduce(val, "", fn m, acc -> orchestrate(m, counter) |> append(acc) end) <>
-      "\n#{add_identation(counter - 1)}}"
+      Enum.reduce(val, "", fn m, acc -> orchestrate(m, 0) |> append(acc) end) <>
+      "}"
+  end
+
+  defp process_val([head | tail] = val, counter)
+       when is_map(head) and tail != [] and length(tail) >= 3 do
+    Logger.debug(
+      source: "[#{Path.basename(__ENV__.file)}]",
+      message: "found a long list of maps",
+      counter: counter
+    )
+
+    "{\n" <>
+      Enum.reduce(val, "", fn m, acc -> orchestrate(m, counter + 1) |> append_maps(acc, 0) end) <>
+      "\n#{add_identation(counter)}}"
   end
 
   defp process_val(val, _counter) when is_binary(val) do
@@ -279,13 +309,13 @@ defmodule JsonParser.Generator do
   end
 
   @spec append_maps(String.t(), String.t(), integer()) :: String.t()
-  defp append_maps(new, old, _counter) when old == "" do
-    new
+  defp append_maps(new, old, counter) when old == "" do
+    add_identation(counter) <> new
   end
 
   @spec append_maps(String.t(), String.t(), integer()) :: String.t()
-  defp append_maps(new, old, _counter) when new == "" do
-    old
+  defp append_maps(new, old, counter) when new == "" do
+    add_identation(counter) <> old
   end
 
   @spec append_maps(String.t(), String.t(), integer()) :: String.t()
@@ -295,7 +325,7 @@ defmodule JsonParser.Generator do
 
   @spec append_maps(String.t(), String.t(), integer()) :: String.t()
   defp append_maps(new, old, counter) do
-    "#{old},\n#{add_identation(counter + 1)}#{new}"
+    "#{old},\n#{add_identation(counter)}#{new}"
   end
 
   ## add brackets to separate when needed
@@ -304,9 +334,13 @@ defmodule JsonParser.Generator do
   end
 
   # Returns identation based on counter
-  defp add_identation(counter) do
+  defp add_identation(counter) when counter > 0 do
     Stream.repeatedly(fn -> @tab end)
     |> Enum.take(counter)
     |> List.to_string()
+  end
+
+  defp add_identation(counter) when counter <= 0 do
+    ""
   end
 end
