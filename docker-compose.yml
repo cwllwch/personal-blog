@@ -9,7 +9,7 @@ x-logging: &default-logging
 
 services:
   proxy: 
-    container_name: portal-proxy
+    container_name: proxy
     image: traefik:v3.6.2
     ports:
       - 80:80
@@ -44,35 +44,32 @@ services:
       - htpasswd
     logging: *default-logging
 
-  vmagent:
-    container_name: vmagent
-    image: victoriametrics/vmagent:v1.106.1
+  collector:
+    container_name: collector
+    image: telegraf:1.36.4-alpine
     restart: unless-stopped
-    volumes: 
-      - ./vmagent.yml:/etc/vmagent/vmagent.yml
-      - vmagent-data:/vmagent-data
-    command:
-      - '--promscrape.config=/etc/vmagent/vmagent.yml'
-      - '--remoteWrite.url=http://metrics:8428/api/v1/write'
-    networks:
-      - obs
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.52.0
-    container_name: cadvisor
-    privileged: true
-    devices:
-      - /dev/kmsg
     volumes:
-      - /:/rootfs:ro
-      - /sys:/sys:ro
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk:/dev/disk:ro
+      - /:/rootfs:ro
+      - /sys:/rootfs/sys:ro
+      - /etc:/rootfs/etc:ro
+    networks: 
+      - obs
+
+  logs-db:
+    container_name: logs-db
+    image: victoriametrics/victoria-logs:v0.4.1
+    command: 
+      - "--storageDataPath=/victoria-logs-data"
+      - "--retentionPeriod=30d"
+      - "--httpListenAddr=:9428"
+    volumes: 
+      - vlogs-data:/victoria-logs-data
     networks:
       - obs
 
-  victoria-metrics: 
+  metrics: 
     container_name: metrics
     image: victoriametrics/victoria-metrics:v1.106.1
     restart: unless-stopped
@@ -83,7 +80,7 @@ services:
     volumes:
       - vm-data:/victoria-metrics-data
     depends_on:
-      - vmagent
+      - collector
     networks:
       - obs
 
@@ -115,6 +112,7 @@ services:
       - database
     depends_on: 
       - victoria-metrics
+      - victoria-logs
 
   dozzle:
     image: amir20/dozzle:v8.8.3
@@ -140,7 +138,7 @@ services:
 
   portal: 
     container_name: server
-    image: bernardocorais/test-repo:portal-0.0.6
+    image: bernardocorais/test-repo:portal-0.0.7
     env_file: .env
     labels:
       # Enable and configure Traefik
@@ -172,6 +170,7 @@ services:
       - db
     networks: 
       - traefik
+      - obs
       - database
     logging: *default-logging
 
@@ -194,8 +193,8 @@ volumes:
     name: pgdata
   vm-data:
     name: vm_data
-  vmagent-data:
-    name: vmagent_data
+  vlogs-data:
+    name: vlogs_data
   grafana-data:
     name: grafana_data
 

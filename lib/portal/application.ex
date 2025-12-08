@@ -1,8 +1,7 @@
 defmodule Portal.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
-
+  @moduledoc """
+    Starts the application and handles the sidecar (logging / telemetry)
+  """
   use Application
 
   @impl true
