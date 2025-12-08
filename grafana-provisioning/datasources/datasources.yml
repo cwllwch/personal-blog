@@ -6,10 +6,21 @@ datasources:
     access: proxy
     url: http://victoria-metrics:8428
     isDefault: true
-    editable: true
+    editable: false
     jsonData:
       httpMethod: POST
       timeInterval: 30s
+
+  - name: Logs
+    type: elasticsearch
+    access: proxy
+    url: http://victoria-logs:9428
+    jsonData:
+      index: 'docker-logs'
+      interval: daily
+      timeField: '@timestamp'
+      logMessageField: message
+      logLevelField: fields.level
 
   - name: PostgreSQL
     type: postgres
@@ -24,4 +35,4 @@ datasources:
       maxOpenConns: 10
       maxIdleConns: 10
       connMaxLifetime: 14400
-    editable: true
+    editable: false
