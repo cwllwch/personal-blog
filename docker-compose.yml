@@ -60,7 +60,7 @@ services:
 
   logs-db:
     container_name: logs-db
-    image: victoriametrics/victoria-logs:v0.4.1
+    image: victoriametrics/victoria-logs:v1.40.0
     command: 
       - "--storageDataPath=/victoria-logs-data"
       - "--retentionPeriod=30d"
