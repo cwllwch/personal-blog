@@ -4,17 +4,17 @@ datasources:
   - name: Metrics
     type: prometheus
     access: proxy
-    url: http://victoria-metrics:8428
+    url: http://metrics:8428
     isDefault: true
     editable: false
     jsonData:
       httpMethod: POST
-      timeInterval: 30s
+      timeInterval: 20s
 
   - name: Logs
-    type: elasticsearch
+    type: loki
     access: proxy
-    url: http://victoria-logs:9428
+    url: http://logs-db:9428
     jsonData:
       index: 'docker-logs'
       interval: daily
