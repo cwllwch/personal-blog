@@ -12,14 +12,14 @@ datasources:
       timeInterval: 20s
 
   - name: Logs
-    type: loki
+    type: victoriametrics-logs-datasource
     access: proxy
     url: http://logs-db:9428
     jsonData:
       index: 'docker-logs'
       interval: daily
       timeField: '@timestamp'
-      logMessageField: message
+      logMessageField: _msg
       logLevelField: fields.level
 
   - name: PostgreSQL
