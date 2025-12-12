@@ -21,6 +21,7 @@ defmodule PortalWeb.Router do
     get "/contact", PageController, :contact
     get "/about", PageController, :about
     live "/prettify-my-json", LiveStuff.Prettify
+    live "/whoami", LiveStuff.WhoAmI
   end
 
   if Application.compile_env(:portal, :dev_routes) do

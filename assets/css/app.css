@@ -18,6 +18,8 @@ p {
 
  /* control small screen elements */
 @media screen and (max-width: 850px) {
+
+/* Prettifier elements */
 		.p_grid_q {
 				display: grid;
 				gap: 5px;
@@ -67,6 +69,8 @@ p {
 
 /* controls large screen elements */
 @media screen and (min-width: 851px) {
+
+/* Prettifier elements */
 		.p_grid_q {
 				display: flex;
 				flex-flow: row wrap;
@@ -101,6 +105,16 @@ p {
 				width: 63%; 
 				height: 30rem;
 				border-radius: 1rem;
+		}
+
+/* Benchmarker */
+		.field {
+				display: block;
+				height: 80%;
+				aspect-ratio: 16/9;
+				background-color: whitesmoke;
+				border-radius: 1rem;
+
 		}
 }
 
