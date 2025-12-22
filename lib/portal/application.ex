@@ -11,11 +11,9 @@ defmodule Portal.Application do
       Portal.Repo,
       {DNSCluster, query: Application.get_env(:portal, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Portal.PubSub},
-      # Start the Finch HTTP client for sending emails
+      PortalWeb.Presence,
+      {Registry, keys: :unique, name: Portal.LobbyRegistry}, 
       {Finch, name: Portal.Finch},
-      # Start a worker by calling: Portal.Worker.start_link(arg)
-      # {Portal.Worker, arg},
-      # Start to serve requests, typically the last entry
       PortalWeb.Endpoint
     ]
 

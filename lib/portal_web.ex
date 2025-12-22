@@ -61,6 +61,9 @@ defmodule PortalWeb do
   def live_component do
     quote do
       use Phoenix.LiveComponent
+      use Phoenix.Component
+      import PortalWeb.CoreComponents
+      
 
       unquote(html_helpers())
     end

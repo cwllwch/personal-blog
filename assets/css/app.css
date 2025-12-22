@@ -2,6 +2,8 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
+/* General elements  */
+
 h1 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -14,6 +16,92 @@ p {
     font-weight: 400;
     letter-spacing: 0.03em;
     color: #9ca3af;
+}
+
+@keyframes fadeIn {
+		0% {opacity: 0;}
+		10% {opacity: 0.1;}
+		30% {opacity: 0.3;}
+		60% {opacity: 0.6;}
+		100% {opacity: 1;}
+}
+
+.body {
+		animation: fadeIn 100ms;
+		color: white;
+}
+
+/* Whoami elements */
+
+.player {
+		display: grid;
+		grid: 
+				'stars' 'stars'
+				'icon' 'icon'
+				'name' 'score';
+		gap: 2px;
+		padding: 4px;
+		border-radius: 10px;
+		min-width: 90px;
+		width: min-content;
+		background-color: #3f3f46;
+}
+
+.players {
+		display: flex;
+		flex-flow: row nowrap;
+		gap: 1vi;
+}
+
+.icon {
+		justify-self: center;
+}
+
+.stars {
+		justify-self: center;
+		transform: scale(0.5);
+}
+
+.name {
+		justify-self: center;
+}
+
+.score {
+		justify-self: center;
+}
+ .invite-block {
+ 		margin: 5vi;
+ 		display: flex;
+ 		justify-self: center;
+ 		align-items: center;
+ 		padding: 15px 20px 15px 20px;
+ 		border-radius: 1vi;
+ 		background-color: oklch(0.4069 0.1158 279.94 / 40%);
+ 		width: fit-content;
+ 		gap: 2vi;
+ }
+
+.invite-link {
+		padding: 15px 10px 10px 10px;
+		text-align: center;
+		border-width: 3px;
+		border-color: #35530e;
+		border-radius: 1vi;
+		background-color: #27272a;
+		transition: transform 100ms ease-out;
+		user-select: none;
+}
+
+.invite-link:hover {
+		border-color: #005403;
+		background-color: #1a251c;
+}
+
+.invite-link:active {
+		border-color: #2f5500;
+		background-color: #11351b;
+		transform: scale(0.95);
+		transition: transform  100ms ease-out;
 }
 
  /* control small screen elements */
@@ -65,6 +153,30 @@ p {
 				height: 100%;
 				border-radius: 1rem;
 		}
+
+		/* Who am I */
+		.field {
+				display: flex;
+				flex-flow: column wrap;
+				gap: 10px;
+				justify-content: start;
+				align-content: center;
+				height: 90%;
+				width: 100%;
+				aspect-ratio: 9/16;
+				border-radius: 1rem;
+				padding: 2rem;
+		}
+
+		.players {
+				
+				border-color: #35530e;
+				border-width: 3px;
+				border-radius: 1vi;
+				padding: 10px;
+				width: 100%;
+				overflow: auto;
+		}
 }
 
 /* controls large screen elements */
@@ -107,14 +219,22 @@ p {
 				border-radius: 1rem;
 		}
 
-/* Benchmarker */
+		/* Who am I */
 		.field {
-				display: block;
-				height: 80%;
+				justify-items: center;
+				align-content: baseline;
+				height: 90%;
 				aspect-ratio: 16/9;
-				background-color: whitesmoke;
 				border-radius: 1rem;
+				padding: 2rem;
+		}
 
+		.players {
+				width: 100%;
+				border-color: #35530e;
+				border-width: 3px;
+				border-radius: 1vi;
+				padding: 10px;
 		}
 }
 
