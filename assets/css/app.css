@@ -95,6 +95,8 @@ p {
 .invite-link:hover {
 		border-color: #005403;
 		background-color: #1a251c;
+		transform: scale(1.05);
+		transition: transform 100ms ease-in-out;
 }
 
 .invite-link:active {

@@ -1,4 +1,4 @@
-defmodule PortalWeb.LiveStuff.WhoAmI.SetUser do
+defmodule PortalWeb.LiveStuff.Whoami.SetUser do
   use PortalWeb, :live_view
 
   @moduledoc """

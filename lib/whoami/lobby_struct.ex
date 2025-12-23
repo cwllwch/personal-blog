@@ -1,4 +1,4 @@
-defmodule Whoami.Lobby do
+defmodule Whoami.LobbyStruct do
   @moduledoc """
   Defines the struct for a lobby
   """

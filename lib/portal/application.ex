@@ -11,10 +11,12 @@ defmodule Portal.Application do
       Portal.Repo,
       {DNSCluster, query: Application.get_env(:portal, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Portal.PubSub},
-      PortalWeb.Presence,
-      {Registry, keys: :unique, name: Portal.LobbyRegistry}, 
       {Finch, name: Portal.Finch},
-      PortalWeb.Endpoint
+      PortalWeb.Endpoint,
+      # Whoami related children
+      PortalWeb.Presence,
+      {DynamicSupervisor, name: Lobby.Supervisor, strategy: :one_for_one},
+      {Registry, keys: :unique, name: Portal.LobbyRegistry}, 
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

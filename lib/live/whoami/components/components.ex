@@ -40,20 +40,32 @@ defmodule Live.Whoami.Components do
   end
 
   attr :lobby_id, :integer, required: true
+  attr :self, :map, required: true
   attr :players, :list, required: true
   slot :inner_block
 
   def waiting_room(assigns) do
     ~H"""
-      <div class="players" :if={@players != []}>
-          <div class="player" :for={player <- @players}>
+      <div class="players">
+        <div class="player">
+          <div class="stars">
+            <.icon name="hero-star-solid"/>
+          </div>
+          <.icon name="hero-user" class="icon"/>
+          <div class="name">{@self.name}</div>
+          <div class="score">{@self.wins}</div>
+        </div>
+        <div class="player" :if={@players != []} :for={player <- @players}>
+        <button class="remove_player" phx-click="remove_player" phx-value-player={player.user.name}>
+          <.icon name="hero-x-circle-solid"/>
+        </button>
           <div class="stars">
             <.icon name="hero-star-solid"/>
           </div>
           <.icon name="hero-user" class="icon"/>
           <div class="name">{player.user.name}</div>
           <div class="score">{player.user.wins}</div>
-          </div>
+        </div>
       </div>
       You are in lobby {@lobby_id}
 
@@ -72,7 +84,7 @@ defmodule Live.Whoami.Components do
   end
 
   defp make_link(lobby_id) do
-env = System.get_env("MIX_ENV")
+    env = System.get_env("MIX_ENV")
     if env == "dev" do 
       "localhost:4000" <> ~p{/whoami?#{%{lobby: lobby_id}}}
     else 

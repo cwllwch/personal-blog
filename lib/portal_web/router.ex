@@ -23,7 +23,7 @@ defmodule PortalWeb.Router do
     pipe_through [:browser, :with_username]
 
     get "/remove-username", Whoami.AskForUsername, :remove_username
-    live "/whoami", LiveStuff.WhoAmI
+    live "/whoami", LiveStuff.Whoami
   end
 
   scope "/", PortalWeb do
@@ -34,7 +34,7 @@ defmodule PortalWeb.Router do
     get "/about", PageController, :about
     get "/set-user", Whoami.AskForUsername, :set_username
     live "/prettify-my-json", LiveStuff.Prettify
-    live "/whoami/set-user", LiveStuff.WhoAmI.SetUser
+    live "/whoami/set-user", LiveStuff.Whoami.SetUser
   end
 
   if Application.compile_env(:portal, :dev_routes) do

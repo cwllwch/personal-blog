@@ -1,11 +1,11 @@
-defmodule PortalWeb.LiveStuff.WhoAmI do
+defmodule PortalWeb.LiveStuff.Whoami do
   require Logger
 
   use PortalWeb, :live_view
   
   import Live.Whoami.Components
 
-  alias Phoenix.Presence
+  alias Phoenix.PubSub
   alias PortalWeb.Presence
   alias Whoami.Main, as: Lobby
   alias Whoami.Player
@@ -24,135 +24,107 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
   entity associated with the lobby.
   """
 
-  # This should match if there is no user set for this lobby. 
-  def mount(%{"lobby" => lobby}, session, %{user: nil} = socket) do
-    Logger.info([
-      message: "making a new player for this user in current lobby", 
-      user: session["user"], 
-      lobby: lobby
-    ])
-
-    topic = "lobby:#{lobby}"
-    new_socket =
-      assign(socket,
-        page_title: "who am i?",
-        player: create_player(session["user"])
-      )
-
-    if connected?(new_socket) do
-      {:ok, _} = Presence.track(
-        self(), 
-        topic, 
-        new_socket.assigns.player.id, 
-        %{
-          user: new_socket.assigns.player, 
-          connected: true,
-          timestamp: inspect(System.system_time(:second))
-        }
-      )
-      IO.inspect("connected to #{topic}")
-    end
-
-    {:ok, new_socket}
-  end
-  
-  # This clause matches an existing user in a lobby
-  def mount(%{"lobby" => lobby} = _params, session, socket) do
-    Logger.info([
-      message: "trying to find existing player in lobby", 
-      user: session["user"], 
-      lobby: lobby
-    ])
-
-    case find_player(session["user"], lobby) do
-      {:ok, nil} -> 
-        Logger.info([message: "adding new player to lobby", user: session["user"]])
-        new_socket = assign(socket,
-          page_title: "who am i?",
-          player: create_player(session["user"])
-          )
-        |> put_flash(:info, "You are now in a lobby!")
-        {:ok, new_socket}
-    
-      {:ok, user} -> 
-        Logger.debug("found player #{inspect(session["user"])} in lobby #{inspect(lobby)}")
-        new_socket = assign(socket,
-          page_title: "who am i?",
-          player: user
-          )
-        {:ok, new_socket}
-      {:error, message} -> 
-        new_socket = assign(socket,
-          page_title: "who am i?",
-          player: create_player(session["user"])
-        )
-        |> put_flash(:error, message)
-        {:ok, push_navigate(new_socket, to: ~p{/whoami})}
-    end
-  end
-
-  # This matches for new lobby sessions, with a user in session
-  # but not in the socket.
-  def mount(params, session, socket) when params == %{} do
-    Logger.info([
-      message: "no player nor lobby, prompting creation of both",
-      user: session["user"]
-    ])
-
-    new_socket =
-      assign(socket,
-        page_title: "who am i?",
-        player: create_player(session["user"])
-      )
-
-    {:ok, new_socket}
-  end
-
-
-
-  def handle_params(%{"lobby" => lobby}, _session, socket) when socket.assigns.player != nil do
-    topic = "lobby:#{lobby}"
-
-    if connected?(socket) do
-      {:ok, _} = Presence.track(
-        self(), 
-        topic, 
-        socket.assigns.player.id, 
-        %{
-          user: socket.assigns.player, 
-          connected: true,
-          timestamp: inspect(System.system_time(:second))
-        }
-      )
-      IO.inspect("connected to #{topic}")
-    end
-  
-    presences = Presence.list("lobby:#{lobby}")
-    |> flatten_presences(socket.assigns.player)
-    |> IO.inspect()
-    
-    new_socket = assign(socket,
-      lobby_id: lobby,
-      loading: false, 
-      in_lobby: true,
-      players_in_lobby: presences
-    )
-    {:noreply, new_socket}
-  end
-
-  def handle_params(_params, _session, socket) do
-    new_socket =
-      assign(socket,
+  def mount(_params, session, socket) do
+    new_socket = 
+      socket
+      |> assign(
+        page_title: "who am i",
         loading: false,
-        in_lobby: false,
+        player: nil,
+        user: session["user"],
         lobby_id: nil,
         players_in_lobby: [],
+        full: false,
         link: nil
       )
 
+    {:ok, new_socket}
+  end
+
+  def handle_params(%{"lobby" => lobby}, _uri, %{assigns: %{unwanted_here: lobby}} = socket) do
+    new_socket = assign(
+      socket,
+      loading: false,
+      in_lobby: false,
+      player: create_player(socket.assigns.user),
+      players_in_lobby: [],
+      link: nil,
+      unwanted_here: false
+    )
+    |> put_flash(:info, "You were removed from that lobby")
+
+    {:noreply, new_socket}
+  end
+  
+  def handle_params(%{"lobby" => lobby}, _uri, socket) do 
+    topic = "lobby:#{lobby}"
+
+    case find_player(socket.assigns.user, lobby) do
+      {:ok, nil, free_spots} -> 
+        # The lobby exists but this player is not in it. adding player to the lobby if there are free spots
+        Logger.info([message: "adding new player to lobby", user: socket.assigns.user])
+        put_into_lobby(socket, socket.assigns.user, lobby, free_spots)
+    
+      {:ok, player, _free_spots} ->
+        # This means the player is already in the lobby
+        Logger.debug("found player #{socket.assigns.user} in lobby #{inspect(lobby)}")
+        new_socket = socket |> assign(
+          loading: false,
+          in_lobby: true,
+          lobby_id: lobby,
+          player: player,
+          players_in_lobby: Presence.list(topic) |> flatten_presences(player.id),
+          link: ~p{/whoami?#{%{lobby: lobby}}}
+        )
+        if connected?(new_socket), do: track_presence(new_socket, topic)
+        {:noreply, new_socket}
+
+      {:error, message} ->
+        Logger.warning([message: "unexpected error", error: message])
+        new_socket = 
+          socket
+          |> put_flash(:error, message)
+        {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
+    end
+  end
+
+  def handle_params(_params, _uri, socket) do
+    new_socket = assign(socket, 
+      loading: false,
+      in_lobby: false,
+      player: create_player(socket.assigns.user),
+      players_in_lobby: [],
+      link: nil,
+      unwanted_here: false
+    )
+
     {:noreply, new_socket}
   end
 
+
+  def put_into_lobby(socket, user, lobby, free_spots) when free_spots > 0 do
+    topic = "lobby:#{lobby}"
+    player = create_player(user)
+    presences = Presence.list(topic) |> flatten_presences(player.id)
+    new_socket = 
+      assign(socket,
+        loading: false,
+        lobby_id: lobby, 
+        in_lobby: true,
+        player: player,
+        players_in_lobby: presences,
+        link: ~p{/whoami?#{%{lobby: lobby}}}
+      )
+    if connected?(new_socket), do: Lobby.add_player(lobby, player); track_presence(new_socket, topic)
+    {:noreply, new_socket}
+  end
+
+  def put_into_lobby(socket, _user, _lobby, _free_spots) do
+    new_socket = put_flash(socket, :error, "Lobby is already full!")
+    {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
+  end
+
+  
   def render(assigns) do
     ~H"""
     <p></p>
@@ -170,7 +142,7 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
           />
 
         <% @in_lobby == true and @loading == false -> %>
-          <.waiting_room lobby_id={@lobby_id} players={@players_in_lobby} />
+          <.waiting_room lobby_id={@lobby_id} self={@player} players={@players_in_lobby} />
 
       <% end %>
           <%= inspect(@players_in_lobby, pretty: true) %>
@@ -190,6 +162,13 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
     {:noreply, new_socket}
   end
 
+  def handle_event("remove_player", %{"player" => player}, socket) do
+    send(self(), {:remove_player, player})
+    PubSub.broadcast(Portal.PubSub, "lobby:#{socket.assigns.lobby_id}", {:see_yourself_out, player})
+    new_socket = assign(socket, loading: true)
+    {:noreply, new_socket}
+  end 
+
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Lobby.create_lobby(player_count, socket.assigns.player)
 
@@ -204,16 +183,111 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
     {:noreply, push_patch(new_socket, to: link)}
   end
 
-  def handle_info({:fetch_players, l_id}, socket) do
-    players =
-      Lobby.fetch_players(l_id)
-      |> Enum.filter(fn item -> item.name == socket.assigns.player end)
-      |> Enum.reduce([], fn p, acc -> acc ++ [Map.get(p, :name)] end)
+  def handle_info({:fetch_players, lobby}, socket) do
+      case Lobby.fetch_players(lobby) do
+      {:ok, players, _count} -> 
+        players = Enum.filter(players,
+          fn item -> 
+            item.name == socket.assigns.player 
+          end)
+        |> Enum.reduce([], 
+          fn p, acc -> 
+            acc ++ [Map.get(p, :name)]
+          end)
 
-    {:noreply, assign(socket, players_in_lobby: players, loading: false)}
+        {:noreply, assign(socket, players_in_lobby: players, loading: false)}
+        
+      {:error, message} -> 
+        Logger.info([message: message, lobby: lobby, player: socket.assigns.player])
+        put_flash(socket, :info, message)
+        {:noreply, push_patch(socket, to: ~p{/whoami})}
+    end
   end
 
-  defp create_player(username) do
+  def handle_info({:add_player, lobby}, socket) do
+    case Lobby.add_player(lobby, socket.assigns.player) do
+      {:ok, players} -> 
+        Logger.info([
+          message: "added #{socket.assigns.player.name} to lobby", 
+          players: players, 
+          lobby: lobby
+       ])
+        new_socket = put_flash(socket, :info, "You are now in lobby #{lobby}")
+        {:noreply, new_socket}
+      {:error, reason} ->
+        Logger.warning([message: "unable to add #{socket.assigns.player.name} to lobby", lobby: lobby, error: reason])
+        new_socket = socket |> put_flash(:info, reason)
+        {:noreply, push_patch(new_socket, to: ~p{/whoami})}
+    end
+  end
+
+  # Removes the player from the lobby state
+  def handle_info({:remove_player, player}, socket) do
+    case Lobby.remove_player(socket.assigns.lobby_id, player) do
+    {:ok, players} -> 
+      Logger.info([
+        message: "removed player from lobby",
+        player: player,
+        lobby: socket.assigns.lobby_id
+      ])
+      new_socket = assign(
+        socket, 
+        players: players,
+        loading: false
+      ) 
+      |> put_flash(:info, "Kicked player #{player} from the lobby!")
+      {:noreply, new_socket}
+    end
+  end
+
+  # Removes the player liveview from the specified lobby.
+  def handle_info({:see_yourself_out, player}, socket) do
+    if socket.assigns.player.name == player do
+      Presence.untrack(self(), "lobby:#{socket.assigns.lobby_id}", socket.assigns.player.id)
+      new_socket = assign(socket,
+        unwanted_here: socket.assigns.lobby_id
+      )
+      |> put_flash(:error, "you've been kicked ¯\\\_(ツ)_/¯ ")
+      {:noreply, push_patch(new_socket, to: ~p{/whoami})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info(%{event: "presence_diff", payload: diff}, socket) do
+    new_socket = 
+      socket 
+      |> remove_presences(diff.leaves)
+      |> add_presences(diff.joins)
+
+    {:noreply, new_socket}
+  end
+
+  def remove_presences(socket, leaves) do
+    ids_that_left = Map.keys(leaves)
+
+    players = Enum.reject(socket.assigns.players_in_lobby, fn player -> player.user.id in ids_that_left end)
+
+    assign(socket, players_in_lobby: players)
+  end
+
+  def add_presences(socket, joins) do
+    non_self = Enum.reject(joins, fn {user, _metas} -> user == socket.assigns.player.id end)
+    if non_self == [] do 
+      socket 
+    else 
+      result =
+       List.first(non_self)
+        |> elem(1)
+        |> Map.get(:metas)
+        |> Enum.sort_by(&(&1.timestamp), {:desc, Date})
+        |> Enum.dedup_by(&(&1.user.id))
+
+      assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ result)
+    end
+  end
+
+  def create_player(username) do
     %Player{
       name: username,
       id: Lobby.generate_id(),
@@ -224,7 +298,8 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
 
   def find_player(username, lobby) do
     case Lobby.fetch_players(lobby) do
-      {:ok, users} -> {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first()}
+      {:ok, {users, free_spots}} -> 
+        {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first(), free_spots}
       {:error, message} -> 
         Logger.info([message: "tried to find a lobby that doesn't exist", user: username])
         {:error, message}
@@ -237,5 +312,26 @@ defmodule PortalWeb.LiveStuff.WhoAmI do
       fn {_key, val}, acc -> 
         acc ++ [List.first(val.metas)] 
       end)
+  end
+  
+  defp track_presence(socket, topic) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Portal.PubSub, topic)
+      {:ok, _} = Presence.track(
+        self(), 
+        topic, 
+        socket.assigns.player.id, 
+        %{
+          user: socket.assigns.player, 
+          connected: true,
+          timestamp: inspect(System.system_time(:second))
+        }
+      )
+      Logger.info([message: "connected to topic", topic: topic, player: socket.assigns.player.name])
+      socket
+    else
+      Logger.info([message: "socket not connected", topic: topic])
+      socket
+    end
   end
 end
