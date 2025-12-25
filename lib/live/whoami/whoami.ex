@@ -35,6 +35,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         lobby_id: nil,
         players_in_lobby: [],
         full: false,
+        in_lobby: false,
         link: nil
       )
 
@@ -76,9 +77,12 @@ defmodule PortalWeb.LiveStuff.Whoami do
           players_in_lobby: Presence.list(topic) |> flatten_presences(player.id),
           link: ~p{/whoami?#{%{lobby: lobby}}}
         )
-        if connected?(new_socket), do: track_presence(new_socket, topic)
-        {:noreply, new_socket}
-
+        if connected?(new_socket) do
+          newer_socket = track_presence(new_socket, topic)
+          {:noreply, newer_socket}
+         else
+          {:noreply, new_socket}
+        end
       {:error, message} ->
         Logger.warning([message: "unexpected error", error: message])
         new_socket = 
@@ -115,8 +119,13 @@ defmodule PortalWeb.LiveStuff.Whoami do
         players_in_lobby: presences,
         link: ~p{/whoami?#{%{lobby: lobby}}}
       )
-    if connected?(new_socket), do: Lobby.add_player(lobby, player); track_presence(new_socket, topic)
-    {:noreply, new_socket}
+    if connected?(new_socket) do
+      Lobby.add_player(lobby, player)
+      new_socket = track_presence(new_socket, topic)
+      {:noreply, new_socket}
+    else
+      {:noreply, new_socket}
+    end
   end
 
   def put_into_lobby(socket, _user, _lobby, _free_spots) do
@@ -145,7 +154,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
           <.waiting_room lobby_id={@lobby_id} self={@player} players={@players_in_lobby} />
 
       <% end %>
-          <%= inspect(@players_in_lobby, pretty: true) %>
     </div>
     """
   end
@@ -206,7 +214,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   def handle_info({:add_player, lobby}, socket) do
     case Lobby.add_player(lobby, socket.assigns.player) do
-      {:ok, players} -> 
+      {:ok, players, _count} -> 
         Logger.info([
           message: "added #{socket.assigns.player.name} to lobby", 
           players: players, 
@@ -242,7 +250,16 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   # Removes the player liveview from the specified lobby.
   def handle_info({:see_yourself_out, player}, socket) do
-    if socket.assigns.player.name == player do
+    self = socket.assigns.player.name
+    list = List.flatten([player])
+    Logger.debug([
+      message: "leaving lobby", 
+      lobby: socket.assigns.lobby_id, 
+      players_asked_to_leave: player,
+      self: self
+    ])
+
+    if self in list do
       Presence.untrack(self(), "lobby:#{socket.assigns.lobby_id}", socket.assigns.player.id)
       new_socket = assign(socket,
         unwanted_here: socket.assigns.lobby_id
@@ -260,7 +277,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
       |> remove_presences(diff.leaves)
       |> add_presences(diff.joins)
 
+    send(self(), {:update_interaction, System.system_time(:second)})
+
     {:noreply, new_socket}
+  end
+
+  def handle_info({:update_interaction, timestamp}, socket) do
+    case Lobby.update_interaction(socket.assigns.lobby_id, timestamp) do
+    :ok -> {:noreply, socket}
+    {:error, reason} -> 
+      Logger.info([message: "can't update last interaction", error: reason])
+      {:noreply, socket}
+    end
   end
 
   def remove_presences(socket, leaves) do

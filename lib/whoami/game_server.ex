@@ -8,7 +8,11 @@ defmodule Whoami.GameServer do
   get interacted with via the Main module, which acts as
   the Client for this server and also initiates new children
   under the dynamic supervisor.
+
+  ttl is set in minutes
   """
+
+  @ttl 15
 
   @impl true
   def init({id, player_count, captain} = _args) do
@@ -16,8 +20,12 @@ defmodule Whoami.GameServer do
       id: id,
       player_count: player_count,
       captain: captain,
-      players: [captain]
+      players: [captain],
+      last_interaction: System.system_time(:second)
     }
+
+    Process.send_after(self(), {:time_to_live}, (60 * @ttl))
+    |> IO.inspect()
 
     {:ok, initial_state}
   end
@@ -54,6 +62,51 @@ defmodule Whoami.GameServer do
     {:reply, {state.players, free_spots}, state}
   end
 
+  @impl true
+  def handle_call({:fetch_captain}, _from, state) do
+    {:reply, {:ok, state.captain}, state}
+  end
+  
+  @impl true
+  def handle_cast({:interaction, timestamp}, state) do
+    new_state = %{state | last_interaction: timestamp}
+    Logger.debug([
+      message: "updated interaction, server will keep alive for #{inspect(@ttl)} more minutes", 
+      timestamp: timestamp |> DateTime.from_unix() |> elem(1),
+      lobby: state.id
+    ])
+    {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_info({:time_to_live}, state) do
+    IO.inspect(state, pretty: true)
+    ttl = System.system_time(:second) - (60 * @ttl)
+    if state.last_interaction > ttl do
+      Logger.info([
+        message: "keeping  alive", 
+        lid: state.id, 
+        last_interaction: state.last_interaction |> DateTime.from_unix() |> elem(1), 
+        cutoff: ttl |> DateTime.from_unix() |> elem(1),
+        next_message_time: System.system_time(:second) + (60 * @ttl) |> DateTime.from_unix() |> elem(1)
+      ], ansi_color: :green)
+      
+      _ref = Process.send_after(self(), {:time_to_live}, (60000 * @ttl))
+      
+      {:noreply, state}
+    else
+      Logger.info([
+        message: "killing myself", 
+        lid: state.id, 
+        last_interaction: state.last_interaction |> DateTime.from_unix() |> elem(1), 
+        cutoff: ttl |> DateTime.from_unix() |> elem(1),
+        next_message_time: System.system_time(:second) + (60 * @ttl) |> DateTime.from_unix() |> elem(1)
+      ], ansi_color: :red)
+
+      Whoami.Main.destroy_lobby(state.id, state.players)
+    end
+  end
+  
   defp maybe_add_player(new_player, state) when state.player_count > length(state.players) do
     case already_here?(new_player, state) do
       {:ok, "proceed"} -> 

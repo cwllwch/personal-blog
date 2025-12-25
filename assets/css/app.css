@@ -45,6 +45,7 @@ p {
 		min-width: 90px;
 		width: min-content;
 		background-color: #3f3f46;
+		position: relative
 }
 
 .players {
@@ -102,8 +103,39 @@ p {
 .invite-link:active {
 		border-color: #2f5500;
 		background-color: #11351b;
-		transform: scale(0.95);
 		transition: transform  100ms ease-out;
+}
+
+.remove_player {
+		position: relative;
+		top: 10px;
+		right: -90px;
+		color: #8d0018;
+		background-color: #ff7975;
+		width: 30px;
+		height: 30px;
+		margin: -20px;
+		border-radius: 7vi;
+		transition: transform 50ms ease-in-out;
+		opacity: 0.5;
+}
+
+.remove_player:hover {
+		background-color: #ff7975;
+		transform: scale(1.1);
+		opacity: 1;
+		transition: transform 50ms ease-in-out
+}
+
+.remove_player:active {
+		transform: scale(1.05);
+		transition: transform 50ms ease-in-out
+}
+
+.remove_player svg {
+		position: relative;
+		height: 30px;
+		width: 30px;
 }
 
  /* control small screen elements */

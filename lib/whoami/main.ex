@@ -19,13 +19,45 @@ defmodule Whoami.Main do
       lobby_id: lobby_id,
       captain: captain.name
     )
+
     {:ok, pid, lobby_id}
   end
 
+  @doc "Destroys the specified lobby. Requires the player list since this is also 
+  ran for health checks in the lobby process itself, and it can't spawn calls to 
+  itself - but it can pass the state player list. So just fetch the list if you 
+  need this outside of the process."
+  def destroy_lobby(lobby, list) when is_binary(lobby) do
+    players = Enum.reduce(list, [], fn user, acc -> acc ++ [user.name] end)
+    
+    Phoenix.PubSub.broadcast(Portal.PubSub, "lobby:#{lobby}", {:see_yourself_out, players})
+
+    {:ok, pid} = get_pid_by_lid(lobby)
+    
+    :ok = DynamicSupervisor.terminate_child(Lobby.Supervisor, pid)
+    
+    Logger.info([message: "killed lobby", lobby: lobby, players: players], aansi_color: :red)
+
+    {:ok, "terminated"}
+  end
+
   @doc """
-  Adds a player to the state of the lobby. Note that 
-  this is not the same as the presence itself. 
+  Updates the last_interaction in the server state.
+  If the server remains uncontacted for too long, it will kill
+  itself so as to not have forever-running processes
   """
+  def update_interaction(lobby, timestamp) when is_pid(lobby) do
+    GenServer.cast(lobby, {:interaction, timestamp})
+  end
+
+  def update_interaction(lobby, timestamp) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> update_interaction(pid, timestamp)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc "Adds a player to the state of the lobby. Note that this is not the same as the presence itself."
   def add_player(lobby, player) when is_pid(lobby) do
     reply = GenServer.call(lobby, {:add_player, player})
     case reply do
@@ -81,6 +113,20 @@ defmodule Whoami.Main do
     end
   end
 
+  def fetch_captain(lobby) do
+    {:ok, pid} = get_pid_by_lid(lobby)
+    case GenServer.call(pid, {:fetch_captain}) do
+      {:ok, captain} -> {:ok, captain}
+      {:error, reason} -> 
+        Logger.warning([
+          message: "can't find captain",
+          error: reason,
+          lobby: lobby
+        ])
+        {:error, reason}
+    end
+  end
+
 
   # Helper functions
   def generate_id() do
@@ -89,7 +135,8 @@ defmodule Whoami.Main do
     |> Enum.join("")
   end
 
-  def get_pid_by_lid(lobby_id) do
+  @doc "Returns the process pid for the specified lobby by looking into the registry."
+  def get_pid_by_lid(lobby_id) when is_binary(lobby_id) do
     case Registry.lookup(Portal.LobbyRegistry, lobby_id) do
     [] -> 
       {:error, "Lobby not found"}
@@ -99,6 +146,8 @@ defmodule Whoami.Main do
       {:ok, pid}
     end
   end
+
+  def get_pid_by_lid(lobby_id) when is_integer(lobby_id), do: Integer.to_string(lobby_id) |>  get_pid_by_lid()
 
   @doc """
   Returns a list of maps with all of the currently 

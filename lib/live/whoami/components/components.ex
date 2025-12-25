@@ -10,7 +10,7 @@ defmodule Live.Whoami.Components do
   attr :question, :string, required: true
   attr :button, :string, required: true
   slot :inner_block
-
+  @doc "Renders the welcome screen where one can make a new lobby"
   def new_lobby(assigns) do
     ~H"""
       <div style="display: grid; gap: 10px; justify-contents: center">
@@ -43,22 +43,39 @@ defmodule Live.Whoami.Components do
   attr :self, :map, required: true
   attr :players, :list, required: true
   slot :inner_block
-
+  
+  @doc "Renders the waiting room before the game starts."
   def waiting_room(assigns) do
+    is_captain = is_captain?(assigns.lobby_id, assigns.self)
+    assigns = Map.put_new(assigns, :is_captain, is_captain)
+  
     ~H"""
       <div class="players">
+        
         <div class="player">
           <div class="stars">
             <.icon name="hero-star-solid"/>
+
           </div>
           <.icon name="hero-user" class="icon"/>
           <div class="name">{@self.name}</div>
           <div class="score">{@self.wins}</div>
         </div>
+        
         <div class="player" :if={@players != []} :for={player <- @players}>
-        <button class="remove_player" phx-click="remove_player" phx-value-player={player.user.name}>
-          <.icon name="hero-x-circle-solid"/>
-        </button>
+        
+          <button 
+            :if={@is_captain == true} 
+            class="remove_player" 
+            phx-click="remove_player" 
+            phx-value-player={player.user.name}
+          >
+            <%!-- <.icon name="hero-x-circle-solid"/> --%>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          
           <div class="stars">
             <.icon name="hero-star-solid"/>
           </div>
@@ -67,7 +84,6 @@ defmodule Live.Whoami.Components do
           <div class="score">{player.user.wins}</div>
         </div>
       </div>
-      You are in lobby {@lobby_id}
 
       <div class="invite-block">
         <div>invite your friends with this link:</div>
@@ -81,6 +97,15 @@ defmodule Live.Whoami.Components do
         </div>
       </div>
     """
+  end
+
+  # Helpers for the waiting room
+
+  def is_captain?(lobby_id, self) do
+    case Whoami.Main.fetch_captain(lobby_id) do
+      {:ok, captain} -> if captain.id == self.id, do: true, else: false
+      {:error, _reason} -> false
+    end
   end
 
   defp make_link(lobby_id) do
