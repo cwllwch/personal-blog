@@ -35,8 +35,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
         lobby_id: nil,
         players_in_lobby: [],
         full: false,
-        in_lobby: false,
-        link: nil
+        link: nil,
+        stage: nil
       )
 
     {:ok, new_socket}
@@ -46,11 +46,9 @@ defmodule PortalWeb.LiveStuff.Whoami do
     new_socket = assign(
       socket,
       loading: false,
-      in_lobby: false,
-      player: create_player(socket.assigns.user),
       players_in_lobby: [],
-      link: nil,
-      unwanted_here: false
+      unwanted_here: lobby,
+      stage: nil
     )
     |> put_flash(:info, "You were removed from that lobby")
 
@@ -71,7 +69,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
         Logger.debug("found player #{socket.assigns.user} in lobby #{inspect(lobby)}")
         new_socket = socket |> assign(
           loading: false,
-          in_lobby: true,
+          stage: fetch_stage(lobby),
+          ready: false,
           lobby_id: lobby,
           player: player,
           players_in_lobby: Presence.list(topic) |> flatten_presences(player.id),
@@ -95,7 +94,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_params(_params, _uri, socket) do
     new_socket = assign(socket, 
       loading: false,
-      in_lobby: false,
       player: create_player(socket.assigns.user),
       players_in_lobby: [],
       link: nil,
@@ -114,7 +112,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
       assign(socket,
         loading: false,
         lobby_id: lobby, 
-        in_lobby: true,
+        stage: fetch_stage(lobby),
         player: player,
         players_in_lobby: presences,
         link: ~p{/whoami?#{%{lobby: lobby}}}
@@ -144,14 +142,19 @@ defmodule PortalWeb.LiveStuff.Whoami do
             <.icon name="hero-arrow-path" class="animate-spin text-white" /> loading...
           </div>
 
-        <% @in_lobby == false and @loading == false -> %>
+        <% @stage == nil and @loading == false -> %>
           <.new_lobby
             question={"How many are playing, " <> @player.name <> "?"} 
             button="create the lobby"
           />
 
-        <% @in_lobby == true and @loading == false -> %>
-          <.waiting_room lobby_id={@lobby_id} self={@player} players={@players_in_lobby} />
+        <% @stage == :waiting_room and @loading == false -> %>
+          <.waiting_room 
+          lobby_id={@lobby_id} 
+          self={@player} 
+          players={@players_in_lobby}
+          ready={@ready}
+          />
 
       <% end %>
     </div>
@@ -168,6 +171,11 @@ defmodule PortalWeb.LiveStuff.Whoami do
     send(self(), {:fetch_players, socket.assigns.lobby_id})
     new_socket = assign(socket, :loading, true)
     {:noreply, new_socket}
+  end
+
+  def handle_event("toggle_ready", %{"value" => player}, socket) do
+    PubSub.broadcast(Portal.PubSub, "lobby:#{socket.assigns.lobby_id}", {:toggle_status, player})
+    {:noreply, socket}
   end
 
   def handle_event("remove_player", %{"player" => player}, socket) do
@@ -212,6 +220,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  def handle_info({:fetch_stage, lobby}, socket) do
+    case Lobby.fetch_stage(lobby) do
+      {:ok, stage} ->
+        {:noreply, assign(socket, :stage, stage)}
+      {:error, nil} ->
+        {:noreply, 
+          assign(socket, :stage, nil)
+          |> put_flash(:info, "Can't tell the stage of the game, go back to the start")
+        }
+    end
+  end
+
   def handle_info({:add_player, lobby}, socket) do
     case Lobby.add_player(lobby, socket.assigns.player) do
       {:ok, players, _count} -> 
@@ -245,6 +265,17 @@ defmodule PortalWeb.LiveStuff.Whoami do
       ) 
       |> put_flash(:info, "Kicked player #{player} from the lobby!")
       {:noreply, new_socket}
+    end
+  end
+
+  def handle_info({:toggle_status, player}, socket) do
+    self = socket.assigns.player.name
+    if self == player do
+      new_socket = assign(socket, :ready, !socket.assigns.ready)
+      {:noreply, new_socket}
+    else 
+      IO.inspect("#{player} is not me")
+      {:noreply, socket}
     end
   end
 
@@ -320,8 +351,14 @@ defmodule PortalWeb.LiveStuff.Whoami do
       name: username,
       id: Lobby.generate_id(),
       points: 0,
+      ready: false,
       wins: 0
     }
+  end
+
+  def fetch_stage(lobby) do
+    send(self(), {:fetch_stage, lobby})
+    nil
   end
 
   def find_player(username, lobby) do

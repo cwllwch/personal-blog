@@ -21,11 +21,11 @@ defmodule Whoami.GameServer do
       player_count: player_count,
       captain: captain,
       players: [captain],
-      last_interaction: System.system_time(:second)
+      last_interaction: System.system_time(:second),
+      stage: :waiting_room
     }
 
     Process.send_after(self(), {:time_to_live}, (60 * @ttl))
-    |> IO.inspect()
 
     {:ok, initial_state}
   end
@@ -63,6 +63,11 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call({:fetch_stage}, _from, state) do
+    {:reply, {:ok, state.stage}, state}
+  end
+  
+  @impl true
   def handle_call({:fetch_captain}, _from, state) do
     {:reply, {:ok, state.captain}, state}
   end
@@ -80,7 +85,6 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_info({:time_to_live}, state) do
-    IO.inspect(state, pretty: true)
     ttl = System.system_time(:second) - (60 * @ttl)
     if state.last_interaction > ttl do
       Logger.info([

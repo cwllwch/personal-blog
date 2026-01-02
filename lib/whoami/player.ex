@@ -3,5 +3,5 @@ defmodule Whoami.Player do
   Defines a player and its basic characteristics
   """
 
-  defstruct [:name, :id, :points, :wins]
+  defstruct [:name, :id, :points, :wins, :ready]
 end

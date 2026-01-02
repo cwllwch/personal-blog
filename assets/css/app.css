@@ -26,6 +26,22 @@ p {
 		100% {opacity: 1;}
 }
 
+@keyframes fadeInToHalf {
+		0% {opacity: 0;}
+		50% {opacity: 0.5;}
+}
+
+@keyframes altchange {
+		from { --gradient: 0%;}
+		to { --gradient: 100%;}
+}
+
+@property --gradient {
+		syntax: "<percentage>";
+		inherits: true;
+		initial-value: 0%;
+}
+
 .body {
 		animation: fadeIn 100ms;
 		color: white;
@@ -33,7 +49,8 @@ p {
 
 /* Whoami elements */
 
-.player {
+.player-true, 
+.player-false {
 		display: grid;
 		grid: 
 				'stars' 'stars'
@@ -44,8 +61,22 @@ p {
 		border-radius: 10px;
 		min-width: 90px;
 		width: min-content;
-		background-color: #3f3f46;
+		background-image: conic-gradient(from 0deg, #084009 var(--gradient),#3f3f46 var(--gradient)); 
+		transition: --gradient 0.5s ease-out;
 		position: relative
+}
+
+.player-false {
+		--gradient: 0%;
+}
+
+.player-true {
+		--gradient: 100%;
+}
+
+.player:hover .remove_player {
+		display: flex;
+		animation: fadeInToHalf 0.3s ease-in-out
 }
 
 .players {
@@ -70,9 +101,21 @@ p {
 .score {
 		justify-self: center;
 }
+
+.ready-false {
+height: 5vi;
+		width: 40vi;
+		background-color: red;
+}
+
+.ready-true {
+		height: 5vi;
+		width: 40vi;
+		background-color: green;
+}
  .invite-block {
  		margin: 5vi;
- 		display: flex;
+		display: flex;
  		justify-self: center;
  		align-items: center;
  		padding: 15px 20px 15px 20px;
@@ -107,14 +150,15 @@ p {
 }
 
 .remove_player {
-		position: relative;
-		top: 10px;
-		right: -90px;
-		color: #8d0018;
-		background-color: #ff7975;
+		display: none;
+		position: absolute;
+		top: 15px;
+		right: 10px;
+		color: #222222;
+		background-color: #a8a8a8;
 		width: 30px;
 		height: 30px;
-		margin: -20px;
+		margin: -22px;
 		border-radius: 7vi;
 		transition: transform 50ms ease-in-out;
 		opacity: 0.5;
@@ -192,9 +236,9 @@ p {
 		.field {
 				display: flex;
 				flex-flow: column wrap;
-				gap: 10px;
 				justify-content: start;
 				align-content: center;
+				gap: 2vi;
 				height: 90%;
 				width: 100%;
 				aspect-ratio: 9/16;
@@ -255,8 +299,11 @@ p {
 
 		/* Who am I */
 		.field {
-				justify-items: center;
-				align-content: baseline;
+				display: flex;
+				flex-flow: column wrap;
+				justify-content: start;
+				align-content: center;
+				gap: 2vi;
 				height: 90%;
 				aspect-ratio: 16/9;
 				border-radius: 1rem;

@@ -113,10 +113,26 @@ defmodule Whoami.Main do
     end
   end
 
+  def fetch_stage(lobby) do
+    {:ok, pid} = get_pid_by_lid(lobby)
+    case GenServer.call(pid, {:fetch_stage}) do
+      {:ok, stage} -> 
+        {:ok, stage}
+      {:error, reason} -> 
+        Logger.warning([
+          message: "stage unavailable",
+          lobby: lobby,
+          reason: reason
+        ])
+        {:error, nil}
+    end
+  end
+
   def fetch_captain(lobby) do
     {:ok, pid} = get_pid_by_lid(lobby)
     case GenServer.call(pid, {:fetch_captain}) do
-      {:ok, captain} -> {:ok, captain}
+      {:ok, captain} -> 
+        {:ok, captain}
       {:error, reason} -> 
         Logger.warning([
           message: "can't find captain",
