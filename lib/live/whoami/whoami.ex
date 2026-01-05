@@ -1,6 +1,8 @@
 defmodule PortalWeb.LiveStuff.Whoami do
   require Logger
 
+alias Phoenix.Presence
+alias Phoenix.Presence
   use PortalWeb, :live_view
   
   import Live.Whoami.Components
@@ -68,7 +70,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         # This means the player is already in the lobby
         Logger.debug("found player #{socket.assigns.user} in lobby #{inspect(lobby)}")
         new_socket = socket |> assign(
-          loading: false,
+          loading: true, # will be unset in fetch_stage() response handling
           stage: fetch_stage(lobby),
           ready: false,
           lobby_id: lobby,
@@ -83,7 +85,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
           {:noreply, new_socket}
         end
       {:error, message} ->
-        Logger.warning([message: "unexpected error", error: message])
+        Logger.warning([message: "can't put user into lobby", error: message])
         new_socket = 
           socket
           |> put_flash(:error, message)
@@ -110,7 +112,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     presences = Presence.list(topic) |> flatten_presences(player.id)
     new_socket = 
       assign(socket,
-        loading: false,
+        loading: true, # will be unset in fetch_stage() response handling loading: false,
         lobby_id: lobby, 
         stage: fetch_stage(lobby),
         player: player,
@@ -153,7 +155,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
           lobby_id={@lobby_id} 
           self={@player} 
           players={@players_in_lobby}
-          ready={@ready}
           />
 
       <% end %>
@@ -173,9 +174,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, new_socket}
   end
 
-  def handle_event("toggle_ready", %{"value" => player}, socket) do
-    PubSub.broadcast(Portal.PubSub, "lobby:#{socket.assigns.lobby_id}", {:toggle_status, player})
-    {:noreply, socket}
+  def handle_event("toggle_ready", %{"value" => _player}, socket) do
+    new_player = %{socket.assigns.player | ready: !socket.assigns.player.ready}
+    {:ok, _} = 
+    Presence.update(
+      self(),
+      "lobby:#{socket.assigns.lobby_id}",
+      socket.assigns.player.id,
+      fn meta ->
+        %{meta | user: new_player}
+      end
+    )
+    {:noreply, assign(socket, :player, new_player)}
   end
 
   def handle_event("remove_player", %{"player" => player}, socket) do
@@ -202,7 +212,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:fetch_players, lobby}, socket) do
       case Lobby.fetch_players(lobby) do
       {:ok, players, _count} -> 
-        players = Enum.filter(players,
+        players = 
+        Enum.filter(players,
           fn item -> 
             item.name == socket.assigns.player 
           end)
@@ -223,10 +234,10 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:fetch_stage, lobby}, socket) do
     case Lobby.fetch_stage(lobby) do
       {:ok, stage} ->
-        {:noreply, assign(socket, :stage, stage)}
+        {:noreply, assign(socket, loading: false, stage: stage)}
       {:error, nil} ->
         {:noreply, 
-          assign(socket, :stage, nil)
+          assign(socket, loading: false, stage: nil)
           |> put_flash(:info, "Can't tell the stage of the game, go back to the start")
         }
     end
@@ -271,11 +282,21 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:toggle_status, player}, socket) do
     self = socket.assigns.player.name
     if self == player do
-      new_socket = assign(socket, :ready, !socket.assigns.ready)
+      toggled = %{socket.assigns.player | ready: !socket.assigns.player.ready}
+      new_socket = assign(socket, :player, toggled)
       {:noreply, new_socket}
-    else 
-      IO.inspect("#{player} is not me")
-      {:noreply, socket}
+    else
+      new_list = Enum.map(socket.assigns.players_in_lobby, fn item -> 
+        if item.user.name == player do 
+          new_user = Map.update!(item.user, :ready, &(!&1))
+          Map.put(item, :user, new_user)
+        else
+          item
+        end
+      end)
+
+      new_socket = assign(socket, :players_in_lobby, new_list)
+      {:noreply, new_socket}
     end
   end
 
@@ -296,7 +317,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         unwanted_here: socket.assigns.lobby_id
       )
       |> put_flash(:error, "you've been kicked ¯\\\_(ツ)_/¯ ")
-      {:noreply, push_patch(new_socket, to: ~p{/whoami})}
+      {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
     else
       {:noreply, socket}
     end
@@ -326,6 +347,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     ids_that_left = Map.keys(leaves)
 
     players = Enum.reject(socket.assigns.players_in_lobby, fn player -> player.user.id in ids_that_left end)
+    Logger.info([message: "removed player from lobby", diff: players])
 
     assign(socket, players_in_lobby: players)
   end
@@ -341,6 +363,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
         |> Map.get(:metas)
         |> Enum.sort_by(&(&1.timestamp), {:desc, Date})
         |> Enum.dedup_by(&(&1.user.id))
+        
+        Logger.info([message: "added player to lobby", diff: result])
 
       assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ result)
     end
@@ -361,17 +385,25 @@ defmodule PortalWeb.LiveStuff.Whoami do
     nil
   end
 
-  def find_player(username, lobby) do
+  def find_player(username, lobby) when not is_tuple(username) do
+    case Lobby.ban_check(username, lobby) do
+      {:error, message} -> {:error, message}
+      {:ok, _} -> find_player({:allowed, username}, lobby)
+    end
+  end
+  
+  def find_player({:allowed, username}, lobby) do
     case Lobby.fetch_players(lobby) do
       {:ok, {users, free_spots}} -> 
         {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first(), free_spots}
       {:error, message} -> 
-        Logger.info([message: "tried to find a lobby that doesn't exist", user: username])
+        Logger.info([message: "can't find lobby", user: username])
         {:error, message}
     end
   end
 
   defp flatten_presences(presences, self_id) do
+    IO.inspect(presences, pretty: true)
     Enum.reject(presences, fn {k, _v} -> k == self_id end)
     |> Enum.reduce([], 
       fn {_key, val}, acc -> 
@@ -381,14 +413,13 @@ defmodule PortalWeb.LiveStuff.Whoami do
   
   defp track_presence(socket, topic) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Portal.PubSub, topic)
+      PubSub.subscribe(Portal.PubSub, topic)
       {:ok, _} = Presence.track(
         self(), 
         topic, 
         socket.assigns.player.id, 
         %{
           user: socket.assigns.player, 
-          connected: true,
           timestamp: inspect(System.system_time(:second))
         }
       )

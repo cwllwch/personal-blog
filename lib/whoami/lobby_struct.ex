@@ -3,5 +3,5 @@ defmodule Whoami.LobbyStruct do
   Defines the struct for a lobby
   """
 
-  defstruct [:id, :player_count, :captain, :players, :last_interaction, :stage]
+  defstruct [:id, :player_count, :captain, :players, :last_interaction, :stage, :ban_list]
 end

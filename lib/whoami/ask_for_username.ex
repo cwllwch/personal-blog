@@ -35,6 +35,7 @@ defmodule PortalWeb.Whoami.AskForUsername do
     case evaluate_username(conn.cookies) do
       {:ok, username} ->
         assign(conn, :user, username)
+        |> delete_session(:return_to)
         |> Plug.Conn.put_session(:user, username)
 
       {:error, nil} ->

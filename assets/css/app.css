@@ -31,6 +31,14 @@ p {
 		50% {opacity: 0.5;}
 }
 
+@keyframes spinLoad {
+		0%	{content: "\\";}
+		25%	{content: "|";}
+		50% {content: "/";}
+		75% {content: "—";}
+		100% {content: "";}
+}
+
 @keyframes altchange {
 		from { --gradient: 0%;}
 		to { --gradient: 100%;}
@@ -74,7 +82,12 @@ p {
 		--gradient: 100%;
 }
 
-.player:hover .remove_player {
+.player-true:hover .remove_player {
+		display: flex;
+		animation: fadeInToHalf 0.3s ease-in-out
+}
+
+.player-false:hover .remove_player {
 		display: flex;
 		animation: fadeInToHalf 0.3s ease-in-out
 }
@@ -102,8 +115,17 @@ p {
 		justify-self: center;
 }
 
+.loading-dots {
+		display: inline-block;
+}
+
+.loading-dots::after {
+		content: "•";
+		animation: spinLoad 2s steps(1) infinite;
+}
+
 .ready-false {
-height: 5vi;
+		height: 5vi;
 		width: 40vi;
 		background-color: red;
 }
@@ -113,6 +135,14 @@ height: 5vi;
 		width: 40vi;
 		background-color: green;
 }
+
+.ready-false, .ready-true {
+		border-radius: 2vi;
+		align-self: center;
+		margin-top: 10vi;
+		margin-bottom: 5vi;
+}
+
  .invite-block {
  		margin: 5vi;
 		display: flex;
@@ -162,6 +192,7 @@ height: 5vi;
 		border-radius: 7vi;
 		transition: transform 50ms ease-in-out;
 		opacity: 0.5;
+		z-index: 500;
 }
 
 .remove_player:hover {

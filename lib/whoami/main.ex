@@ -143,6 +143,14 @@ defmodule Whoami.Main do
     end
   end
 
+  def ban_check(username, lobby) do
+    {:ok, pid} = get_pid_by_lid(lobby)
+    case GenServer.call(pid, {:ban_check, username}) do
+      {:banned} -> {:error, "You've been banned from this lobby"}
+      {:allowed} -> {:ok, "Welcome!"}
+    end
+  end
+
 
   # Helper functions
   def generate_id() do
@@ -164,19 +172,4 @@ defmodule Whoami.Main do
   end
 
   def get_pid_by_lid(lobby_id) when is_integer(lobby_id), do: Integer.to_string(lobby_id) |>  get_pid_by_lid()
-
-  @doc """
-  Returns a list of maps with all of the currently 
-  running lobbies. This will be used to clean up the 
-  processes later
-  """
-  def get_all_pids() do
-    Registry.select(Portal.LobbyRegistry, [
-    {
-      {:"$1", :"$2", :"$3"}, 
-      [{:==, :"$3", :lobby}], 
-      [%{key: :"$1", pid: :"$2", val: :"$3"}]
-      }
-    ])
-  end
 end

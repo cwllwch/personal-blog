@@ -41,7 +41,6 @@ defmodule Live.Whoami.Components do
 
   attr :lobby_id, :integer, required: true
   attr :self, :map, required: true
-  attr :ready, :boolean, required: true
   attr :players, :list, required: true
   slot :inner_block
   
@@ -53,7 +52,7 @@ defmodule Live.Whoami.Components do
     ~H"""
       <div class="players">
         
-        <div class={"player-#{inspect(@ready)}"}>
+        <div class={"player-#{inspect(@self.ready)}"}>
           <div class="stars">
             <.icon name="hero-star-solid"/>
 
@@ -63,35 +62,37 @@ defmodule Live.Whoami.Components do
           <div class="score">{@self.wins}</div>
         </div>
         
-        <div class={"player-#{player.ready}"} :if={@players != []} :for={player <- @players}>
-        
-          <button 
-            :if={@is_captain == true} 
-            class="remove_player" 
-            phx-click="remove_player" 
-            phx-value-player={player.user.name}
-          >
-            <.icon name="hero-x-circle-solid"/>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          
-          <div class="stars">
-            <.icon name="hero-star-solid"/>
+        <div :if={@players != []} :for={player <- @players}>
+          <div class={"player-#{inspect(player.user.ready)}"}>
+            <button 
+              :if={@is_captain == true} 
+              class="remove_player" 
+              phx-click="remove_player" 
+              phx-value-player={player.user.name}
+            >
+              <%!-- <.icon name="hero-x-circle-solid"/> --%>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <div class="stars">
+              <.icon name="hero-star-solid"/>
+            </div>
+            <.icon name="hero-user" class="icon"/>
+            <div class="name">{player.user.name}</div>
+            <div class="score">{player.user.wins}</div>
           </div>
-          <.icon name="hero-user" class="icon"/>
-          <div class="name">{player.user.name}</div>
-          <div class="score">{player.user.wins}</div>
         </div>
       </div>
 
       <button 
-        class={"ready-" <> inspect(@ready)}
+        class={"ready-" <> inspect(@self.ready)}
         phx-click="toggle_ready"
         value={@self.name}
       >
-      ready, <%= @self.name %>? 
+      <span :if={@self.ready}>waiting for others <div class="loading-dots"></div></span>
+      <span :if={!@self.ready}>ready now, <%= @self.name %>?</span>
       </button>
 
       <div class="invite-block">
