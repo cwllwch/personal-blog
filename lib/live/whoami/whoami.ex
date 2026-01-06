@@ -347,7 +347,6 @@ alias Phoenix.Presence
     ids_that_left = Map.keys(leaves)
 
     players = Enum.reject(socket.assigns.players_in_lobby, fn player -> player.user.id in ids_that_left end)
-    Logger.info([message: "removed player from lobby", diff: players])
 
     assign(socket, players_in_lobby: players)
   end
@@ -364,8 +363,6 @@ alias Phoenix.Presence
         |> Enum.sort_by(&(&1.timestamp), {:desc, Date})
         |> Enum.dedup_by(&(&1.user.id))
         
-        Logger.info([message: "added player to lobby", diff: result])
-
       assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ result)
     end
   end

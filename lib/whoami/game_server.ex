@@ -186,7 +186,51 @@ defmodule Whoami.GameServer do
     end
   end
 
-  def handle_presences(diff, players) do
-    players  
+  defp handle_presences(diff, players) do
+    new_players = 
+      players
+      |> handle_joins(diff.joins)
+      |> handle_leaves(diff.leaves)
+
+    new_players
+  end
+
+  defp handle_joins(list, joins) when joins != %{}do
+    simplified = simplify(joins) 
+
+    Enum.map(list, fn player -> 
+      if player.id in Map.keys(simplified) do
+        Map.get(simplified, player.id)
+      else 
+        player
+      end      
+    end)
+  end
+
+  defp handle_joins(list, _joins), do: list
+
+  defp handle_leaves(list, leaves) when leaves != %{} do
+    simplified = simplify(leaves)
+
+    Enum.reject(list, fn player ->
+      player == Map.get(simplified, player.id)
+    end)
+    |> IO.inspect()
+  end
+
+  defp handle_leaves(list, _leaves), do: list 
+
+  defp simplify(diff) do
+    Enum.reduce(diff, %{}, fn {id, metas}, acc ->    # This is a rather convoluted way to get all joins, even 
+      Map.put(acc, id, Map.get(metas, :metas))        # if there is a list with more than one sent. This will
+    end)                                              # always create a list with the most recent state for each
+    |> Enum.reduce(%{}, fn {id, list}, acc ->         # of the user ids - then just map it over user list and 
+        latest =                                      # it's all good to be patched.
+          Enum.sort_by(list, &(&1.timestamp), :desc)
+          |> List.first() 
+
+        Map.put_new(acc, id, latest.user)
+      end)
   end
 end
+

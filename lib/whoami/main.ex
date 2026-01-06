@@ -113,9 +113,8 @@ defmodule Whoami.Main do
     end
   end
 
-  def fetch_stage(lobby) do
-    {:ok, pid} = get_pid_by_lid(lobby)
-    case GenServer.call(pid, {:fetch_stage}) do
+  def fetch_stage(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:fetch_stage}) do
       {:ok, stage} -> 
         {:ok, stage}
       {:error, reason} -> 
@@ -128,9 +127,15 @@ defmodule Whoami.Main do
     end
   end
 
-  def fetch_captain(lobby) do
-    {:ok, pid} = get_pid_by_lid(lobby)
-    case GenServer.call(pid, {:fetch_captain}) do
+  def fetch_stage(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_stage(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  def fetch_captain(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:fetch_captain}) do
       {:ok, captain} -> 
         {:ok, captain}
       {:error, reason} -> 
@@ -143,14 +148,26 @@ defmodule Whoami.Main do
     end
   end
 
-  def ban_check(username, lobby) do
-    {:ok, pid} = get_pid_by_lid(lobby)
-    case GenServer.call(pid, {:ban_check, username}) do
+  def fetch_captain(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_captain(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  def ban_check(username, lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:ban_check, username}) do
       {:banned} -> {:error, "You've been banned from this lobby"}
       {:allowed} -> {:ok, "Welcome!"}
     end
   end
-
+  
+  def ban_check(username, lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> ban_check(username, pid)
+      {:error, message} -> {:error, message}
+    end
+  end
 
   # Helper functions
   def generate_id() do
