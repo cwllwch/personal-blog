@@ -400,7 +400,6 @@ alias Phoenix.Presence
   end
 
   defp flatten_presences(presences, self_id) do
-    IO.inspect(presences, pretty: true)
     Enum.reject(presences, fn {k, _v} -> k == self_id end)
     |> Enum.reduce([], 
       fn {_key, val}, acc -> 

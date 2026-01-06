@@ -16,7 +16,7 @@ defmodule Portal.Application do
       # Whoami related children
       PortalWeb.Presence,
       {DynamicSupervisor, name: Lobby.Supervisor, strategy: :one_for_one},
-      {Registry, keys: :unique, name: Portal.LobbyRegistry}, 
+      {Registry, keys: :unique, name: Portal.LobbyRegistry}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

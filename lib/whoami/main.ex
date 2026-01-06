@@ -1,7 +1,6 @@
 defmodule Whoami.Main do
   require Logger
   alias Whoami.GameServer
-  
 
   @moduledoc """
   The client for GameServer, primary way to interact with it from
@@ -29,14 +28,14 @@ defmodule Whoami.Main do
   need this outside of the process."
   def destroy_lobby(lobby, list) when is_binary(lobby) do
     players = Enum.reduce(list, [], fn user, acc -> acc ++ [user.name] end)
-    
+
     Phoenix.PubSub.broadcast(Portal.PubSub, "lobby:#{lobby}", {:see_yourself_out, players})
 
     {:ok, pid} = get_pid_by_lid(lobby)
-    
+
     :ok = DynamicSupervisor.terminate_child(Lobby.Supervisor, pid)
-    
-    Logger.info([message: "killed lobby", lobby: lobby, players: players], aansi_color: :red)
+
+    Logger.info([message: "killed lobby", lobby: lobby, players: players], ansi_color: :magenta)
 
     {:ok, "terminated"}
   end
@@ -60,6 +59,7 @@ defmodule Whoami.Main do
   @doc "Adds a player to the state of the lobby. Note that this is not the same as the presence itself."
   def add_player(lobby, player) when is_pid(lobby) do
     reply = GenServer.call(lobby, {:add_player, player})
+
     case reply do
       {:ok, players} ->
         {:ok, players}
@@ -69,7 +69,7 @@ defmodule Whoami.Main do
     end
   end
 
-  def add_player(lobby, player) when is_binary(lobby) do 
+  def add_player(lobby, player) when is_binary(lobby) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> add_player(pid, player)
       {:error, reason} -> {:error, reason}
@@ -78,6 +78,7 @@ defmodule Whoami.Main do
 
   def remove_player(lobby, player) when is_pid(lobby) do
     reply = GenServer.call(lobby, {:remove_player, player})
+
     case reply do
       {:ok, players} ->
         {:ok, players}
@@ -93,36 +94,41 @@ defmodule Whoami.Main do
       {:error, reason} -> {:error, reason}
     end
   end
-  
+
   def fetch_players(lobby) when is_integer(lobby), do: Integer.to_string(lobby) |> fetch_players()
 
   def fetch_players(lobby) when is_binary(lobby) do
-    Logger.info([
-      message: "checking out who's in a lobby", 
+    Logger.info(
+      message: "checking out who's in a lobby",
       lobby: lobby
-    ])
+    )
 
     case Registry.lookup(Portal.LobbyRegistry, lobby) do
-      [] -> {:error, "Could not find the lobby"}
-      list -> 
-        result = 
+      [] ->
+        {:error, "Could not find the lobby"}
+
+      list ->
+        result =
           List.first(list)
           |> elem(0)
           |> GenServer.call({:fetch_players})
+
         {:ok, result}
     end
   end
 
   def fetch_stage(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_stage}) do
-      {:ok, stage} -> 
+      {:ok, stage} ->
         {:ok, stage}
-      {:error, reason} -> 
-        Logger.warning([
+
+      {:error, reason} ->
+        Logger.warning(
           message: "stage unavailable",
           lobby: lobby,
           reason: reason
-        ])
+        )
+
         {:error, nil}
     end
   end
@@ -136,14 +142,16 @@ defmodule Whoami.Main do
 
   def fetch_captain(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_captain}) do
-      {:ok, captain} -> 
+      {:ok, captain} ->
         {:ok, captain}
-      {:error, reason} -> 
-        Logger.warning([
+
+      {:error, reason} ->
+        Logger.warning(
           message: "can't find captain",
           error: reason,
           lobby: lobby
-        ])
+        )
+
         {:error, reason}
     end
   end
@@ -161,7 +169,7 @@ defmodule Whoami.Main do
       {:allowed} -> {:ok, "Welcome!"}
     end
   end
-  
+
   def ban_check(username, lobby) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> ban_check(username, pid)
@@ -179,14 +187,15 @@ defmodule Whoami.Main do
   @doc "Returns the process pid for the specified lobby by looking into the registry."
   def get_pid_by_lid(lobby_id) when is_binary(lobby_id) do
     case Registry.lookup(Portal.LobbyRegistry, lobby_id) do
-    [] -> 
-      {:error, "Lobby not found"}
-    
-    list ->
-      pid = List.first(list) |> elem(0)
-      {:ok, pid}
+      [] ->
+        {:error, "Lobby not found"}
+
+      list ->
+        pid = List.first(list) |> elem(0)
+        {:ok, pid}
     end
   end
 
-  def get_pid_by_lid(lobby_id) when is_integer(lobby_id), do: Integer.to_string(lobby_id) |>  get_pid_by_lid()
+  def get_pid_by_lid(lobby_id) when is_integer(lobby_id),
+    do: Integer.to_string(lobby_id) |> get_pid_by_lid()
 end

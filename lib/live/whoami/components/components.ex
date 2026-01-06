@@ -46,7 +46,7 @@ defmodule Live.Whoami.Components do
   
   @doc "Renders the waiting room before the game starts."
   def waiting_room(assigns) do
-    is_captain = is_captain?(assigns.lobby_id, assigns.self)
+    is_captain = captain?(assigns.lobby_id, assigns.self)
     assigns = Map.put_new(assigns, :is_captain, is_captain)
   
     ~H"""
@@ -111,7 +111,7 @@ defmodule Live.Whoami.Components do
 
   # Helpers for the waiting room
 
-  def is_captain?(lobby_id, self) do
+  def captain?(lobby_id, self) do
     case Whoami.Main.fetch_captain(lobby_id) do
       {:ok, captain} -> if captain.id == self.id, do: true, else: false
       {:error, _reason} -> false

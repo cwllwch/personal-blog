@@ -63,7 +63,6 @@ defmodule PortalWeb do
       use Phoenix.LiveComponent
       use Phoenix.Component
       import PortalWeb.CoreComponents
-      
 
       unquote(html_helpers())
     end
