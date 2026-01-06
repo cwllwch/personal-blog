@@ -138,7 +138,7 @@ p {
 .loading-dots::after {
 		content: " ";
 		letter-spacing: -3px;
-		animation: loadingDots 5s 3s steps(1) infinite;
+		animation: loadingDots 5s 1s steps(1) infinite;
 }
 
 .ready-false {

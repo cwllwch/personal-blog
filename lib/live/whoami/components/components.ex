@@ -91,7 +91,7 @@ defmodule Live.Whoami.Components do
         phx-click="toggle_ready"
         value={@self.name}
       >
-      <span :if={@self.ready}>waiting for others <div class="loading-dots"></div></span>
+      <span :if={@self.ready}><div class="loading-dots"></div> waiting for others <div class="loading-dots"></div></span>
       <span :if={!@self.ready}>ready now, <%= @self.name %>?</span>
       </button>
 
