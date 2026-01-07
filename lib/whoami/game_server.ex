@@ -24,7 +24,8 @@ defmodule Whoami.GameServer do
       players: [captain],
       last_interaction: System.system_time(:second),
       stage: :waiting_room,
-      ban_list: []
+      ban_list: [],
+      disc_list: []
     }
 
     PubSub.subscribe(Portal.PubSub, "lobby:#{id}")
@@ -50,6 +51,7 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_call({:remove_player, player}, _from, state) do
+  IO.inspect(player)
     case remove_player(player, state) do
       {:ok, player_list} ->
         reply = {:ok, player_list}
@@ -73,7 +75,7 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_call({:fetch_players}, _from, state) do
     free_spots = state.player_count - length(state.players)
-    {:reply, {state.players, free_spots}, state}
+    {:reply, {:ok, state.players, free_spots}, state}
   end
 
   @impl true
@@ -84,6 +86,11 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_call({:fetch_captain}, _from, state) do
     {:reply, {:ok, state.captain}, state}
+  end
+
+  @impl true
+  def handle_call({:fetch_disc_list}, _from, state) do
+    {:reply, {:ok, state.disc_list}, state}
   end
 
   @impl true
@@ -99,6 +106,31 @@ defmodule Whoami.GameServer do
     {:noreply, new_state}
   end
 
+  # this is used to update the liveviews, handled here just to not generate an error
+  def handle_info({:change_disc_list, _new_disc_list}, state) do
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:add_to_disc_list, player}, state) do
+    new_disc_list = [player] ++ state.disc_list
+
+    PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:change_disc_list, new_disc_list})
+    {:noreply, %{state | disc_list: new_disc_list}}
+  end
+  
+  @impl true
+  def handle_info({:remove_from_disc_list, player}, state) do
+    new_disc_list = 
+      Enum.map(state.disc_list, fn id -> 
+        if id == player, do: [], else: id
+      end)
+      |> List.flatten()
+
+    PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:change_disc_list, new_disc_list})
+    {:noreply, %{state | disc_list: new_disc_list}}
+  end
+  
   @impl true
   def handle_info({:see_yourself_out, player}, state) do
     new_ban_list = [player] ++ state.ban_list
@@ -206,8 +238,8 @@ defmodule Whoami.GameServer do
   defp handle_presences(diff, players) do
     new_players =
       players
-      |> handle_joins(diff.joins)
       |> handle_leaves(diff.leaves)
+      |> handle_joins(diff.joins)
 
     new_players
   end
@@ -217,6 +249,7 @@ defmodule Whoami.GameServer do
 
     Enum.map(list, fn player ->
       if player.id in Map.keys(simplified) do
+        remove_from_disc_list(player.id)
         Map.get(simplified, player.id)
       else
         player
@@ -229,12 +262,25 @@ defmodule Whoami.GameServer do
   defp handle_leaves(list, leaves) when leaves != %{} do
     simplified = simplify(leaves)
 
-    Enum.reject(list, fn player ->
-      player == Map.get(simplified, player.id)
+    Enum.map(list, fn player ->
+      if player == Map.get(simplified, player.id) do 
+        add_to_disc_list(player.id)
+        Map.put(player, :ready, false)
+      else
+        player
+      end 
     end)
   end
 
   defp handle_leaves(list, _leaves), do: list
+
+  def add_to_disc_list(player_id) do
+    send(self(), {:add_to_disc_list, player_id})
+  end
+  
+  def remove_from_disc_list(player_id) do
+    send(self(), {:remove_from_disc_list, player_id})
+  end
 
   defp simplify(diff) do
     # This is a rather convoluted way to get all joins, even 

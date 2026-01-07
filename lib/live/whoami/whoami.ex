@@ -1,8 +1,6 @@
 defmodule PortalWeb.LiveStuff.Whoami do
   require Logger
 
-alias Phoenix.Presence
-alias Phoenix.Presence
   use PortalWeb, :live_view
   
   import Live.Whoami.Components
@@ -31,7 +29,7 @@ alias Phoenix.Presence
       socket
       |> assign(
         page_title: "who am i",
-        loading: false,
+        loading: true,
         player: nil,
         user: session["user"],
         lobby_id: nil,
@@ -70,12 +68,13 @@ alias Phoenix.Presence
         # This means the player is already in the lobby
         Logger.debug("found player #{socket.assigns.user} in lobby #{inspect(lobby)}")
         new_socket = socket |> assign(
-          loading: true, # will be unset in fetch_stage() response handling
+          loading: true,
           stage: fetch_stage(lobby),
           ready: false,
           lobby_id: lobby,
           player: player,
-          players_in_lobby: Presence.list(topic) |> flatten_presences(player.id),
+          players_in_lobby: fetch_players(lobby),
+          disc_list: fetch_disc_list(),
           link: ~p{/whoami?#{%{lobby: lobby}}}
         )
         if connected?(new_socket) do
@@ -109,14 +108,15 @@ alias Phoenix.Presence
   def put_into_lobby(socket, user, lobby, free_spots) when free_spots > 0 do
     topic = "lobby:#{lobby}"
     player = create_player(user)
-    presences = Presence.list(topic) |> flatten_presences(player.id)
+
     new_socket = 
       assign(socket,
-        loading: true, # will be unset in fetch_stage() response handling loading: false,
+        loading: true,
         lobby_id: lobby, 
         stage: fetch_stage(lobby),
         player: player,
-        players_in_lobby: presences,
+        players_in_lobby: fetch_players(lobby),
+        disc_list: fetch_disc_list(),
         link: ~p{/whoami?#{%{lobby: lobby}}}
       )
     if connected?(new_socket) do
@@ -155,6 +155,7 @@ alias Phoenix.Presence
           lobby_id={@lobby_id} 
           self={@player} 
           players={@players_in_lobby}
+          disc_list={@disc_list}
           />
 
       <% end %>
@@ -164,12 +165,6 @@ alias Phoenix.Presence
 
   def handle_event("request_lobby", %{"player_count" => player_count}, socket) do
     send(self(), {:create_lobby, String.to_integer(player_count)})
-    new_socket = assign(socket, :loading, true)
-    {:noreply, new_socket}
-  end
-
-  def handle_event("fetch_players", _params, socket) do
-    send(self(), {:fetch_players, socket.assigns.lobby_id})
     new_socket = assign(socket, :loading, true)
     {:noreply, new_socket}
   end
@@ -212,17 +207,14 @@ alias Phoenix.Presence
   def handle_info({:fetch_players, lobby}, socket) do
       case Lobby.fetch_players(lobby) do
       {:ok, players, _count} -> 
-        players = 
-        Enum.filter(players,
+
+        new_players = 
+        Enum.reject(players,
           fn item -> 
-            item.name == socket.assigns.player 
-          end)
-        |> Enum.reduce([], 
-          fn p, acc -> 
-            acc ++ [Map.get(p, :name)]
+            item.name == socket.assigns.player.name 
           end)
 
-        {:noreply, assign(socket, players_in_lobby: players, loading: false)}
+        {:noreply, assign(socket, players_in_lobby: new_players, loading: false)}
         
       {:error, message} -> 
         Logger.info([message: message, lobby: lobby, player: socket.assigns.player])
@@ -259,6 +251,25 @@ alias Phoenix.Presence
         {:noreply, push_patch(new_socket, to: ~p{/whoami})}
     end
   end
+  
+  def handle_info({:change_disc_list, new_list}, socket) do
+    IO.inspect(new_list)
+    {:noreply, assign(socket, :disc_list, new_list)}
+  end
+
+  def handle_info({:fetch_disc_list}, socket) do
+    case Lobby.fetch_disc_list(socket.assigns.lobby_id) do
+      {:error, message} ->
+        {:noreply, put_flash(socket, :error, message)}
+      list -> 
+        new_socket = assign(
+          socket,
+          :disc_list,
+          list
+        )
+        {:noreply, new_socket}
+    end
+  end
 
   # Removes the player from the lobby state
   def handle_info({:remove_player, player}, socket) do
@@ -278,6 +289,7 @@ alias Phoenix.Presence
       {:noreply, new_socket}
     end
   end
+
 
   def handle_info({:toggle_status, player}, socket) do
     self = socket.assigns.player.name
@@ -319,12 +331,13 @@ alias Phoenix.Presence
       |> put_flash(:error, "you've been kicked ¯\\\_(ツ)_/¯ ")
       {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
     else
-      {:noreply, socket}
+      new_list = Enum.reject(socket.assigns.players_in_lobby, &(&1.name == player))
+      {:noreply, assign(socket, :players_in_lobby, new_list)}
     end
   end
 
   def handle_info(%{event: "presence_diff", payload: diff}, socket) do
-    new_socket = 
+    new_socket =
       socket 
       |> remove_presences(diff.leaves)
       |> add_presences(diff.joins)
@@ -343,27 +356,27 @@ alias Phoenix.Presence
     end
   end
 
-  def remove_presences(socket, leaves) do
-    ids_that_left = Map.keys(leaves)
-
-    players = Enum.reject(socket.assigns.players_in_lobby, fn player -> player.user.id in ids_that_left end)
-
-    assign(socket, players_in_lobby: players)
+  defp remove_presences(socket, _leaves) do
+    send(self(), {:fetch_players, socket.assigns.lobby_id})
+    socket
   end
 
-  def add_presences(socket, joins) do
-    non_self = Enum.reject(joins, fn {user, _metas} -> user == socket.assigns.player.id end)
-    if non_self == [] do 
+  defp add_presences(socket, joins) do
+    player_list = 
+      Enum.reduce(socket.assigns.players_in_lobby, [], fn player, acc -> 
+        List.insert_at(acc, -1, player.id) 
+      end)
+    non_repeated = 
+      Enum.reject(joins, fn {user, _metas} -> 
+        user == socket.assigns.player.id || user in player_list 
+      end)
+    if non_repeated == [] do 
       socket 
-    else 
-      result =
-       List.first(non_self)
-        |> elem(1)
-        |> Map.get(:metas)
-        |> Enum.sort_by(&(&1.timestamp), {:desc, Date})
-        |> Enum.dedup_by(&(&1.user.id))
-        
-      assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ result)
+    else
+      new_joins = simplify(non_repeated) 
+      |> Map.values()
+
+      assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ new_joins)
     end
   end
 
@@ -376,6 +389,17 @@ alias Phoenix.Presence
       wins: 0
     }
   end
+
+  def fetch_players(lobby) do
+    send(self(), {:fetch_players, lobby})
+    []
+  end
+
+  def fetch_disc_list() do
+    send(self(), {:fetch_disc_list})
+    []
+  end
+  
 
   def fetch_stage(lobby) do
     send(self(), {:fetch_stage, lobby})
@@ -391,7 +415,7 @@ alias Phoenix.Presence
   
   def find_player({:allowed, username}, lobby) do
     case Lobby.fetch_players(lobby) do
-      {:ok, {users, free_spots}} -> 
+      {:ok, users, free_spots} -> 
         {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first(), free_spots}
       {:error, message} -> 
         Logger.info([message: "can't find lobby", user: username])
@@ -399,14 +423,6 @@ alias Phoenix.Presence
     end
   end
 
-  defp flatten_presences(presences, self_id) do
-    Enum.reject(presences, fn {k, _v} -> k == self_id end)
-    |> Enum.reduce([], 
-      fn {_key, val}, acc -> 
-        acc ++ [List.first(val.metas)] 
-      end)
-  end
-  
   defp track_presence(socket, topic) do
     if connected?(socket) do
       PubSub.subscribe(Portal.PubSub, topic)
@@ -425,5 +441,25 @@ alias Phoenix.Presence
       Logger.info([message: "socket not connected", topic: topic])
       socket
     end
+  end
+
+
+  defp simplify(diff) do
+    # This is a rather convoluted way to get all joins, even 
+    Enum.reduce(diff, %{}, fn {id, metas}, acc ->
+      # if there is a list with more than one sent. This will
+      Map.put(acc, id, Map.get(metas, :metas))
+    end)
+
+    # always create a list with the most recent state for each
+    # of the user ids - then just map it over user list and 
+    |> Enum.reduce(%{}, fn {id, list}, acc ->
+      # it's all good to be patched.
+      latest =
+        Enum.sort_by(list, & &1.timestamp, :desc)
+        |> List.first()
+
+      Map.put_new(acc, id, latest.user)
+    end)
   end
 end

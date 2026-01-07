@@ -42,13 +42,15 @@ defmodule Live.Whoami.Components do
   attr :lobby_id, :integer, required: true
   attr :self, :map, required: true
   attr :players, :list, required: true
+  attr :disc_list, :list, required: true
   slot :inner_block
   
   @doc "Renders the waiting room before the game starts."
   def waiting_room(assigns) do
     is_captain = captain?(assigns.lobby_id, assigns.self)
-    assigns = Map.put_new(assigns, :is_captain, is_captain)
-  
+    assigns = 
+      Map.put_new(assigns, :is_captain, is_captain)
+
     ~H"""
       <div class="players">
         
@@ -63,14 +65,13 @@ defmodule Live.Whoami.Components do
         </div>
         
         <div :if={@players != []} :for={player <- @players}>
-          <div class={"player-#{inspect(player.user.ready)}"}>
+          <div class={"player-#{inspect(player.ready)}"}>
             <button 
               :if={@is_captain == true} 
               class="remove_player" 
               phx-click="remove_player" 
-              phx-value-player={player.user.name}
+              phx-value-player={player.name}
             >
-              <%!-- <.icon name="hero-x-circle-solid"/> --%>
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
               </svg>
@@ -79,9 +80,10 @@ defmodule Live.Whoami.Components do
             <div class="stars">
               <.icon name="hero-star-solid"/>
             </div>
-            <.icon name="hero-user" class="icon"/>
-            <div class="name">{player.user.name}</div>
-            <div class="score">{player.user.wins}</div>
+            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
+            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
+            <div class="name">{player.name}</div>
+            <div class="score">{player.wins}</div>
           </div>
         </div>
       </div>

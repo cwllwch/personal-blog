@@ -44,17 +44,18 @@ p {
 		45%  {content: "⣿⣿⣿⣿";}
 		50%  {content: "⣿⣿⣿⣿";}
 		55%  {content: "⣿⣿⣿⣿";}
-		60%  {content: "⣿⣿⣿⣿";}
-		65%  {content: "⣮⣮⣮⣮";}
-		70%  {content: "⣵⣵⣵⣵";}
-		75%  {content: "⣕⣕⣕⣕";}
-		80%  {content: "⡵⡵⡵⡵";}
-		85%  {content: "⢑⡓⢑⡓";}
-		95%  {content: "⠣⠣⠣⠣";}
-		100% {content: "⠉⠉⠉⠉";}
+		60%  {content: "⣮⣮⣮⣮";}
+		65%  {content: "⣵⣵⣵⣵";}
+		70%  {content: "⣕⣕⣕⣕";}
+		75%  {content: "⡵⡵⡵⡵";}
+		80%  {content: "⢑⡓⢑⡡";}
+		85%  {content: "⠣⠕⠣⡡";}
+		90% {content: "⠈⠊⠐⠈";}
+		95% {content: " ⠁ ⠂";}
+		95% {content: "⠂  ⠂";}
 }
 
-@keyframes altchange {
+@keyframes altchange { 
 		from { --gradient: 0%;}
 		to { --gradient: 100%;}
 }
@@ -146,14 +147,16 @@ p {
 }
 
 .ready-true {
-		background-color: green;
+		background-color: #35530e;
 }
 
 .ready-false, .ready-true {
 		height: 5vi;
-		max-height: 80px;
+		max-height: 90px;
 		width: 40vi;
-		border-radius: 2vi;
+		min-width: 300px;
+		max-width: 500px;
+		border-radius: 5em;
 		align-self: center;
 }
 

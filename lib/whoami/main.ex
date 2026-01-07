@@ -95,27 +95,17 @@ defmodule Whoami.Main do
     end
   end
 
-  def fetch_players(lobby) when is_integer(lobby), do: Integer.to_string(lobby) |> fetch_players()
+  def fetch_players(lobby) when is_pid(lobby) do
+    GenServer.call(lobby, {:fetch_players})
+  end
 
-  def fetch_players(lobby) when is_binary(lobby) do
-    Logger.info(
-      message: "checking out who's in a lobby",
-      lobby: lobby
-    )
-
-    case Registry.lookup(Portal.LobbyRegistry, lobby) do
-      [] ->
-        {:error, "Could not find the lobby"}
-
-      list ->
-        result =
-          List.first(list)
-          |> elem(0)
-          |> GenServer.call({:fetch_players})
-
-        {:ok, result}
+  def fetch_players(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_players(pid)
+      {:error, message} -> {:error, message}
     end
   end
+  
 
   def fetch_stage(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_stage}) do
@@ -159,6 +149,20 @@ defmodule Whoami.Main do
   def fetch_captain(lobby) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> fetch_captain(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  def fetch_disc_list(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:fetch_disc_list}) do
+      {:ok, list} -> list
+      any -> {:error, "Unexpected response: #{inspect(any)}"}
+    end
+  end
+
+  def fetch_disc_list(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_disc_list(pid)
       {:error, message} -> {:error, message}
     end
   end
