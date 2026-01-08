@@ -41,8 +41,7 @@ defmodule Live.Whoami.Components do
 
   attr :lobby_id, :integer, required: true
   attr :self, :map, required: true
-  attr :players, :list, required: true
-  attr :disc_list, :list, required: true
+  attr :can_start, :boolean
   slot :inner_block
   
   @doc "Renders the waiting room before the game starts."
@@ -52,50 +51,36 @@ defmodule Live.Whoami.Components do
       Map.put_new(assigns, :is_captain, is_captain)
 
     ~H"""
-      <div class="players">
-        
-        <div class={"player-#{inspect(@self.ready)}"}>
-          <div class="stars">
-            <.icon name="hero-star-solid"/>
-
-          </div>
-          <.icon name="hero-user" class="icon"/>
-          <div class="name">{@self.name}</div>
-          <div class="score">{@self.wins}</div>
-        </div>
-        
-        <div :if={@players != []} :for={player <- @players}>
-          <div class={"player-#{inspect(player.ready)}"}>
-            <button 
-              :if={@is_captain == true} 
-              class="remove_player" 
-              phx-click="remove_player" 
-              phx-value-player={player.name}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-            
-            <div class="stars">
-              <.icon name="hero-star-solid"/>
-            </div>
-            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
-            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
-            <div class="name">{player.name}</div>
-            <div class="score">{player.wins}</div>
-          </div>
-        </div>
-      </div>
-
       <button 
         class={"ready-" <> inspect(@self.ready)}
         phx-click="toggle_ready"
         value={@self.name}
       >
-      <span :if={@self.ready}><div class="loading-dots"></div> waiting for others <div class="loading-dots"></div></span>
-      <span :if={!@self.ready}>ready now, <%= @self.name %>?</span>
+        <span :if={@self.ready and @can_start == false}>
+          <div class="loading-dots"></div> waiting for others <div class="loading-dots"></div>
+        </span>
+
+        <span :if={@self.ready and @can_start == true} class="justify-self-center">
+          <div class="loading-dots"></div> everyone is ready! <div class="loading-dots"></div>
+        </span>
+        
+        <span :if={!@self.ready}>ready now, <%= @self.name %>?</span>
       </button>
+
+      <button 
+        :if={@can_start == true and @is_captain == true} 
+        phx-click="start_game"
+        class="start"
+      >
+      start the game!
+      </button>
+      
+      <div class="info"
+        :if={@can_start == true and @is_captain == false} 
+      >
+      waiting for the captain to start...
+      </div>
+
 
       <div class="invite-block">
         <div>invite your friends with this link:</div>
@@ -113,12 +98,7 @@ defmodule Live.Whoami.Components do
 
   # Helpers for the waiting room
 
-  def captain?(lobby_id, self) do
-    case Whoami.Main.fetch_captain(lobby_id) do
-      {:ok, captain} -> if captain.id == self.id, do: true, else: false
-      {:error, _reason} -> false
-    end
-  end
+
 
   defp make_link(lobby_id) do
     env = System.get_env("MIX_ENV")
@@ -127,5 +107,96 @@ defmodule Live.Whoami.Components do
     else 
       System.get_env("PHX_HOST") <> ~p{/whoami?#{%{lobby: lobby_id}}}
     end
+  end
+
+  attr :lobby_id, :integer, required: true
+  attr :self, :map, required: true
+  attr :players, :list, required: true
+  attr :disc_list, :list, required: true
+  attr :stage, :atom, required: true
+
+  @doc "Renders the input page when you need to request a word from the user."
+  def player_bar(assigns) do
+    is_captain = captain?(assigns.lobby_id, assigns.self)
+    assigns = 
+      Map.put_new(assigns, :is_captain, is_captain)
+
+    ~H"""
+      <div class="players">
+        
+        <div :if={@stage == :waiting_room} class={"player-#{@self.ready}"}>
+        <div class="stars">
+            <.icon :if={@self.wins >= 1} :for={win <- 1..@self.wins} name="hero-star-solid"/>
+          </div>
+          <.icon name="hero-user" class="icon"/>
+          <div class="name">{@self.name}</div>
+          <div class="score">{@self.wins}</div>
+        </div>
+
+        <div :if={@stage != :waiting_room} class={"player-true"}>
+        <div class="stars">
+            <.icon :if={@self.wins >= 1} :for={win <- 1..@self.wins} name="hero-star-solid"/>
+          </div>
+          <.icon name="hero-user" class="icon"/>
+          <div class="name">{@self.name}</div>
+          <div class="score">{@self.wins}</div>
+        </div>
+        
+        <div :for={player <- @players} :if={@stage == :waiting_room} class={"player-#{player.ready}"}> 
+            <button 
+              :if={@is_captain == true} 
+              class="remove_player" 
+              phx-click="remove_player" 
+              phx-value-player={player.name}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <div class="stars">
+              <.icon :if={player.wins >= 1} :for={win <- 1..player.wins} name="hero-star-solid"/>
+            </div>
+            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
+            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
+            <div class="name">{player.name}</div>
+            <div class="score">{player.wins}</div>
+        </div>
+        <div :for={player <- @players} :if={@stage != :waiting_room} class={"player-true"}> 
+            <button 
+              :if={@is_captain == true} 
+              class="remove_player" 
+              phx-click="remove_player" 
+              phx-value-player={player.name}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <div class="stars">
+              <.icon :if={player.wins >= 1} :for={win <- 1..player.wins} name="hero-star-solid"/>
+            </div>
+            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
+            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
+            <div class="name">{player.name}</div>
+            <div class="score">{player.wins}</div>
+        </div>
+      </div>
+    """
+  end
+
+  # Helpers for the player_bar
+  def captain?(lobby_id, self) do
+    case Whoami.Main.fetch_captain(lobby_id) do
+      {:ok, captain} -> if captain.id == self.id, do: true, else: false
+      {:error, _reason} -> false
+    end
+  end
+
+  def input_word(assigns) do
+    ~H"""
+      Hi!
+    """
   end
 end

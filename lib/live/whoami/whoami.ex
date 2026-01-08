@@ -74,6 +74,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
           lobby_id: lobby,
           player: player,
           players_in_lobby: fetch_players(lobby),
+          can_start: false,
           disc_list: fetch_disc_list(),
           link: ~p{/whoami?#{%{lobby: lobby}}}
         )
@@ -114,6 +115,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         loading: true,
         lobby_id: lobby, 
         stage: fetch_stage(lobby),
+        can_start: false,
         player: player,
         players_in_lobby: fetch_players(lobby),
         disc_list: fetch_disc_list(),
@@ -151,13 +153,32 @@ defmodule PortalWeb.LiveStuff.Whoami do
           />
 
         <% @stage == :waiting_room and @loading == false -> %>
-          <.waiting_room 
-          lobby_id={@lobby_id} 
-          self={@player} 
-          players={@players_in_lobby}
-          disc_list={@disc_list}
+          <.player_bar 
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
           />
 
+          <.waiting_room 
+            lobby_id={@lobby_id} 
+            self={@player} 
+            can_start={@can_start}
+          />
+
+        <% @stage == :input_word and @loading == false -> %>
+          <.player_bar 
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+
+          <.input_word
+          />
+            A new stage!
       <% end %>
     </div>
     """
@@ -189,6 +210,12 @@ defmodule PortalWeb.LiveStuff.Whoami do
     new_socket = assign(socket, loading: true)
     {:noreply, new_socket}
   end 
+
+  def handle_event("start_game", _params, socket) do
+    Logger.debug([message: "starting the match", lobby: socket.assigns.lobby_id])
+    PubSub.broadcast(Portal.PubSub, "lobby:#{socket.assigns.lobby_id}", {:update_stage, :input_word})
+    {:noreply, socket}
+  end
 
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Lobby.create_lobby(player_count, socket.assigns.player)
@@ -234,6 +261,10 @@ defmodule PortalWeb.LiveStuff.Whoami do
         }
     end
   end
+  
+  def handle_info({:update_stage, new_stage}, socket) do
+    {:noreply, assign(socket, :stage, new_stage)}
+  end
 
   def handle_info({:add_player, lobby}, socket) do
     case Lobby.add_player(lobby, socket.assigns.player) do
@@ -251,9 +282,12 @@ defmodule PortalWeb.LiveStuff.Whoami do
         {:noreply, push_patch(new_socket, to: ~p{/whoami})}
     end
   end
+
+  def handle_info({:can_start_toggle, status}, socket) do
+    {:noreply, assign(socket, :can_start, status)}
+  end
   
   def handle_info({:change_disc_list, new_list}, socket) do
-    IO.inspect(new_list)
     {:noreply, assign(socket, :disc_list, new_list)}
   end
 
@@ -286,28 +320,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
         loading: false
       ) 
       |> put_flash(:info, "Kicked player #{player} from the lobby!")
-      {:noreply, new_socket}
-    end
-  end
-
-
-  def handle_info({:toggle_status, player}, socket) do
-    self = socket.assigns.player.name
-    if self == player do
-      toggled = %{socket.assigns.player | ready: !socket.assigns.player.ready}
-      new_socket = assign(socket, :player, toggled)
-      {:noreply, new_socket}
-    else
-      new_list = Enum.map(socket.assigns.players_in_lobby, fn item -> 
-        if item.user.name == player do 
-          new_user = Map.update!(item.user, :ready, &(!&1))
-          Map.put(item, :user, new_user)
-        else
-          item
-        end
-      end)
-
-      new_socket = assign(socket, :players_in_lobby, new_list)
       {:noreply, new_socket}
     end
   end

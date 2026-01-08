@@ -51,7 +51,6 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_call({:remove_player, player}, _from, state) do
-  IO.inspect(player)
     case remove_player(player, state) do
       {:ok, player_list} ->
         reply = {:ok, player_list}
@@ -106,6 +105,9 @@ defmodule Whoami.GameServer do
     {:noreply, new_state}
   end
 
+  def handle_info({:update_stage, new_stage}, state) do
+    {:noreply, %{state | stage: new_stage}}
+  end
   # this is used to update the liveviews, handled here just to not generate an error
   def handle_info({:change_disc_list, _new_disc_list}, state) do
     {:noreply, state}
@@ -140,17 +142,33 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_info(%{event: "presence_diff", payload: diff}, state) do
     new_state = %{state | players: handle_presences(diff, state.players)}
+    send(self(), {:can_start?})
     {:noreply, new_state}
   end
 
   @impl true
-  def handle_info({:toggle_status, player}, state) do
-    new_list =
-      Enum.map(state.players, fn p ->
-        if p.name == player, do: %{p | ready: !p.ready}, else: p
+  def handle_info({:can_start?}, state) do
+    unready = 
+      Enum.reduce(state.players, [], fn player, acc -> 
+        if player.ready == false, do: List.insert_at(acc, -1, player.id), else: acc
       end)
 
-    {:noreply, %{state | players: new_list}}
+    n = length(state.players)
+    IO.inspect(n)
+
+    if unready != [] or n < state.player_count do
+      Logger.info([message: "not ready to start yet", lobby: state.id])
+      PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, false})
+      {:noreply, state}
+    else
+      Logger.info([message: "ready to start!", lobby: state.id])
+      PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, true})
+      {:noreply, state}
+    end
+  end
+
+  def handle_info({:can_start_toggle, _status}, state) do
+    {:noreply, state}
   end
 
   @impl true
