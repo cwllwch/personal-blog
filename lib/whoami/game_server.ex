@@ -25,7 +25,8 @@ defmodule Whoami.GameServer do
       last_interaction: System.system_time(:second),
       stage: :waiting_room,
       ban_list: [],
-      disc_list: []
+      disc_list: [],
+      word_map: %{}
     }
 
     PubSub.subscribe(Portal.PubSub, "lobby:#{id}")
@@ -93,6 +94,14 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_cast({:input_word, player, word}, state) do
+    new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
+    send(self(), {:check_words_complete})
+    Logger.debug([message: "inserted words", player: player, words: inspect(word)])
+    {:noreply, new_state}
+  end
+
+  @impl true
   def handle_cast({:interaction, timestamp}, state) do
     new_state = %{state | last_interaction: timestamp}
 
@@ -142,7 +151,7 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_info(%{event: "presence_diff", payload: diff}, state) do
     new_state = %{state | players: handle_presences(diff, state.players)}
-    send(self(), {:can_start?})
+    if state.stage == :waiting_room, do: send(self(), {:can_start?})
     {:noreply, new_state}
   end
 
@@ -154,7 +163,6 @@ defmodule Whoami.GameServer do
       end)
 
     n = length(state.players)
-    IO.inspect(n)
 
     if unready != [] or n < state.player_count do
       Logger.info([message: "not ready to start yet", lobby: state.id])
@@ -169,6 +177,19 @@ defmodule Whoami.GameServer do
 
   def handle_info({:can_start_toggle, _status}, state) do
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:check_words_complete}, state) do
+    players_in_word_list = Map.keys(state.word_map) |> Enum.sort()
+    player_list = Enum.map(state.players, &(&1.id)) |> Enum.sort()
+
+    if player_list == players_in_word_list do
+      PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:update_stage, :versus_arena})
+      {:noreply, state}
+    else
+      {:noreply, state}
+    end 
   end
 
   @impl true

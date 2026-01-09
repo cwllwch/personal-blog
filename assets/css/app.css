@@ -19,15 +19,15 @@ p {
 }
 
 @keyframes fadeIn {
-		0% {opacity: 0;}
-		10% {opacity: 0.1;}
-		30% {opacity: 0.3;}
-		60% {opacity: 0.6;}
+		0%   {opacity: 0;}
+		10%  {opacity: 0.1;}
+		30%  {opacity: 0.3;}
+		60%  {opacity: 0.6;}
 		100% {opacity: 1;}
 }
 
 @keyframes fadeInToHalf {
-		0% {opacity: 0;}
+		0%  {opacity: 0;}
 		50% {opacity: 0.5;}
 }
 
@@ -50,9 +50,9 @@ p {
 		75%  {content: "⡵⡵⡵⡵";}
 		80%  {content: "⢑⡓⢑⡡";}
 		85%  {content: "⠣⠕⠣⡡";}
-		90% {content: "⠈⠊⠐⠈";}
-		95% {content: " ⠁ ⠂";}
-		95% {content: "⠂  ⠂";}
+		90%  {content: "⠈⠊⠐⠈";}
+		95%  {content: " ⠁ ⠂";}
+		100% {content: "⠂  ⠂";}
 }
 
 @keyframes altchange { 

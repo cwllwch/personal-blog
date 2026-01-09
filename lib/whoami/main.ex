@@ -56,6 +56,17 @@ defmodule Whoami.Main do
     end
   end
 
+  def input_word(lobby, player, word) when is_pid(lobby) do 
+    GenServer.cast(lobby, {:input_word, player, word})
+  end
+
+  def input_word(lobby, player, word) when is_binary(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> input_word(pid, player, word)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+  
   @doc "Adds a player to the state of the lobby. Note that this is not the same as the presence itself."
   def add_player(lobby, player) when is_pid(lobby) do
     reply = GenServer.call(lobby, {:add_player, player})

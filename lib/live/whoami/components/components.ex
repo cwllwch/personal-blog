@@ -1,4 +1,5 @@
 defmodule Live.Whoami.Components do
+  alias Whoami.Main, as: Lobby
   use PortalWeb, :live_component
 
   @moduledoc """
@@ -194,9 +195,83 @@ defmodule Live.Whoami.Components do
     end
   end
 
+  attr :lobby_id, :integer, required: true
+  attr :self, :map, required: true
+  attr :players, :list, required: true
+
+  @doc "Renders the input form for getting the words to be guessed. How many words each user inputs 
+  decreases with the amount of users in the lobby."
   def input_word(assigns) do
     ~H"""
-      Hi!
+      <form phx-submit="enter_words">
+        <div 
+          style="
+              display: flex;
+              width: 100%;
+              height: 50vh;
+              text-align: center;
+              justify-content: center;
+              flex-direction: column; 
+              align-items: center;
+              vertical-align: middle;
+              gap: 40px;"
+        >
+        <h1> think of objects, people, or characters <br>known by everyone in the group </h1>
+        <input 
+          name="word_1"
+          type="text" 
+          required
+          placeholder="One word, please"
+          class="rounded-xl bg-zinc-800"
+          style="width: 5vi; min-width: 300px; max-width: 500px"
+        />
+
+        <input 
+          :if={length(@players) <= 3}
+          name="word_2"
+          type="text" 
+          required
+          placeholder="yea imma need another one"
+          class="rounded-xl bg-zinc-800"
+          style="width: 5vi; min-width: 300px; max-width: 500px"
+        />
+        
+        <input 
+          :if={length(@players) == 2}
+          name="word_3"
+          type="text" 
+          required
+          placeholder="gib moar word!"
+          class="rounded-xl bg-zinc-800"
+          style="width: 5vi; min-width: 300px; max-width: 500px"
+        />
+
+        <.button 
+          style="width: 5vi; min-width: 300px; max-width: 500px; height: 8em"
+          type="submit"
+        > 
+          done
+        </.button>
+
+        <p style="font-family: monospace; align-self: end;"> If you choose something weird or too unknown, the other players can 
+        challenge the word and vote to eliminate the word.
+        <b style="color: white">You will lose a point if your word is voted out!</b></p>
+        </div>
+      </form>
     """
   end
+
+  attr :lobby_id, :integer, required: true
+  attr :self, :map, required: true
+  attr :players, :list, required: true
+
+  @doc "Handles the arena logic. Will reach out to the server for the information it needs."
+  def arena(assigns) do
+    ~H"""
+    <%= inspect(@disc_list, pretty: true) %>
+    <br>You got here!
+    """
+  end
+
+  # Arena helpers
 end

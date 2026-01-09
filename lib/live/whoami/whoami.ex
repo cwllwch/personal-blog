@@ -177,8 +177,37 @@ defmodule PortalWeb.LiveStuff.Whoami do
           />
 
           <.input_word
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
           />
-            A new stage!
+
+        <% @stage == :waiting_for_words and @loading == false -> %>
+          <.player_bar 
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+          <div class="justify-self-center justify-center"> 
+            <.icon name="hero-arrow-path" class="animate-spin text-white" /> waiting for others...
+          </div>
+
+        <% @stage == :versus_arena and @loading == false -> %>
+          <.player_bar 
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+          <.arena
+            lobby_id={@lobby_id} 
+            self={@player} 
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+          />
       <% end %>
     </div>
     """
@@ -215,6 +244,27 @@ defmodule PortalWeb.LiveStuff.Whoami do
     Logger.debug([message: "starting the match", lobby: socket.assigns.lobby_id])
     PubSub.broadcast(Portal.PubSub, "lobby:#{socket.assigns.lobby_id}", {:update_stage, :input_word})
     {:noreply, socket}
+  end
+
+  
+  def handle_event("enter_words", %{"word_1" => word_1, "word_2" => word_2, "word_3" => word_3}, socket) do
+    words = [word_1, word_2, word_3]
+    Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, words)
+    new_socket = assign(socket, :stage, :waiting_for_words)
+    {:noreply, new_socket}
+  end
+  
+  def handle_event("enter_words", %{"word_1" => word_1, "word_2" => word_2}, socket) do
+    words = [word_1, word_2]
+    Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, words)
+    new_socket = assign(socket, :stage, :waiting_for_words)
+    {:noreply, new_socket}
+  end
+
+  def handle_event("enter_words", %{"word_1" => word_1}, socket) do
+    Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, word_1)
+    new_socket = assign(socket, :stage, :waiting_for_words)
+    {:noreply, new_socket}
   end
 
   def handle_info({:create_lobby, player_count}, socket) do
@@ -263,6 +313,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
   
   def handle_info({:update_stage, new_stage}, socket) do
+    send(self(), {:update_interaction, System.system_time(:second)})
     {:noreply, assign(socket, :stage, new_stage)}
   end
 
