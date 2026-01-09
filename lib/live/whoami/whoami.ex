@@ -190,7 +190,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <div class="justify-self-center justify-center"> 
+          <div style="align-self: center; margin-top: 5em"> 
             <.icon name="hero-arrow-path" class="animate-spin text-white" /> waiting for others...
           </div>
 

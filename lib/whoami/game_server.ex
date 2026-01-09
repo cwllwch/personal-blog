@@ -94,11 +94,22 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call({:fetch_word_list}, _from, state) do
+    {:reply, {:ok, Map.keys(state.word_map)}, state}
+  end
+  
+  @impl true
   def handle_cast({:input_word, player, word}, state) do
+  keys = Map.keys(state.word_map) 
+  if player in keys do
+    Logger.info([message: "not inserting words", player: player, lobby: state.id])
+    {:noreply, state}
+  else
     new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
     send(self(), {:check_words_complete})
     Logger.debug([message: "inserted words", player: player, words: inspect(word)])
     {:noreply, new_state}
+  end
   end
 
   @impl true

@@ -118,9 +118,9 @@ defmodule Live.Whoami.Components do
 
   @doc "Renders the input page when you need to request a word from the user."
   def player_bar(assigns) do
-    is_captain = captain?(assigns.lobby_id, assigns.self)
+    captain = captain?(assigns.lobby_id, assigns.self)
     assigns = 
-      Map.put_new(assigns, :is_captain, is_captain)
+      Map.put_new(assigns, :captain, captain)
 
     ~H"""
       <div class="players">
@@ -145,7 +145,7 @@ defmodule Live.Whoami.Components do
         
         <div :for={player <- @players} :if={@stage == :waiting_room} class={"player-#{player.ready}"}> 
             <button 
-              :if={@is_captain == true} 
+              :if={@captain == @self.id} 
               class="remove_player" 
               phx-click="remove_player" 
               phx-value-player={player.name}
@@ -165,7 +165,7 @@ defmodule Live.Whoami.Components do
         </div>
         <div :for={player <- @players} :if={@stage != :waiting_room} class={"player-true"}> 
             <button 
-              :if={@is_captain == true} 
+              :if={@captain == @self.id} 
               class="remove_player" 
               phx-click="remove_player" 
               phx-value-player={player.name}
@@ -190,7 +190,7 @@ defmodule Live.Whoami.Components do
   # Helpers for the player_bar
   def captain?(lobby_id, self) do
     case Whoami.Main.fetch_captain(lobby_id) do
-      {:ok, captain} -> if captain.id == self.id, do: true, else: false
+      {:ok, captain} -> captain.id 
       {:error, _reason} -> false
     end
   end
@@ -202,6 +202,8 @@ defmodule Live.Whoami.Components do
   @doc "Renders the input form for getting the words to be guessed. How many words each user inputs 
   decreases with the amount of users in the lobby."
   def input_word(assigns) do
+    already_sent = check_word_list(assigns.lobby_id)
+    if assigns.self.id in already_sent, do: send(self(), {:update_stage, :waiting_for_words})
     ~H"""
       <form phx-submit="enter_words">
         <div 
@@ -259,6 +261,11 @@ defmodule Live.Whoami.Components do
         </div>
       </form>
     """
+  end
+
+  # Word input helpers
+  defp check_word_list(lobby) do
+    Lobby.fetch_word_list(lobby)
   end
 
   attr :lobby_id, :integer, required: true
