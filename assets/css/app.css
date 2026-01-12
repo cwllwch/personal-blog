@@ -123,6 +123,8 @@ p {
 		display: flex;
 		flex-flow: row nowrap;
 		gap: 10px;
+		height: 15vh;
+		margin: 3vh;
 }
 
 .icon {

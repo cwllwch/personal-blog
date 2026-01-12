@@ -47,7 +47,7 @@ defmodule Live.Whoami.Components do
   
   @doc "Renders the waiting room before the game starts."
   def waiting_room(assigns) do
-    is_captain = captain?(assigns.lobby_id, assigns.self)
+    is_captain = captain?(assigns.lobby_id)
     assigns = 
       Map.put_new(assigns, :is_captain, is_captain)
 
@@ -69,7 +69,7 @@ defmodule Live.Whoami.Components do
       </button>
 
       <button 
-        :if={@can_start == true and @is_captain == true} 
+        :if={@can_start == true and @is_captain == @self.id} 
         phx-click="start_game"
         class="start"
       >
@@ -77,7 +77,7 @@ defmodule Live.Whoami.Components do
       </button>
       
       <div class="info"
-        :if={@can_start == true and @is_captain == false} 
+        :if={@can_start == true and @is_captain != @self.id} 
       >
       waiting for the captain to start...
       </div>
@@ -118,31 +118,35 @@ defmodule Live.Whoami.Components do
 
   @doc "Renders the input page when you need to request a word from the user."
   def player_bar(assigns) do
-    captain = captain?(assigns.lobby_id, assigns.self)
+    captain = captain?(assigns.lobby_id)
     assigns = 
       Map.put_new(assigns, :captain, captain)
 
     ~H"""
       <div class="players">
-        
+        <%!-- This will separate the current player from others - so that the player is always first when viewing itself  --%>
         <div :if={@stage == :waiting_room} class={"player-#{@self.ready}"}>
         <div class="stars">
             <.icon :if={@self.wins >= 1} :for={win <- 1..@self.wins} name="hero-star-solid"/>
           </div>
-          <.icon name="hero-user" class="icon"/>
+          <.icon :if={@captain != @self.id} name="hero-user" class="icon"/>
+          <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon"/>
           <div class="name">{@self.name}</div>
           <div class="score">{@self.wins}</div>
         </div>
 
+        <%!-- Renders the player first in the room, when the ready state does not matter anymore  --%>
         <div :if={@stage != :waiting_room} class={"player-true"}>
         <div class="stars">
             <.icon :if={@self.wins >= 1} :for={win <- 1..@self.wins} name="hero-star-solid"/>
           </div>
-          <.icon name="hero-user" class="icon"/>
+          <.icon :if={@captain != @self.id} name="hero-user" class="icon"/>
+          <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon"/>
           <div class="name">{@self.name}</div>
           <div class="score">{@self.wins}</div>
         </div>
         
+        <%!-- Renders the player list for the waiting room - where ready state determines the color of player bg --%>
         <div :for={player <- @players} :if={@stage == :waiting_room} class={"player-#{player.ready}"}> 
             <button 
               :if={@captain == @self.id} 
@@ -158,11 +162,17 @@ defmodule Live.Whoami.Components do
             <div class="stars">
               <.icon :if={player.wins >= 1} :for={win <- 1..player.wins} name="hero-star-solid"/>
             </div>
-            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
-            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
+            <%= if player.id not in @disc_list do %>
+              <.icon :if={@captain != player.id} name="hero-user" class="icon"/>
+              <.icon :if={@captain == player.id} name="hero-user-plus" class="icon"/>
+            <% else %>
+              <.icon name="hero-signal-slash" class="icon"/>
+            <% end %>
             <div class="name">{player.name}</div>
             <div class="score">{player.wins}</div>
         </div>
+
+        <%!-- Renders the player list for stages that are not the waiting room - where ready status doesn't matter --%>
         <div :for={player <- @players} :if={@stage != :waiting_room} class={"player-true"}> 
             <button 
               :if={@captain == @self.id} 
@@ -178,8 +188,12 @@ defmodule Live.Whoami.Components do
             <div class="stars">
               <.icon :if={player.wins >= 1} :for={win <- 1..player.wins} name="hero-star-solid"/>
             </div>
-            <.icon :if={player.id not in @disc_list} name="hero-user" class="icon"/>
-            <.icon :if={player.id in @disc_list} name="hero-signal-slash" class="icon"/>
+            <%= if player.id not in @disc_list do %>
+              <.icon :if={@captain != player.id} name="hero-user" class="icon"/>
+              <.icon :if={@captain == player.id} name="hero-user-plus" class="icon"/>
+            <% else %>
+              <.icon name="hero-signal-slash" class="icon"/>
+            <% end %>
             <div class="name">{player.name}</div>
             <div class="score">{player.wins}</div>
         </div>
@@ -188,7 +202,7 @@ defmodule Live.Whoami.Components do
   end
 
   # Helpers for the player_bar
-  def captain?(lobby_id, self) do
+  def captain?(lobby_id) do
     case Whoami.Main.fetch_captain(lobby_id) do
       {:ok, captain} -> captain.id 
       {:error, _reason} -> false
@@ -216,7 +230,8 @@ defmodule Live.Whoami.Components do
               flex-direction: column; 
               align-items: center;
               vertical-align: middle;
-              gap: 40px;"
+              gap: 40px;
+              margin-top: 10px"
         >
         <h1> think of objects, people, or characters <br>known by everyone in the group </h1>
         <input 
@@ -266,17 +281,34 @@ defmodule Live.Whoami.Components do
   # Word input helpers
   defp check_word_list(lobby) do
     Lobby.fetch_word_list(lobby)
+    |> Map.keys()
   end
 
   attr :lobby_id, :integer, required: true
   attr :self, :map, required: true
   attr :players, :list, required: true
+  attr :word_in_play, :string, required: true
+  attr :player_to_guess, :map, required: true
 
   @doc "Handles the arena logic. Will reach out to the server for the information it needs."
   def arena(assigns) do
     ~H"""
-    <%= inspect(@disc_list, pretty: true) %>
-    <br>You got here!
+    <div :if={@player_to_guess != nil and @player_to_guess != @self}>
+      <br>The word this turn is:
+      <%= inspect(@word_in_play, pretty: true) %>
+      <br>to be guessed by:
+      <%= @player_to_guess.name %>
+    </div>
+
+    <div :if={@player_to_guess == @self}>
+      you'll have to guess the word!
+    </div>
+
+    <div :if={@player_to_guess == nil}>
+      <div class="justify-self-center justify-center"> 
+        <.icon name="hero-arrow-path" class="animate-spin text-white" /> loading word...
+      </div>
+    </div>
     """
   end
 

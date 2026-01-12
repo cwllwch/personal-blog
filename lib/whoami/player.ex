@@ -1,4 +1,5 @@
 defmodule Whoami.Player do
+
   @moduledoc """
   Defines a player and its basic characteristics
   """

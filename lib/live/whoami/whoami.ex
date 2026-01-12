@@ -4,11 +4,10 @@ defmodule PortalWeb.LiveStuff.Whoami do
   use PortalWeb, :live_view
   
   import Live.Whoami.Components
-
+  alias Whoami.Helpers
   alias Phoenix.PubSub
   alias PortalWeb.Presence
   alias Whoami.Main, as: Lobby
-  alias Whoami.Player
 
   @moduledoc """
   Orchestrates the game featured in Inglorious Bastards where
@@ -36,7 +35,9 @@ defmodule PortalWeb.LiveStuff.Whoami do
         players_in_lobby: [],
         full: false,
         link: nil,
-        stage: nil
+        stage: nil,
+        word_in_play: nil,
+        player_to_guess: nil
       )
 
     {:ok, new_socket}
@@ -58,28 +59,28 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_params(%{"lobby" => lobby}, _uri, socket) do 
     topic = "lobby:#{lobby}"
 
-    case find_player(socket.assigns.user, lobby) do
+    case Helpers.find_player(socket.assigns.user, lobby) do
       {:ok, nil, free_spots} -> 
         # The lobby exists but this player is not in it. adding player to the lobby if there are free spots
         Logger.info([message: "adding new player to lobby", user: socket.assigns.user])
-        put_into_lobby(socket, socket.assigns.user, lobby, free_spots)
+        Helpers.put_into_lobby(socket, socket.assigns.user, lobby, free_spots)
     
       {:ok, player, _free_spots} ->
         # This means the player is already in the lobby
         Logger.debug("found player #{socket.assigns.user} in lobby #{inspect(lobby)}")
         new_socket = socket |> assign(
           loading: true,
-          stage: fetch_stage(lobby),
+          stage: Helpers.fetch_stage(lobby),
           ready: false,
           lobby_id: lobby,
           player: player,
-          players_in_lobby: fetch_players(lobby),
+          players_in_lobby: Helpers.fetch_players(lobby),
           can_start: false,
-          disc_list: fetch_disc_list(),
+          disc_list: Helpers.fetch_disc_list(),
           link: ~p{/whoami?#{%{lobby: lobby}}}
         )
         if connected?(new_socket) do
-          newer_socket = track_presence(new_socket, topic)
+          newer_socket = Helpers.track_presence(new_socket, topic)
           {:noreply, newer_socket}
          else
           {:noreply, new_socket}
@@ -96,7 +97,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_params(_params, _uri, socket) do
     new_socket = assign(socket, 
       loading: false,
-      player: create_player(socket.assigns.user),
+      player: Helpers.create_player(socket.assigns.user),
       players_in_lobby: [],
       link: nil,
       unwanted_here: false
@@ -104,37 +105,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
     {:noreply, new_socket}
   end
-
-
-  def put_into_lobby(socket, user, lobby, free_spots) when free_spots > 0 do
-    topic = "lobby:#{lobby}"
-    player = create_player(user)
-
-    new_socket = 
-      assign(socket,
-        loading: true,
-        lobby_id: lobby, 
-        stage: fetch_stage(lobby),
-        can_start: false,
-        player: player,
-        players_in_lobby: fetch_players(lobby),
-        disc_list: fetch_disc_list(),
-        link: ~p{/whoami?#{%{lobby: lobby}}}
-      )
-    if connected?(new_socket) do
-      Lobby.add_player(lobby, player)
-      new_socket = track_presence(new_socket, topic)
-      {:noreply, new_socket}
-    else
-      {:noreply, new_socket}
-    end
-  end
-
-  def put_into_lobby(socket, _user, _lobby, _free_spots) do
-    new_socket = put_flash(socket, :error, "Lobby is already full!")
-    {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
-  end
-
   
   def render(assigns) do
     ~H"""
@@ -206,7 +176,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
             lobby_id={@lobby_id} 
             self={@player} 
             players={@players_in_lobby}
-            disc_list={@disc_list}
+            word_in_play={@word_in_play}
+            player_to_guess={@player_to_guess}
           />
       <% end %>
     </div>
@@ -250,20 +221,20 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_event("enter_words", %{"word_1" => word_1, "word_2" => word_2, "word_3" => word_3}, socket) do
     words = [word_1, word_2, word_3]
     Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, words)
-    new_socket = assign(socket, :stage, :waiting_for_words)
+    new_socket = assign(socket, stage: :waiting_for_words)
     {:noreply, new_socket}
   end
   
   def handle_event("enter_words", %{"word_1" => word_1, "word_2" => word_2}, socket) do
     words = [word_1, word_2]
     Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, words)
-    new_socket = assign(socket, :stage, :waiting_for_words)
+    new_socket = assign(socket, stage: :waiting_for_words)
     {:noreply, new_socket}
   end
 
   def handle_event("enter_words", %{"word_1" => word_1}, socket) do
     Lobby.input_word(socket.assigns.lobby_id, socket.assigns.player.id, word_1)
-    new_socket = assign(socket, :stage, :waiting_for_words)
+    new_socket = assign(socket, stage: :waiting_for_words)
     {:noreply, new_socket}
   end
 
@@ -300,10 +271,29 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  def handle_info({:fetch_disc_list}, socket) do
+    case Lobby.fetch_disc_list(socket.assigns.lobby_id) do
+      {:error, message} ->
+        {:noreply, put_flash(socket, :error, message)}
+      list -> 
+        new_socket = assign(
+          socket,
+          :disc_list,
+          list
+        )
+        {:noreply, new_socket}
+    end
+  end
+
+  def handle_info({:fetch_word_in_play}, socket) do
+    Lobby.fetch_word_in_play(socket.assigns.lobby_id)
+  end
+
   def handle_info({:fetch_stage, lobby}, socket) do
     case Lobby.fetch_stage(lobby) do
       {:ok, stage} ->
-        {:noreply, assign(socket, loading: false, stage: stage)}
+        send(self(), {:update_stage, stage})
+        {:noreply, assign(socket, loading: true)}
       {:error, nil} ->
         {:noreply, 
           assign(socket, loading: false, stage: nil)
@@ -314,7 +304,12 @@ defmodule PortalWeb.LiveStuff.Whoami do
   
   def handle_info({:update_stage, new_stage}, socket) do
     send(self(), {:update_interaction, System.system_time(:second)})
-    {:noreply, assign(socket, :stage, new_stage)}
+    if new_stage == :versus_arena do 
+      send(self(), {:fetch_next_word})
+      {:noreply, assign(socket, stage: new_stage, loading: true)}
+    else
+      {:noreply, assign(socket, stage: new_stage, loading: false)}
+    end
   end
 
   def handle_info({:add_player, lobby}, socket) do
@@ -342,16 +337,29 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, :disc_list, new_list)}
   end
 
-  def handle_info({:fetch_disc_list}, socket) do
-    case Lobby.fetch_disc_list(socket.assigns.lobby_id) do
-      {:error, message} ->
-        {:noreply, put_flash(socket, :error, message)}
-      list -> 
-        new_socket = assign(
-          socket,
-          :disc_list,
-          list
+  def handle_info({:fetch_next_word}, socket) do
+    case Lobby.fetch_word_in_play(socket.assigns.lobby_id) do
+      {:error, reason} -> 
+        Logger.info([
+          message: "can't update the word for user", 
+          lobby: socket.assigns.lobby_id,
+          reason: reason,
+          player: socket.assigns.player.id
+        ])
+        {:noreply, put_flash(socket, :error, "Couldn't get the word in play")}
+      {word, player} -> 
+
+        # this player object is merely the id, so still need to fetch the whole player obj 
+        # from socket before assigning it to the assigns field that will be passed to the 
+        # component. I could also do this in the component, but it's easier here.
+        new_socket = 
+        assign(
+          socket, 
+          word_in_play: word, 
+          player_to_guess: Helpers.fill_with_player(socket, player), 
+          loading: false
         )
+
         {:noreply, new_socket}
     end
   end
@@ -367,7 +375,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
       ])
       new_socket = assign(
         socket, 
-        players: players,
+        players_in_lobby: players,
         loading: false
       ) 
       |> put_flash(:info, "Kicked player #{player} from the lobby!")
@@ -402,8 +410,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info(%{event: "presence_diff", payload: diff}, socket) do
     new_socket =
       socket 
-      |> remove_presences(diff.leaves)
-      |> add_presences(diff.joins)
+      |> Helpers.remove_presences(diff.leaves)
+      |> Helpers.add_presences(diff.joins)
 
     send(self(), {:update_interaction, System.system_time(:second)})
 
@@ -417,112 +425,5 @@ defmodule PortalWeb.LiveStuff.Whoami do
       Logger.info([message: "can't update last interaction", error: reason])
       {:noreply, socket}
     end
-  end
-
-  defp remove_presences(socket, _leaves) do
-    send(self(), {:fetch_players, socket.assigns.lobby_id})
-    socket
-  end
-
-  defp add_presences(socket, joins) do
-    player_list = 
-      Enum.reduce(socket.assigns.players_in_lobby, [], fn player, acc -> 
-        List.insert_at(acc, -1, player.id) 
-      end)
-    non_repeated = 
-      Enum.reject(joins, fn {user, _metas} -> 
-        user == socket.assigns.player.id || user in player_list 
-      end)
-    if non_repeated == [] do 
-      socket 
-    else
-      new_joins = simplify(non_repeated) 
-      |> Map.values()
-
-      assign(socket, players_in_lobby: socket.assigns.players_in_lobby ++ new_joins)
-    end
-  end
-
-  def create_player(username) do
-    %Player{
-      name: username,
-      id: Lobby.generate_id(),
-      points: 0,
-      ready: false,
-      wins: 0
-    }
-  end
-
-  def fetch_players(lobby) do
-    send(self(), {:fetch_players, lobby})
-    []
-  end
-
-  def fetch_disc_list() do
-    send(self(), {:fetch_disc_list})
-    []
-  end
-  
-
-  def fetch_stage(lobby) do
-    send(self(), {:fetch_stage, lobby})
-    nil
-  end
-
-  def find_player(username, lobby) when not is_tuple(username) do
-    case Lobby.ban_check(username, lobby) do
-      {:error, message} -> {:error, message}
-      {:ok, _} -> find_player({:allowed, username}, lobby)
-    end
-  end
-  
-  def find_player({:allowed, username}, lobby) do
-    case Lobby.fetch_players(lobby) do
-      {:ok, users, free_spots} -> 
-        {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first(), free_spots}
-      {:error, message} -> 
-        Logger.info([message: "can't find lobby", user: username])
-        {:error, message}
-    end
-  end
-
-  defp track_presence(socket, topic) do
-    if connected?(socket) do
-      PubSub.subscribe(Portal.PubSub, topic)
-      {:ok, _} = Presence.track(
-        self(), 
-        topic, 
-        socket.assigns.player.id, 
-        %{
-          user: socket.assigns.player, 
-          timestamp: inspect(System.system_time(:second))
-        }
-      )
-      Logger.info([message: "connected to topic", topic: topic, player: socket.assigns.player.name])
-      socket
-    else
-      Logger.info([message: "socket not connected", topic: topic])
-      socket
-    end
-  end
-
-
-  defp simplify(diff) do
-    # This is a rather convoluted way to get all joins, even 
-    Enum.reduce(diff, %{}, fn {id, metas}, acc ->
-      # if there is a list with more than one sent. This will
-      Map.put(acc, id, Map.get(metas, :metas))
-    end)
-
-    # always create a list with the most recent state for each
-    # of the user ids - then just map it over user list and 
-    |> Enum.reduce(%{}, fn {id, list}, acc ->
-      # it's all good to be patched.
-      latest =
-        Enum.sort_by(list, & &1.timestamp, :desc)
-        |> List.first()
-
-      Map.put_new(acc, id, latest.user)
-    end)
   end
 end

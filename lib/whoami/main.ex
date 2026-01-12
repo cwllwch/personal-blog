@@ -166,7 +166,7 @@ defmodule Whoami.Main do
 
   def fetch_word_list(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_word_list}) do
-      {:ok, list} -> list
+      {:ok, map} -> map
       any -> {:error, "Unexpected response: #{inspect(any)}"}
     end
   end
@@ -174,6 +174,20 @@ defmodule Whoami.Main do
   def fetch_word_list(lobby) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> fetch_word_list(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
+  def fetch_word_in_play(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:fetch_word_in_play}) do
+      {:ok, word, player} -> {word, player}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def fetch_word_in_play(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_word_in_play(pid)
       {:error, message} -> {:error, message}
     end
   end

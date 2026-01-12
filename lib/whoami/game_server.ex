@@ -26,7 +26,9 @@ defmodule Whoami.GameServer do
       stage: :waiting_room,
       ban_list: [],
       disc_list: [],
-      word_map: %{}
+      word_in_play: nil,
+      word_map: %{},
+      word_queue: %{}
     }
 
     PubSub.subscribe(Portal.PubSub, "lobby:#{id}")
@@ -95,21 +97,36 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_call({:fetch_word_list}, _from, state) do
-    {:reply, {:ok, Map.keys(state.word_map)}, state}
+    {:reply, {:ok, state.word_map}, state}
   end
-  
+
+  @impl true
+  def handle_call({:fetch_word_in_play}, _from, state) do
+    player_to_guess = List.first(state.word_queue)
+    {:reply, {:ok, state.word_in_play, player_to_guess}, state}
+  end
+
+  @impl true
+  def handle_call({:set_next_word}, _from, state) do
+    case get_next_word(state) do
+      {:ok, new_state} -> {:reply, {:ok}, new_state}
+      error -> {:reply, {:error, error}, state}
+    end
+  end
+
+
   @impl true
   def handle_cast({:input_word, player, word}, state) do
   keys = Map.keys(state.word_map) 
-  if player in keys do
-    Logger.info([message: "not inserting words", player: player, lobby: state.id])
-    {:noreply, state}
-  else
-    new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
-    send(self(), {:check_words_complete})
-    Logger.debug([message: "inserted words", player: player, words: inspect(word)])
-    {:noreply, new_state}
-  end
+    if player in keys do
+      Logger.info([message: "not inserting words", player: player, lobby: state.id])
+      {:noreply, state}
+    else
+      new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
+      send(self(), {:check_words_complete})
+      Logger.debug([message: "inserted words", player: player, words: inspect(word)])
+      {:noreply, new_state}
+    end
   end
 
   @impl true
@@ -125,9 +142,11 @@ defmodule Whoami.GameServer do
     {:noreply, new_state}
   end
 
+  @impl true
   def handle_info({:update_stage, new_stage}, state) do
     {:noreply, %{state | stage: new_stage}}
   end
+
   # this is used to update the liveviews, handled here just to not generate an error
   def handle_info({:change_disc_list, _new_disc_list}, state) do
     {:noreply, state}
@@ -196,8 +215,11 @@ defmodule Whoami.GameServer do
     player_list = Enum.map(state.players, &(&1.id)) |> Enum.sort()
 
     if player_list == players_in_word_list do
+      queue = players_in_word_list |> Enum.sort(:desc)
+      new_state = Map.put(state, :word_queue, queue)
+      |> get_next_word()
       PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:update_stage, :versus_arena})
-      {:noreply, state}
+     {:noreply, new_state}
     else
       {:noreply, state}
     end 
@@ -238,6 +260,31 @@ defmodule Whoami.GameServer do
 
       Whoami.Main.destroy_lobby(state.id, state.players)
     end
+  end
+
+  defp get_next_word(%LobbyStruct{word_map: word_map} = state) do
+    {user, rest} = List.pop_at(state.word_queue, 0)
+
+    # Makes a list of all the words that aren't made by the current user, rejects nil 
+    # and then takes a random word from this list and outputs a list with exactly one word
+    
+    [next_word] = 
+      Enum.map(word_map, fn {k, v} -> if k != user, do: v end) 
+      |> Enum.reject(fn v -> v == nil end)
+      |> List.flatten()
+      |> Enum.take_random(1)
+
+    [{key_to_update, list}] = Enum.filter(word_map, fn {_k, v} -> next_word in v end)
+
+    new_list = Enum.reject(list, fn i -> i == next_word end)
+  
+    new_word_map = Map.replace(word_map, key_to_update, new_list)
+
+    new_queue = rest ++ [user]
+
+    Map.put(state, :word_queue, new_queue)
+    |> Map.put(:word_map, new_word_map)
+    |> Map.put(:word_in_play, next_word)
   end
 
   defp maybe_add_player(new_player, state) when state.player_count > length(state.players) do
