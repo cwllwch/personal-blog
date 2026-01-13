@@ -1,4 +1,4 @@
-defmodule Whoami.Main do
+defmodule Whoami do
   require Logger
   alias Whoami.GameServer
 
@@ -56,8 +56,9 @@ defmodule Whoami.Main do
     end
   end
 
-  def input_word(lobby, player, word) when is_pid(lobby) do 
-    GenServer.cast(lobby, {:input_word, player, word})
+  def input_word(lobby, player, word) when is_pid(lobby) do
+    word_list = Map.values(word) |> Enum.reject(fn i -> i == nil end)
+    GenServer.cast(lobby, {:input_word, player, word_list})
   end
 
   def input_word(lobby, player, word) when is_binary(lobby) do
@@ -66,7 +67,7 @@ defmodule Whoami.Main do
       {:error, reason} -> {:error, reason}
     end
   end
-  
+
   @doc "Adds a player to the state of the lobby. Note that this is not the same as the presence itself."
   def add_player(lobby, player) when is_pid(lobby) do
     reply = GenServer.call(lobby, {:add_player, player})
@@ -116,7 +117,6 @@ defmodule Whoami.Main do
       {:error, message} -> {:error, message}
     end
   end
-  
 
   def fetch_stage(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_stage}) do

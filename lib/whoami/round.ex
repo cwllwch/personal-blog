@@ -1,5 +1,4 @@
 defmodule Whoami.Round do
-  
   @moduledoc """
   Specifies a round and its related state. A round has 9 questions and one guess.
   A question will be a yes or no depending on the votes of the other participants. 
@@ -10,10 +9,9 @@ defmodule Whoami.Round do
   """
 
   defstruct [
-  :questions,
-  :votes_per_question,
-  :answer,
-  :player
+    :questions,
+    :votes_per_question,
+    :answer,
+    :player
   ]
-
 end

@@ -114,17 +114,17 @@ defmodule Whoami.GameServer do
     end
   end
 
-
   @impl true
   def handle_cast({:input_word, player, word}, state) do
-  keys = Map.keys(state.word_map) 
+    keys = Map.keys(state.word_map)
+
     if player in keys do
-      Logger.info([message: "not inserting words", player: player, lobby: state.id])
+      Logger.info(message: "not inserting words", player: player, lobby: state.id)
       {:noreply, state}
     else
       new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
       send(self(), {:check_words_complete})
-      Logger.debug([message: "inserted words", player: player, words: inspect(word)])
+      Logger.debug(message: "inserted words", player: player, words: inspect(word))
       {:noreply, new_state}
     end
   end
@@ -159,11 +159,11 @@ defmodule Whoami.GameServer do
     PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:change_disc_list, new_disc_list})
     {:noreply, %{state | disc_list: new_disc_list}}
   end
-  
+
   @impl true
   def handle_info({:remove_from_disc_list, player}, state) do
-    new_disc_list = 
-      Enum.map(state.disc_list, fn id -> 
+    new_disc_list =
+      Enum.map(state.disc_list, fn id ->
         if id == player, do: [], else: id
       end)
       |> List.flatten()
@@ -171,7 +171,7 @@ defmodule Whoami.GameServer do
     PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:change_disc_list, new_disc_list})
     {:noreply, %{state | disc_list: new_disc_list}}
   end
-  
+
   @impl true
   def handle_info({:see_yourself_out, player}, state) do
     new_ban_list = [player] ++ state.ban_list
@@ -187,19 +187,19 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_info({:can_start?}, state) do
-    unready = 
-      Enum.reduce(state.players, [], fn player, acc -> 
+    unready =
+      Enum.reduce(state.players, [], fn player, acc ->
         if player.ready == false, do: List.insert_at(acc, -1, player.id), else: acc
       end)
 
     n = length(state.players)
 
     if unready != [] or n < state.player_count do
-      Logger.info([message: "not ready to start yet", lobby: state.id])
+      Logger.info(message: "not ready to start yet", lobby: state.id)
       PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, false})
       {:noreply, state}
     else
-      Logger.info([message: "ready to start!", lobby: state.id])
+      Logger.info(message: "ready to start!", lobby: state.id)
       PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, true})
       {:noreply, state}
     end
@@ -212,17 +212,20 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_info({:check_words_complete}, state) do
     players_in_word_list = Map.keys(state.word_map) |> Enum.sort()
-    player_list = Enum.map(state.players, &(&1.id)) |> Enum.sort()
+    player_list = Enum.map(state.players, & &1.id) |> Enum.sort()
 
     if player_list == players_in_word_list do
       queue = players_in_word_list |> Enum.sort(:desc)
-      new_state = Map.put(state, :word_queue, queue)
-      |> get_next_word()
+
+      new_state =
+        Map.put(state, :word_queue, queue)
+        |> get_next_word()
+
       PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:update_stage, :versus_arena})
-     {:noreply, new_state}
+      {:noreply, new_state}
     else
       {:noreply, state}
-    end 
+    end
   end
 
   @impl true
@@ -258,7 +261,7 @@ defmodule Whoami.GameServer do
         ansi_color: :red
       )
 
-      Whoami.Main.destroy_lobby(state.id, state.players)
+      Whoami.destroy_lobby(state.id, state.players)
     end
   end
 
@@ -267,9 +270,9 @@ defmodule Whoami.GameServer do
 
     # Makes a list of all the words that aren't made by the current user, rejects nil 
     # and then takes a random word from this list and outputs a list with exactly one word
-    
-    [next_word] = 
-      Enum.map(word_map, fn {k, v} -> if k != user, do: v end) 
+
+    [next_word] =
+      Enum.map(word_map, fn {k, v} -> if k != user, do: v end)
       |> Enum.reject(fn v -> v == nil end)
       |> List.flatten()
       |> Enum.take_random(1)
@@ -277,7 +280,7 @@ defmodule Whoami.GameServer do
     [{key_to_update, list}] = Enum.filter(word_map, fn {_k, v} -> next_word in v end)
 
     new_list = Enum.reject(list, fn i -> i == next_word end)
-  
+
     new_word_map = Map.replace(word_map, key_to_update, new_list)
 
     new_queue = rest ++ [user]
@@ -360,12 +363,12 @@ defmodule Whoami.GameServer do
     simplified = simplify(leaves)
 
     Enum.map(list, fn player ->
-      if player == Map.get(simplified, player.id) do 
+      if player == Map.get(simplified, player.id) do
         add_to_disc_list(player.id)
         Map.put(player, :ready, false)
       else
         player
-      end 
+      end
     end)
   end
 
@@ -374,7 +377,7 @@ defmodule Whoami.GameServer do
   def add_to_disc_list(player_id) do
     send(self(), {:add_to_disc_list, player_id})
   end
-  
+
   def remove_from_disc_list(player_id) do
     send(self(), {:remove_from_disc_list, player_id})
   end
