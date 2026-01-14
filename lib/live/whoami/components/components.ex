@@ -308,8 +308,46 @@ defmodule Live.Whoami.Components do
   def arena(assigns) do
     ~H"""
     <div :if={@player_to_guess != nil and @player_to_guess != @self}>
-      <br />The word this turn is: {inspect(@word_in_play, pretty: true)}
+      <br />The word this turn is: {@word_in_play}
       <br />to be guessed by: {@player_to_guess.name}
+      <br />
+      <br />The answer to {@player_to_guess.name}'s question is: 
+
+      
+      <div class="button-grid">
+        <.button 
+        class="button-yes" 
+        phx-click="answer_yes"> 
+          yes! 
+        </.button>
+
+        <.button
+        class="button-no"
+        phx-click="answer_yes"> 
+          no((( 
+        </.button>
+
+        <.button
+        class="button-maybe"
+        phx-click="answer_maybe"> 
+          maybe?
+        </.button>
+
+        <.button
+        class="button-illegal"
+        phx-click="illegal_question"
+        > 
+          can't answer {@player_to_guess.name}'s question
+        </.button>
+
+        <.button
+        class="button-stupid"
+        phx-click="illegal_word"
+        > 
+          this word is terrible
+        </.button>
+
+      </div>
     </div>
 
     <div :if={@player_to_guess == @self}>

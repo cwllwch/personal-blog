@@ -18,7 +18,7 @@ defmodule PortalWeb.LiveStuff.Whoami.SetUser do
 
   def render(assigns) do
     ~H"""
-    <div class="field">
+    <div class="field text-white">
       <div>You will need to name yourself for this.</div>
       <form phx-submit="set_username" class="grid grid-rows-2 grid-cols-1" style="gap: 2vi;">
         <input type="text" maxlength="15" name="user" class="rounded-xl bg-zinc-800 text-white" />

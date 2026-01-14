@@ -91,7 +91,7 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_call({:fetch_word_in_play}, _from, state) do
-    player_to_guess = List.first(state.word_queue)
+    player_to_guess = List.last(state.word_queue)
     {:reply, {:ok, state.word_in_play, player_to_guess}, state}
   end
 
@@ -134,7 +134,7 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_info({:update_stage, :versus_arena}, state) do
     prev_round = get_round(state)
-    player = state.word_queue |> List.first()
+    player = state.word_queue |> List.last() # The current round already moved the in-turn player to last position in q by now
     {:noreply, %{state | stage: :versus_arena, round: Round.create_round(player, state.word_in_play, prev_round)}}
   end
 

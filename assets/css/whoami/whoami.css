@@ -1,33 +1,60 @@
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
-@import "./prettifier/prettifier.css";
-@import "./whoami/player_bar.css";
-@import "./whoami/whoami.css";
 
-/* General elements  */
-
-h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #059669;    
+@keyframes fadeIn {
+		0%   {opacity: 0;}
+		10%  {opacity: 0.1;}
+		30%  {opacity: 0.3;}
+		60%  {opacity: 0.6;}
+		100% {opacity: 1;}
 }
 
-p {
-    font-size: 1rem;
-    font-family: 'Helvetica';
-    font-weight: 400;
-    letter-spacing: 0.03em;
-    color: #9ca3af;
+
+@keyframes loadingDots {
+		0%   {content: "⠊⠑⠈⠊";}
+		5%   {content: "⠜⠔⢄⠜";}
+		10%  {content: "⡱⢅⢑⡱";}
+		15%  {content: "⣑⣑⣑⣑";}
+		20%  {content: "⣡⣡⣡⣡";}
+		25%  {content: "⣤⣤⣤⣤";}
+		30%  {content: "⣬⣬⣬⣬";}
+		35%  {content: "⣵⣵⣵⣵";}
+		40%  {content: "⣶⣽⣶⣽";}
+		45%  {content: "⣿⣿⣿⣿";}
+		50%  {content: "⣿⣿⣿⣿";}
+		55%  {content: "⣿⣿⣿⣿";}
+		60%  {content: "⣮⣮⣮⣮";}
+		65%  {content: "⣵⣵⣵⣵";}
+		70%  {content: "⣕⣕⣕⣕";}
+		75%  {content: "⡵⡵⡵⡵";}
+		80%  {content: "⢑⡓⢑⡡";}
+		85%  {content: "⠣⠕⠣⡡";}
+		90%  {content: "⠈⠊⠐⠈";}
+		95%  {content: " ⠁ ⠂";}
+		100% {content: "⠂  ⠂";}
 }
 
-.body {
-		animation: fadeIn 100ms;
-		color: white;
+@keyframes altchange { 
+		from { --gradient: 0%;}
+		to { --gradient: 100%;}
 }
 
-.field {
-		color: white !important;
+@keyframes pulse {
+		0% {
+				opacity: 1;
+				transform: scale(0.99);
+		}
+		100% {
+				opacity: 0;
+				transform: scale(1.2);
+		}
+}
+
+@property --gradient {
+		syntax: "<percentage>";
+		inherits: true;
+		initial-value: 0%;
 }
 
 .loading-dots {
@@ -121,6 +148,16 @@ p {
  /* control small screen elements */
 @media screen and (max-width: 850px) {
 		.field {
+				display: flex;
+				flex-flow: column wrap;
+				justify-content: start;
+				align-content: center;
+				gap: 2vi;
+				height: 80vh;
+				width: 90vw;
+				aspect-ratio: 9/16;
+				border-radius: 1rem;
+				padding: 2rem;
 				color: white;
 		}
 }
@@ -145,26 +182,3 @@ p {
 		}
 }
 
-@layer components {
-		.vanilla-textbox {
-				@apply bg-white rounded-xl text-gray-500 h-full w-full;
-		}
-
-		.valid-textbox {
-				@apply p-3 bg-white rounded-xl h-full w-full shadow-xl 
-				shadow-lime-400/30 ring ring-lime-400/60 
-				whitespace-pre-wrap overflow-scroll;
-		}
-
-		.parsed-textbox {
-				@apply p-3 bg-white rounded-xl h-full w-full
-                shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
-                whitespace-pre-wrap overflow-scroll;
-		}
-
-		.error-textbox {
-				@apply p-3 bg-white rounded-xl h-full w-full
-                shadow-xl shadow-red-400/30 ring ring-red-400/60
-                whitespace-pre-wrap overflow-scroll;
-		}
-}

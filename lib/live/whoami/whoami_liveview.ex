@@ -73,7 +73,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def render(assigns) do
     ~H"""
     <p></p>
-    <div class="field">
+    <div class="field text-white">
       <%= cond do %>
         <% @loading == true -> %>
           <div class="justify-self-center justify-center">
