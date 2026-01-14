@@ -14,19 +14,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
   Orchestrates the game featured in Inglorious Bastards where
   everyone writes a famous person on a card then gets assigned 
   someone else's card. 
+
   Every time a new liveview with a cookie shows up to a lobby, a
-  user is created in the session, and then stored in the socket. 
-  This is because sessions store usernames and each socket a user, 
-  and then sockets will insert users into the lobby.
+  player is created from the cookie, and then stored in the socket. 
+  This is because sessions store users and each socket hold the player, 
+  and then sockets will insert users into the lobby or fetch them, 
+  if the name matches.
 
   also some nomeclature weirdness: i decided to separate user and 
   player - user is just username in session, and player is the 
   entity associated with the lobby.
   """
 
-  # Creates a context from the View module. That module will enforce types and 
-  # require certain fields to be filled. This ensures the necessary things are here already from
-  # mount, and further along the path the lv will just 
   def mount(_params, session, socket) do
     context =
       session["user"]
@@ -156,10 +155,14 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, :player, new_player)}
   end
 
-  def handle_event("enter_words", params, socket) do
-    Whoami.input_word(socket.assigns.lobby_id, socket.assigns.player.id, params)
-    new_socket = assign(socket, stage: :waiting_for_words)
-    {:noreply, new_socket}
+  def handle_event("enter_words", params, %{assigns: %{lobby_id: lobby, player: player}} = socket) do
+    case Whoami.input_word(lobby, player.id, params) do
+    {:ok} -> 
+      new_socket = assign(socket, stage: :waiting_for_words)
+      {:noreply, new_socket}
+    {:error, reason} -> 
+      {:noreply, put_flash(socket, :error, reason)}
+    end
   end
 
   def handle_event("remove_player", %{"player" => player}, %{assigns: %{lobby_id: id}} = socket) do
@@ -315,7 +318,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
           lobby: socket.assigns.lobby_id
         )
 
-        new_socket =
+       new_socket =
           assign(
             socket,
             players_in_lobby: players,

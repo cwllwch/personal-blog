@@ -1,5 +1,6 @@
 defmodule Whoami do
   require Logger
+  alias Whoami.Helpers
   alias Whoami.GameServer
 
   @moduledoc """
@@ -58,7 +59,13 @@ defmodule Whoami do
 
   def input_word(lobby, player, word) when is_pid(lobby) do
     word_list = Map.values(word) |> Enum.reject(fn i -> i == nil end)
-    GenServer.cast(lobby, {:input_word, player, word_list})
+    case Helpers.validate_words(word_list) do
+      {:ok} -> 
+        GenServer.cast(lobby, {:input_word, player, word_list})
+        {:ok}
+      {:error, reason} -> 
+        {:error, reason}
+    end
   end
 
   def input_word(lobby, player, word) when is_binary(lobby) do

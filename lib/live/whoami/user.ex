@@ -21,7 +21,7 @@ defmodule PortalWeb.LiveStuff.Whoami.SetUser do
     <div class="field">
       <div>You will need to name yourself for this.</div>
       <form phx-submit="set_username" class="grid grid-rows-2 grid-cols-1" style="gap: 2vi;">
-        <input type="text" name="user" class="rounded-xl bg-zinc-800 text-white" />
+        <input type="text" maxlength="15" name="user" class="rounded-xl bg-zinc-800 text-white" />
         <.button type="submit">Choose username</.button>
       </form>
     </div>

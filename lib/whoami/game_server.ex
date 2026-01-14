@@ -2,6 +2,7 @@ defmodule Whoami.GameServer do
   require Logger
   use GenServer
   alias Whoami.LobbyStruct
+  alias Whoami.Round
   alias Phoenix.PubSub
 
   @moduledoc """
@@ -17,19 +18,7 @@ defmodule Whoami.GameServer do
 
   @impl true
   def init({id, player_count, captain} = _args) do
-    initial_state = %LobbyStruct{
-      id: id,
-      player_count: player_count,
-      captain: captain,
-      players: [captain],
-      last_interaction: System.system_time(:second),
-      stage: :waiting_room,
-      ban_list: [],
-      disc_list: [],
-      word_in_play: nil,
-      word_map: %{},
-      word_queue: %{}
-    }
+    initial_state = LobbyStruct.create_lobby(id, player_count, captain)
 
     PubSub.subscribe(Portal.PubSub, "lobby:#{id}")
 
@@ -140,6 +129,13 @@ defmodule Whoami.GameServer do
     )
 
     {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_info({:update_stage, :versus_arena}, state) do
+    prev_round = get_round(state)
+    player = state.word_queue |> List.first()
+    {:noreply, %{state | stage: :versus_arena, round: Round.create_round(player, state.word_in_play, prev_round)}}
   end
 
   @impl true
@@ -264,9 +260,19 @@ defmodule Whoami.GameServer do
       Whoami.destroy_lobby(state.id, state.players)
     end
   end
+  
+  def get_round(%LobbyStruct{round: list} = _state) do
+    case list do
+      [] -> 0
+      not_empty -> 
+        Enum.sort_by(not_empty, fn r -> r.round_id end, :desc)
+        |> List.first()
+        |> Map.get(:round_id)
+    end
+  end
 
-  defp get_next_word(%LobbyStruct{word_map: word_map} = state) do
-    {user, rest} = List.pop_at(state.word_queue, 0)
+  defp get_next_word(%LobbyStruct{word_map: word_map, word_queue: word_queue} = state) do
+    {user, rest} = List.pop_at(word_queue, 0)
 
     # Makes a list of all the words that aren't made by the current user, rejects nil 
     # and then takes a random word from this list and outputs a list with exactly one word

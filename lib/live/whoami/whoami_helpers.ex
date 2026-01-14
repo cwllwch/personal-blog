@@ -211,4 +211,12 @@ defmodule Whoami.Helpers do
       Map.put_new(acc, id, latest.user)
     end)
   end
+
+  def validate_words(word_list) do
+    dedup = Enum.dedup(word_list)
+    cond do 
+      length(dedup) != length(word_list) -> {:error, "i need different words. not the same word twice."}
+      true -> {:ok}
+    end
+  end
 end

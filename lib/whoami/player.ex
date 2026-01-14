@@ -1,12 +1,17 @@
 defmodule Whoami.Player do
-  alias Whoami.Player
 
   @moduledoc """
   Defines a player and its basic characteristics
   """
   @enforce_keys [:name, :id]
 
-  defstruct [:name, :id, :points, :wins, :ready]
+  defstruct [
+    name: nil, 
+    id: nil, 
+    points: 0,
+    wins: 0, 
+    ready: false
+  ]
 
   @type t :: %__MODULE__{
           name: String.t(),
@@ -16,13 +21,10 @@ defmodule Whoami.Player do
           ready: boolean()
         }
 
-  def create_player(user) do
-    %Player{
+  def create_player(user) when is_binary(user)do
+    %__MODULE__{
       name: user,
       id: Whoami.generate_id(),
-      points: 0,
-      ready: false,
-      wins: 0
     }
   end
 end
