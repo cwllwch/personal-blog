@@ -17,13 +17,13 @@ defmodule Whoami.Helpers do
   """
   @spec broadcast(tuple(), String.t()) :: :ok | {:error, term()}
   def broadcast(message, lobby) do
-   PubSub.broadcast(
+    PubSub.broadcast(
       Portal.PubSub,
       "lobby:#{lobby}",
       message
     )
   end
-  
+
   @doc """
   Puts the player in the lobby if player is a struct, or creates the struct if 
   the player is a binary. Returns the same as def handle_params/3 would.
@@ -49,7 +49,8 @@ defmodule Whoami.Helpers do
     end
   end
 
-  def put_into_lobby(socket, player, lobby, free_spots) when free_spots > 0 and is_binary(player) do
+  def put_into_lobby(socket, player, lobby, free_spots)
+      when free_spots > 0 and is_binary(player) do
     topic = "lobby:#{lobby}"
     player = Player.create_player(player)
 
@@ -73,7 +74,7 @@ defmodule Whoami.Helpers do
   end
 
   def put_into_lobby(socket, _user, _lobby, _free_spots) do
-    new_socket = put_flash(socket, :error, "Whoami.is already full!")
+    new_socket = put_flash(socket, :error, "This lobby is already full!")
     {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
   end
 
@@ -107,7 +108,7 @@ defmodule Whoami.Helpers do
   def put_lobby_into_assigns(%{assigns: map} = socket, lobby_id) do
     link = ~p{/whoami?#{%{lobby: lobby_id}}}
 
-    new_assigns = 
+    new_assigns =
       map
       |> Map.put(:loading, false)
       |> Map.put(:lobby_id, lobby_id)
@@ -214,9 +215,13 @@ defmodule Whoami.Helpers do
 
   def validate_words(word_list) do
     dedup = Enum.dedup(word_list)
-    cond do 
-      length(dedup) != length(word_list) -> {:error, "i need different words. not the same word twice."}
-      true -> {:ok}
+
+    cond do
+      length(dedup) != length(word_list) ->
+        {:error, "i need different words. not the same word twice."}
+
+      true ->
+        {:ok}
     end
   end
 end

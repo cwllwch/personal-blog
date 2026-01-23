@@ -284,7 +284,7 @@ defmodule Live.Whoami.Components do
 
         <p style="font-family: monospace; align-self: end;">
           If you choose something weird or too unknown, the other players can
-          challenge the word and vote to eliminate the word. <br>
+          challenge the word and vote to eliminate the word. <br />
           <b style="color: white">You will lose a point if your word is voted out!</b>
         </p>
       </div>
@@ -311,47 +311,48 @@ defmodule Live.Whoami.Components do
       <br />The word this turn is: {@word_in_play}
       <br />to be guessed by: {@player_to_guess.name}
       <br />
-      <br />The answer to {@player_to_guess.name}'s question is: 
-
-      
+      <br />The answer to {@player_to_guess.name}'s question is:
       <div class="button-grid">
-        <.button 
-        class="button-yes" 
-        phx-click="answer_yes"> 
-          yes! 
+        <.button
+          class="button-yes"
+          phx-click="answer_yes"
+        >
+          yes!)))
         </.button>
 
         <.button
-        class="button-no"
-        phx-click="answer_yes"> 
-          no((( 
-        </.button>
-
-        <.button
-        class="button-maybe"
-        phx-click="answer_maybe"> 
+          class="button-maybe"
+          phx-click="answer_maybe"
+        >
           maybe?
         </.button>
 
         <.button
-        class="button-illegal"
-        phx-click="illegal_question"
-        > 
-          can't answer {@player_to_guess.name}'s question
+          class="button-no"
+          phx-click="answer_no"
+        >
+          no(((
         </.button>
 
         <.button
-        class="button-stupid"
-        phx-click="illegal_word"
-        > 
-          this word is terrible
+          class="button-illegal"
+          phx-click="illegal_question"
+        >
+          illegal question!
         </.button>
 
+        <.button
+          class="button-stupid"
+          phx-click="illegal_word"
+        >
+          this word is terrible
+        </.button>
       </div>
     </div>
 
     <div :if={@player_to_guess == @self}>
-      you'll have to guess the word!
+      Think and make a yes or no question.
+      your friends will answer, and they will be the judge of your question!
     </div>
 
     <div :if={@player_to_guess == nil}>

@@ -1,8 +1,14 @@
+/* tailwind */
 @import "tailwindcss/base";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
+
+/* prettifier elements */
 @import "./prettifier/prettifier.css";
+
+/* elements for whoami */
 @import "./whoami/player_bar.css";
+@import "./whoami/arena.css";
 @import "./whoami/whoami.css";
 
 /* General elements  */
@@ -10,7 +16,7 @@
 h1 {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #059669;    
+    color: #059669;
 }
 
 p {
@@ -24,125 +30,6 @@ p {
 .body {
 		animation: fadeIn 100ms;
 		color: white;
-}
-
-.field {
-		color: white !important;
-}
-
-.loading-dots {
-		display: inline-block;
-		text-align: center;
-}
-
-.loading-dots::after {
-		content: " ";
-		letter-spacing: -3px;
-		animation: loadingDots 5s 0.2s steps(1) infinite;
-}
- .invite-block {
- 		margin: 5vi;
-		display: flex;
- 		justify-self: center;
- 		align-items: center;
- 		padding: 15px 20px 15px 20px;
- 		border-radius: 1vi;
- 		background-color: oklch(0.4069 0.1158 279.94 / 40%);
- 		width: fit-content;
- 		gap: 2vi;
- }
-
-.invite-link {
-		padding: 15px 10px 10px 10px;
-		text-align: center;
-		border-width: 3px;
-		border-color: #35530e;
-		border-radius: 1vi;
-		background-color: #27272a;
-		transition: transform 100ms ease-out;
-		user-select: none;
-}
-
-.invite-link:hover {
-		border-color: #005403;
-		background-color: #1a251c;
-		transform: scale(1.05);
-		transition: transform 100ms ease-in-out;
-}
-
-.invite-link:active {
-		border-color: #2f5500;
-		background-color: #11351b;
-		transition: transform  100ms ease-out;
-}
-
-.info {
-		padding: 20px;
-		margin: 20px;
-		height: 3em;
-		width: 40vi;
-		text-align: center;
-		min-width: 400px;
-		max-width: 500px;
-		border-radius: 5em;
-}
-
-.start {
-		position: relative;
-		margin: 20px;
-		height: 3em;
-		width: 40vi;
-		z-index: 1;
-		z-index: 500 !important;
-		align-self: center;
-		text-align: center;
-		min-width: 400px;
-		max-width: 500px;
-		border-radius: 5em;
-		background-color: green;
-}
-
-.start::before {
-		filter: blur(5px);
-		content: "";
-		z-index: -1;
-		inset: 0;
-		position: absolute;
-		border-radius: inherit;
-		background-color: inherit;
-		height: 3em;
-		width: 40vi;
-		min-width: 400px;
-		max-width: 500px;
-		animation: pulse 3s infinite;
-}
-
-
- /* control small screen elements */
-@media screen and (max-width: 850px) {
-		.field {
-				color: white;
-		}
-}
-
-/* controls large screen elements */
-@media screen and (min-width: 851px) {
-
-/* Prettifier elements *
-		/* Who am I */
-		.field {
-				display: flex;
-				flex-direction: column;
-				justify-content: start;
-				align-items: center;
-				gap: 2vi;
-				height: 90%;
-				width: 100%;
-				aspect-ratio: 16/9;
-				border-radius: 1rem;
-				padding: 2rem;
-				color: white;
-		}
 }
 
 @layer components {

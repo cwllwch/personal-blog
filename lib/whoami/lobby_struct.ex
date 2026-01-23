@@ -19,20 +19,19 @@ defmodule Whoami.LobbyStruct do
   ]
 
   @type t :: %__MODULE__{
-    id: String.t(),
-    player_count: non_neg_integer(),
-    captain: Whoami.Player.t(),
-    players: list(Whoami.Player.t()),
-    last_interaction: non_neg_integer(),
-    stage: atom(),
-    ban_list: list(String.t()),
-    disc_list: list(String.t()),
-    word_in_play: String.t() | nil,
-    word_map: map(),
-    word_queue: list(String.t()) | [],
-    round: list(Whoami.Round.t()) | []
-    
-  }
+          id: String.t(),
+          player_count: non_neg_integer(),
+          captain: Whoami.Player.t(),
+          players: list(Whoami.Player.t()),
+          last_interaction: non_neg_integer(),
+          stage: atom(),
+          ban_list: list(String.t()),
+          disc_list: list(String.t()),
+          word_in_play: String.t() | nil,
+          word_map: map(),
+          word_queue: list(String.t()) | [],
+          round: list(Whoami.Round.t()) | []
+        }
 
   def create_lobby(id, player_count, captain) do
     %__MODULE__{

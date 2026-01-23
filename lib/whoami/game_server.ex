@@ -111,7 +111,7 @@ defmodule Whoami.GameServer do
       Logger.info(message: "not inserting words", player: player, lobby: state.id)
       {:noreply, state}
     else
-      new_state = %{state | word_map: Map.put_new(state.word_map, player, word)}
+      new_state = %{state | word_map: Map.put_new(state.word_map, player, String.trim(word))}
       send(self(), {:check_words_complete})
       Logger.debug(message: "inserted words", player: player, words: inspect(word))
       {:noreply, new_state}
@@ -132,10 +132,23 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_cast({:answer, answer, player, word}, %{round: rounds} = state) do
+    Logger.info(message: "got answer", answer: answer, word: word, player: player)
+
+    round = Enum.sort_by(rounds, & &1.id, :desc) |> List.first()
+
+    # Round.add_vote(round, question, player, answer)
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info({:update_stage, :versus_arena}, state) do
     prev_round = get_round(state)
-    player = state.word_queue |> List.last() # The current round already moved the in-turn player to last position in q by now
-    {:noreply, %{state | stage: :versus_arena, round: Round.create_round(player, state.word_in_play, prev_round)}}
+    # The current round already moved the in-turn player to last position in q by now
+    player = state.word_queue |> List.last()
+    new_round_list = prev_round ++ Round.create_round(player, state.word_in_play, prev_round)
+    {:noreply, %{state | stage: :versus_arena, round: new_round_list}}
   end
 
   @impl true
@@ -260,11 +273,13 @@ defmodule Whoami.GameServer do
       Whoami.destroy_lobby(state.id, state.players)
     end
   end
-  
+
   def get_round(%LobbyStruct{round: list} = _state) do
     case list do
-      [] -> 0
-      not_empty -> 
+      [] ->
+        0
+
+      not_empty ->
         Enum.sort_by(not_empty, fn r -> r.round_id end, :desc)
         |> List.first()
         |> Map.get(:round_id)

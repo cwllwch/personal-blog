@@ -59,11 +59,13 @@ defmodule Whoami do
 
   def input_word(lobby, player, word) when is_pid(lobby) do
     word_list = Map.values(word) |> Enum.reject(fn i -> i == nil end)
+
     case Helpers.validate_words(word_list) do
-      {:ok} -> 
+      {:ok} ->
         GenServer.cast(lobby, {:input_word, player, word_list})
         {:ok}
-      {:error, reason} -> 
+
+      {:error, reason} ->
         {:error, reason}
     end
   end
@@ -71,6 +73,28 @@ defmodule Whoami do
   def input_word(lobby, player, word) when is_binary(lobby) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> input_word(pid, player, word)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def input_answer(lobby, answer, player, word) when is_pid(lobby) do
+    GenServer.cast(lobby, {:answer, answer, player, word})
+  end
+
+  def input_answer(lobby, answer, player, word) when is_binary(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> input_answer(pid, answer, player, word)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def initiate_trial(lobby, player, word) when is_pid(lobby) do
+    Logger.info("Trial of word #{word} initiated by #{player.name}!")
+  end
+
+  def initiate_trial(lobby, player, word) when is_binary(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> initiate_trial(pid, player, word)
       {:error, reason} -> {:error, reason}
     end
   end
