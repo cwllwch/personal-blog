@@ -73,14 +73,14 @@ defmodule Whoami.Round do
 
   def add_vote(round, player, answer) do
     # Gets the question list, finds the lowest empty one, then extracts the keys of the question to add the answer
-    question = 
-      round.questions 
-        |> Enum.filter(fn q -> Map.values(q) |> hd() == %{} end) 
-        |> Enum.sort(:asc)
-        |> hd()
-        |> Map.keys()
-        |> hd()
-    
+    question =
+      round.questions
+      |> Enum.filter(fn q -> Map.values(q) |> hd() == %{} end)
+      |> Enum.sort(:asc)
+      |> hd()
+      |> Map.keys()
+      |> hd()
+
     new_votes =
       Map.update(
         round.votes_per_question,
@@ -94,7 +94,7 @@ defmodule Whoami.Round do
     |> apply_action(:update)
   end
 
-# I'll get to this when I need to.
+  # I'll get to this when I need to.
   # def get_current_question(round) do
   #   non_empty = Enum.reject(round.questions, fn {_k, v} -> v == %{} end)
   #   if non_empty != [] do

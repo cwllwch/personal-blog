@@ -243,7 +243,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     Whoami.input_answer(lobby, answer, player, word)
     {:noreply, socket}
   end
-  
+
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Whoami.create_lobby(player_count, socket.assigns.player)
 
