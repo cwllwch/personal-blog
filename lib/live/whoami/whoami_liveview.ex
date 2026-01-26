@@ -194,7 +194,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         _params,
         %{assigns: %{lobby_id: lobby, player: player, word_in_play: word}} = socket
       ) do
-    Whoami.input_answer(lobby, :yes, player, word)
+    send(self(), {:answer, lobby, :yes, player, word})
     {:noreply, assign(socket, stage: :answered)}
   end
 
@@ -203,7 +203,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         _params,
         %{assigns: %{lobby_id: lobby, player: player, word_in_play: word}} = socket
       ) do
-    Whoami.input_answer(lobby, :no, player, word)
+    send(self(), {:answer, lobby, :no, player, word})
     {:noreply, assign(socket, stage: :answered)}
   end
 
@@ -212,7 +212,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         _params,
         %{assigns: %{lobby_id: lobby, player: player, word_in_play: word}} = socket
       ) do
-    Whoami.input_answer(lobby, :maybe, player, word)
+    send(self(), {:answer, lobby, :maybe, player, word})
     {:noreply, assign(socket, stage: :answered)}
   end
 
@@ -221,7 +221,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         _params,
         %{assigns: %{lobby_id: lobby, player: player, word_in_play: word}} = socket
       ) do
-    Whoami.input_answer(lobby, :illegal, player, word)
+    send(self(), {:answer, lobby, :illegal, player, word})
     {:noreply, assign(socket, stage: :answered)}
   end
 
@@ -230,10 +230,20 @@ defmodule PortalWeb.LiveStuff.Whoami do
         _params,
         %{assigns: %{lobby_id: lobby, player: player, word_in_play: word}} = socket
       ) do
-    Whoami.initiate_trial(lobby, player, word)
+    send(self(), {:answer, lobby, :word_trial, player, word})
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  def handle_info({:answer, lobby, :word_trial, player, word}, socket) do
+    Whoami.initiate_trial(lobby, player, word)
+    {:noreply, assign(socket, loading: true)}
+  end
+
+  def handle_info({:answer, lobby, answer, player, word}, socket) do
+    Whoami.input_answer(lobby, answer, player, word)
+    {:noreply, socket}
+  end
+  
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Whoami.create_lobby(player_count, socket.assigns.player)
 

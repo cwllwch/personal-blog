@@ -71,13 +71,22 @@ defmodule Whoami.Round do
     |> apply_action!(:update)
   end
 
-  def add_vote(round, question, player, answer) do
+  def add_vote(round, player, answer) do
+    # Gets the question list, finds the lowest empty one, then extracts the keys of the question to add the answer
+    question = 
+      round.questions 
+        |> Enum.filter(fn q -> Map.values(q) |> hd() == %{} end) 
+        |> Enum.sort(:asc)
+        |> hd()
+        |> Map.keys()
+        |> hd()
+    
     new_votes =
       Map.update(
         round.votes_per_question,
         question,
-        %{player => answer},
-        fn existing -> Map.put(existing, player, answer) end
+        %{player.id => answer},
+        fn existing -> Map.put(existing, player.id, answer) end
       )
 
     round
@@ -85,20 +94,16 @@ defmodule Whoami.Round do
     |> apply_action(:update)
   end
 
-  def get_current_question(round) do
-    non_empty = Enum.reject(round.questions, fn {_k, v} -> v == %{} end)
-    if non_empty != [] do
-      highest_key = Enum.sort(non_empty, :desc) |> List.first() |> elem(0)
-      is_done = check_question_votes(highest_key, round)
-    else
-      1
-    end
-  end
-
-  def check_question_votes(question, round) do
-    votes = Map.get(round.votes_per_question, question)
-    
-  end
+# I'll get to this when I need to.
+  # def get_current_question(round) do
+  #   non_empty = Enum.reject(round.questions, fn {_k, v} -> v == %{} end)
+  #   if non_empty != [] do
+  #     highest_key = Enum.sort(non_empty, :desc) |> hd()
+  #
+  #   else
+  #     1
+  #   end
+  # end
 
   defp gen_question_stubs() do
     Enum.map(1..@questions_per_round, fn x -> %{x => %{}} end)

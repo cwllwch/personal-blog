@@ -104,16 +104,17 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
-  def handle_cast({:input_word, player, word}, state) do
+  def handle_cast({:input_word, player, words}, state) do
     keys = Map.keys(state.word_map)
 
     if player in keys do
       Logger.info(message: "not inserting words", player: player, lobby: state.id)
       {:noreply, state}
     else
-      new_state = %{state | word_map: Map.put_new(state.word_map, player, String.trim(word))}
+      words = Enum.map(words, &(String.trim(&1)))
+      new_state = %{state | word_map: Map.put_new(state.word_map, player, words)}
       send(self(), {:check_words_complete})
-      Logger.debug(message: "inserted words", player: player, words: inspect(word))
+      Logger.debug(message: "inserted words", player: player, words: inspect(words))
       {:noreply, new_state}
     end
   end
@@ -132,22 +133,40 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
-  def handle_cast({:answer, answer, player, word}, %{round: rounds} = state) do
+  def handle_cast({:answer, answer, player, word}, state) do
     Logger.info(message: "got answer", answer: answer, word: word, player: player)
+    {:ok, new_round} = 
+      state
+      |> get_round_to_fill()
+      |> Round.add_vote(player, answer)
 
-    round = Enum.sort_by(rounds, & &1.id, :desc) |> List.first()
+    new_rounds = 
+      state.round
+      |> Enum.reject(&(Map.keys(&1) == [new_round.round_id]))
+      |> List.insert_at(-1, %{new_round.round_id => new_round})
 
-    # Round.add_vote(round, question, player, answer)
+    new_state = Map.replace(state, :round, new_rounds)
 
-    {:noreply, state}
+    send(self(), {:check_answers_for_q})
+
+    {:noreply, new_state}
   end
 
   @impl true
   def handle_info({:update_stage, :versus_arena}, state) do
-    prev_round = get_round(state)
+    prev_round_id = get_last_round_id(state)
+    
     # The current round already moved the in-turn player to last position in q by now
-    player = state.word_queue |> List.last()
-    new_round_list = prev_round ++ Round.create_round(player, state.word_in_play, prev_round)
+    guesser = get_next_guesser(state)
+
+    players_in_round = Enum.reject(state.players, fn player -> player.id in state.disc_list end)
+
+    new_round_list = 
+      List.flatten(
+        [state.round], 
+        [%{prev_round_id + 1 => Round.create_round(guesser, players_in_round, state.word_in_play, prev_round_id)}]
+      )
+
     {:noreply, %{state | stage: :versus_arena, round: new_round_list}}
   end
 
@@ -157,6 +176,7 @@ defmodule Whoami.GameServer do
   end
 
   # this is used to update the liveviews, handled here just to not generate an error
+  @impl true
   def handle_info({:change_disc_list, _new_disc_list}, state) do
     {:noreply, state}
   end
@@ -214,8 +234,43 @@ defmodule Whoami.GameServer do
     end
   end
 
+  @impl true
   def handle_info({:can_start_toggle, _status}, state) do
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:check_answers_for_q}, state) do
+    current_round = get_round_to_fill(state)
+
+    guesser = 
+      current_round
+      |> Map.get(:guesser)
+      |> Map.get(:id)
+
+    players_who_answered =
+      current_round
+      |> Map.get(:votes_per_question)
+      |> get_last()
+      |> Map.keys()
+      |> Enum.sort(:asc)
+
+    players_in_round = 
+      current_round
+      |> Map.get(:players)
+      |> Enum.map(&(&1.id))
+      |> Enum.reject(&(&1 == guesser))
+      |> Enum.sort(:asc)
+
+      Logger.info([in_round: players_in_round, answered: players_who_answered])
+    
+    if players_in_round == players_who_answered do
+      Logger.info([message: "should create a new round here"])
+      {:noreply, state}
+    else
+      Logger.info([message: "no need to create a new round yet"])
+      {:noreply, state}
+    end
   end
 
   @impl true
@@ -274,7 +329,7 @@ defmodule Whoami.GameServer do
     end
   end
 
-  def get_round(%LobbyStruct{round: list} = _state) do
+  def get_last_round_id(%LobbyStruct{round: list} = _state) do
     case list do
       [] ->
         0
@@ -309,6 +364,22 @@ defmodule Whoami.GameServer do
     Map.put(state, :word_queue, new_queue)
     |> Map.put(:word_map, new_word_map)
     |> Map.put(:word_in_play, next_word)
+  end
+
+
+  @doc "Gets the round with the highest id, which should be the latest one."
+  def get_round_to_fill(state) do
+    Enum.sort(state.round, :desc)
+    |> hd()
+    |> Map.values()
+    |> hd()
+  end
+
+  def get_next_guesser(state) do
+    cond do
+      state.word_queue == [] -> Enum.sort_by(state.players, &(&1.id), :asc) |> List.first()
+      state.word_queue != [] -> Enum.sort_by(state.players, &(&1.id), :desc) |> List.first()
+    end
   end
 
   defp maybe_add_player(new_player, state) when state.player_count > length(state.players) do
@@ -420,5 +491,15 @@ defmodule Whoami.GameServer do
 
       Map.put_new(acc, id, latest.user)
     end)
+  end
+
+  def get_last(votes) do
+    key = 
+      votes
+      |> Map.keys() 
+      |> Enum.sort(:desc) 
+      |> List.first()
+
+    Map.get(votes, key)
   end
 end
