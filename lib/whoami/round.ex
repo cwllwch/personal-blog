@@ -94,6 +94,52 @@ defmodule Whoami.Round do
     |> apply_action(:update)
   end
 
+  
+  def evaluate_votes(%{votes_per_question: votes, players: players} = round) do
+    threshold = length(players) |> Kernel.-(1) |> Kernel.*(0.7)
+    
+    {yes, no, maybe, illegal} = tally_votes(votes)
+
+    # Adds the response to the questions map and return the whole round, with old history and all.
+    # Catchall to have ties bumped as maybe.
+    cond do
+    yes >= threshold -> {:yes, add_response(round, :yes)}
+    no >= threshold -> {:no, add_response(round, :no)}
+    maybe >= threshold -> {:maybe, add_response(round, :maybe)}
+    illegal >= threshold -> {:illegal, add_response(round, :illegal)}
+    true -> {:maybe, add_response(round, :maybe)}
+    end
+  end
+
+  defp tally_votes(votes) do
+  values =
+    votes
+    |> Enum.sort()
+    |> hd()
+    |> elem(1)
+    |> Map.values()
+    |> Enum.frequencies()
+
+    {
+      Map.get(values, :yes, 0),
+      Map.get(values, :no, 0),
+      Map.get(values, :maybe, 0),
+      Map.get(values, :illegal, 0)
+    }
+  end
+
+  def add_response(round, answer) do
+    current_q = round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
+
+    new_q =
+    round.questions
+    |> Enum.reduce([], fn q, acc -> 
+        if Map.keys(q) == [current_q], do: acc ++ [%{current_q => answer }], else: acc ++ [q]
+      end)
+    
+    Map.put(round, :questions, new_q)
+  end
+
   # I'll get to this when I need to.
   # def get_current_question(round) do
   #   non_empty = Enum.reject(round.questions, fn {_k, v} -> v == %{} end)

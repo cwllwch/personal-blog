@@ -3,6 +3,18 @@
 		50% {opacity: 0.5;}
 }
 
+.players {
+		display: flex;
+		flex-shrink: 0;
+		flex-flow: row nowrap;
+		justify-self: flex-start;
+		gap: 10px;
+		height: 20vh;
+		min-height: 150px;
+		margin: 20px;
+		overflow-x: auto;
+}
+
 .player-true, 
 .player-false {
 		display: grid;
@@ -38,15 +50,6 @@
 		animation: fadeInToHalf 0.3s ease-in-out
 }
 
-.players {
-		display: flex;
-		flex-flow: row nowrap;
-		justify-self: flex-start;
-		gap: 10px;
-		height: 20vh;
-		margin: 1vw;
-		overflow-y: scroll;
-}
 
 .icon {
 		justify-self: center;

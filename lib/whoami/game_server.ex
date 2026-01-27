@@ -3,6 +3,7 @@ defmodule Whoami.GameServer do
   use GenServer
   alias Whoami.LobbyStruct
   alias Whoami.Round
+  alias Whoami.Helpers
   alias Phoenix.PubSub
 
   @moduledoc """
@@ -231,11 +232,11 @@ defmodule Whoami.GameServer do
 
     if unready != [] or n < state.player_count do
       Logger.info(message: "not ready to start yet", lobby: state.id)
-      PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, false})
+      Helpers.broadcast({:can_start_toggle, false}, state.id)
       {:noreply, state}
     else
       Logger.info(message: "ready to start!", lobby: state.id)
-      PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:can_start_toggle, true})
+      Helpers.broadcast({:can_start_toggle, true}, state.id)
       {:noreply, state}
     end
   end
@@ -272,7 +273,10 @@ defmodule Whoami.GameServer do
 
     if players_in_round == players_who_answered do
       Logger.info(message: "should create a new round here")
-      {:noreply, state}
+      {answer, new_round} = Round.evaluate_votes(current_round)
+      question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
+      Helpers.broadcast({:voting_complete, answer, question_nr}, state.id)
+      {:noreply, %{state | round: new_round}}
     else
       Logger.info(message: "no need to create a new round yet")
       {:noreply, state}
