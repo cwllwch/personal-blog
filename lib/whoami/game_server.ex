@@ -283,6 +283,11 @@ defmodule Whoami.GameServer do
     end
   end
 
+  def handle_info({:voting_complete, answer, question_nr}, state) do
+    Logger.info([message: "question has been answered completely", question_nr: question_nr, answer: answer])
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info({:check_words_complete}, state) do
     players_in_word_list = Map.keys(state.word_map) |> Enum.sort()

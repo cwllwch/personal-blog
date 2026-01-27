@@ -244,6 +244,11 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, socket}
   end
 
+  def handle_info({:voting_complete, answer, question}, socket) do
+    Logger.info("got answer #{inspect(answer)} to question #{inspect(question)}")
+    {:noreply, socket}
+  end
+
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Whoami.create_lobby(player_count, socket.assigns.player)
 
