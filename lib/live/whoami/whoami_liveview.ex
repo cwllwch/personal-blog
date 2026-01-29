@@ -26,6 +26,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   entity associated with the lobby.
   """
 
+  @impl true
   def mount(_params, session, socket) do
     context =
       session["user"]
@@ -37,6 +38,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:ok, new_socket}
   end
 
+  @impl true
   def handle_params(%{"lobby" => lobby}, _uri, socket) do
     case Helpers.find_player(socket.assigns.user, lobby) do
       {:ok, nil, free_spots} ->
@@ -60,6 +62,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_params(_params, _uri, socket) do
     new_socket =
       assign(socket,
@@ -70,6 +73,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, new_socket}
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <p></p>
@@ -140,17 +144,34 @@ defmodule PortalWeb.LiveStuff.Whoami do
           />
         <% @stage == :answered and @loading == false -> %>
           waiting on everyone to answer as well...
+
+        <% @stage == :show_answer and @loading == false -> %>
+          <.player_bar
+            lobby_id={@lobby_id}
+            self={@player}
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+          <br>
+          Your friends agree that your answer is:
+          <div :if={@answer == :yes} class="answer-yes"> yes <br> gained 20 points! </div>
+          <div :if={@answer == :no} class="answer-no"> no <br> no points for you </div>
+          <div :if={@answer == :maybe} class="answer-maybe"> maybe <br> 5 points </div>
+          <div :if={@answer == :illegal} class="answer-illegal"> illegal question! <br> -100 points </div>
       <% end %>
     </div>
     """
   end
 
+  @impl true
   def handle_event("request_lobby", %{"player_count" => player_count}, socket) do
     send(self(), {:create_lobby, String.to_integer(player_count)})
     new_socket = assign(socket, :loading, true)
     {:noreply, new_socket}
   end
 
+  @impl true
   def handle_event(
         "toggle_ready",
         _params,
@@ -161,6 +182,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, :player, new_player)}
   end
 
+  @impl true
   def handle_event("enter_words", params, %{assigns: %{lobby_id: lobby, player: player}} = socket) do
     case Whoami.input_word(lobby, player.id, params) do
       {:ok} ->
@@ -171,7 +193,14 @@ defmodule PortalWeb.LiveStuff.Whoami do
         {:noreply, put_flash(socket, :error, reason)}
     end
   end
+  
+  @impl true
+  def handle_event("guess_attempt", %{"attempt" => word}, socket) do
+  Logger.info("tried to guess with #{word}")
+    {:noreply, socket}
+  end
 
+  @impl true
   def handle_event("remove_player", %{"player" => player}, %{assigns: %{lobby_id: id}} = socket) do
     send(self(), {:remove_player, player})
 
@@ -181,6 +210,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, new_socket}
   end
 
+  @impl true
   def handle_event("start_game", _params, %{assigns: %{lobby_id: id}} = socket) do
     Logger.debug(message: "starting the match", lobby: id)
 
@@ -189,6 +219,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, socket}
   end
 
+  @impl true
   def handle_event(
         "answer_yes",
         _params,
@@ -198,6 +229,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  @impl true
   def handle_event(
         "answer_no",
         _params,
@@ -207,6 +239,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  @impl true
   def handle_event(
         "answer_maybe",
         _params,
@@ -216,6 +249,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  @impl true
   def handle_event(
         "illegal_question",
         _params,
@@ -225,6 +259,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  @impl true
   def handle_event(
         "illegal_word",
         _params,
@@ -234,21 +269,29 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, assign(socket, stage: :answered)}
   end
 
+  @impl true
   def handle_info({:answer, lobby, :word_trial, player, word}, socket) do
     Whoami.initiate_trial(lobby, player, word)
     {:noreply, assign(socket, loading: true)}
   end
 
+  @impl true
   def handle_info({:answer, lobby, answer, player, word}, socket) do
     Whoami.input_answer(lobby, answer, player, word)
     {:noreply, socket}
   end
 
+  @impl true
   def handle_info({:voting_complete, answer, question}, socket) do
-    Logger.info("got answer #{inspect(answer)} to question #{inspect(question)}")
-    {:noreply, socket}
+    Logger.debug(
+      [message: "got answer #{inspect(answer)} to question #{inspect(question)}", 
+      user: socket.assigns.player.name
+    ])
+    Process.send_after(self(), {:iterate_question}, 7_000)
+    {:noreply, assign(socket, stage: :show_answer, answer: answer)}
   end
 
+  @impl true
   def handle_info({:create_lobby, player_count}, socket) do
     {:ok, _pid, lobby_id} = Whoami.create_lobby(player_count, socket.assigns.player)
 
@@ -257,18 +300,17 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, push_patch(new_socket, to: ~p{/whoami?#{%{lobby: lobby_id}}})}
   end
 
+  @impl true
+  def handle_info({:iterate_question}, socket) do
+    {:noreply, assign(socket, stage: :versus_arena)}
+  end
+
+  @impl true
   def handle_info({:fetch_players, lobby}, socket) do
     case Whoami.fetch_players(lobby) do
       {:ok, players, _count} ->
-        new_players =
-          Enum.reject(
-            players,
-            fn item ->
-              item.name == socket.assigns.player.name
-            end
-          )
-
-        {:noreply, assign(socket, players_in_lobby: new_players, loading: false)}
+        new_socket = Helpers.update_players(players, socket)
+        {:noreply, assign(new_socket, loading: false)}
 
       {:error, message} ->
         Logger.info(message: message, lobby: lobby, player: socket.assigns.player)
@@ -277,6 +319,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info({:fetch_disc_list}, socket) do
     case Whoami.fetch_disc_list(socket.assigns.lobby_id) do
       {:error, message} ->
@@ -287,10 +330,12 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info({:fetch_word_in_play}, socket) do
     Whoami.fetch_word_in_play(socket.assigns.lobby_id)
   end
 
+  @impl true
   def handle_info({:fetch_stage, lobby}, socket) do
     case Whoami.fetch_stage(lobby) do
       {:ok, stage} ->
@@ -304,6 +349,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info({:update_stage, new_stage}, socket) do
     send(self(), {:update_interaction, System.system_time(:second)})
 
@@ -315,6 +361,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info({:add_player, lobby}, socket) do
     case Whoami.add_player(lobby, socket.assigns.player) do
       {:ok, players, _count} ->
@@ -339,14 +386,17 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info({:can_start_toggle, status}, socket) do
     {:noreply, assign(socket, :can_start, status)}
   end
 
+  @impl true
   def handle_info({:change_disc_list, new_list}, socket) do
     {:noreply, assign(socket, :disc_list, new_list)}
   end
 
+  @impl true
   def handle_info({:fetch_next_word}, socket) do
     case Whoami.fetch_word_in_play(socket.assigns.lobby_id) do
       {:error, reason} ->
@@ -376,6 +426,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   # Removes the player from the lobby state
+  @impl true
   def handle_info({:remove_player, player}, socket) do
     case Whoami.remove_player(socket.assigns.lobby_id, player) do
       {:ok, players} ->
@@ -398,6 +449,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   # Removes the player liveview from the specified lobby.
+  @impl true
   def handle_info(
         {:see_yourself_out, player},
         %{assigns: %{lobby_id: lobby, player: self}} = socket
@@ -423,6 +475,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     end
   end
 
+  @impl true
   def handle_info(%{event: "presence_diff", payload: diff}, socket) do
     new_socket =
       socket
@@ -434,6 +487,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     {:noreply, new_socket}
   end
 
+  @impl true
   def handle_info({:update_interaction, timestamp}, socket) do
     case Whoami.update_interaction(socket.assigns.lobby_id, timestamp) do
       :ok ->

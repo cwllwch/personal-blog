@@ -247,6 +247,14 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_info({:fetch_players, _lobby}, state) do
+    # this handle info is here only to ignore the message. 
+    # This message is used to update the player bar in lobby, 
+    # so it is something the liveview will use. The server can safely discard it.
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info({:check_answers_for_q}, state) do
     current_round = get_round_to_fill(state)
 
@@ -276,16 +284,19 @@ defmodule Whoami.GameServer do
       {answer, new_round} = Round.evaluate_votes(current_round)
       question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
       Helpers.broadcast({:voting_complete, answer, question_nr}, state.id)
-      {:noreply, %{state | round: new_round}}
+      {:noreply, %{state | round: [%{new_round.round_id => new_round}]}}
     else
       Logger.info(message: "no need to create a new round yet")
       {:noreply, state}
     end
   end
 
+  @impl true
   def handle_info({:voting_complete, answer, question_nr}, state) do
     Logger.info([message: "question has been answered completely", question_nr: question_nr, answer: answer])
-    {:noreply, state}
+    new_state = add_points(state, answer)
+    Helpers.broadcast({:fetch_players, state.id}, state.id)
+    {:noreply, new_state}
   end
 
   @impl true
@@ -515,5 +526,33 @@ defmodule Whoami.GameServer do
       |> List.first()
 
     Map.get(votes, key)
+  end
+
+  @doc "Adds points to players according to the given answer"
+  def add_points(state, answer) do
+    guesser_id = get_round_to_fill(state) |> Map.get(:guesser) |> Map.get(:id)
+    
+    new_players = 
+      state
+      |> Map.get(:players) 
+      |> Enum.map(&(if &1.id == guesser_id, do: add_points_conditions(&1, answer), else: &1))
+
+    %{state | players: new_players}
+  end
+
+  defp add_points_conditions(player, answer) when answer == :yes do
+     Map.update!(player, :points, fn previous -> previous + 20 end)
+  end
+  
+  defp add_points_conditions(player, answer) when answer == :maybe do
+     Map.update!(player, :points, fn previous -> previous + 5 end)
+  end
+
+  defp add_points_conditions(player, answer) when answer == :no do
+     Map.update!(player, :points, fn previous -> previous end)
+  end
+
+  defp add_points_conditions(player, answer) when answer == :illegal do
+     Map.update!(player, :points, fn previous -> previous - 100 end)
   end
 end

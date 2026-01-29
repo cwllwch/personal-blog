@@ -1,4 +1,5 @@
 defmodule Whoami.Round do
+  require Logger
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -94,11 +95,23 @@ defmodule Whoami.Round do
     |> apply_action(:update)
   end
 
-  
+  @doc "Evaluates votes once all users have cast their ballots. Will return the new round and the answer after validating the changes."
   def evaluate_votes(%{votes_per_question: votes, players: players} = round) do
+    {result, new_q} = evaluate_votes(round, votes, players)
+    
+    {:ok, new_round} = 
+      round
+      |> changeset(%{questions: new_q})
+      |> apply_action(:update)
+
+    {result, new_round}
+  end
+  
+  def evaluate_votes(round, votes, players) do
     threshold = length(players) |> Kernel.-(1) |> Kernel.*(0.7)
     
     {yes, no, maybe, illegal} = tally_votes(votes)
+    Logger.warning([yes: yes, no: no, maybe: maybe, illegal: illegal])
 
     # Adds the response to the questions map and return the whole round, with old history and all.
     # Catchall to have ties bumped as maybe.
@@ -114,7 +127,7 @@ defmodule Whoami.Round do
   defp tally_votes(votes) do
   values =
     votes
-    |> Enum.sort()
+    |> Enum.sort(:desc)
     |> hd()
     |> elem(1)
     |> Map.values()
@@ -131,14 +144,12 @@ defmodule Whoami.Round do
   def add_response(round, answer) do
     current_q = round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
 
-    new_q =
     round.questions
     |> Enum.reduce([], fn q, acc -> 
-        if Map.keys(q) == [current_q], do: acc ++ [%{current_q => answer }], else: acc ++ [q]
+        if Map.keys(q) == [current_q], do: acc ++ [%{current_q => answer}], else: acc ++ [q]
       end)
-    
-    Map.put(round, :questions, new_q)
   end
+
 
   # I'll get to this when I need to.
   # def get_current_question(round) do

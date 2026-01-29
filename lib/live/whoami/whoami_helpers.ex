@@ -181,6 +181,32 @@ defmodule Whoami.Helpers do
       socket
     end
   end
+  
+  def update_players(players, %{assigns: %{player: player}} = socket) do
+    new_players = 
+    Enum.reject(
+      players,
+      fn item ->
+        item.name == socket.assigns.player.name
+      end
+    )
+
+    [server_self] = Enum.filter(players, &(&1.id == player.id))
+
+    if player == server_self do
+      assign(
+        socket, 
+        player: player, 
+        players_in_lobby: new_players
+      )
+    else
+      assign(
+        socket, 
+        player: server_self, 
+        players_in_lobby: new_players
+      )
+    end 
+  end
 
   def update_presence(lobby_id, player_id, new_player) do
     {:ok, _} =

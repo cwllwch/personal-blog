@@ -124,8 +124,11 @@ defmodule Live.Whoami.Components do
   def player_bar(assigns) do
     captain = captain?(assigns.lobby_id)
 
+    ordered = assigns.players |> Enum.sort_by(&(&1.points), :desc) 
+
     assigns =
       Map.put_new(assigns, :captain, captain)
+      |> Map.put(:players, ordered)
 
     ~H"""
     <div class="players">
@@ -137,7 +140,7 @@ defmodule Live.Whoami.Components do
         <.icon :if={@captain != @self.id} name="hero-user" class="icon" />
         <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon" />
         <div class="name">{@self.name}</div>
-        <div class="score">{@self.wins}</div>
+        <div class="score">{@self.points}</div>
       </div>
 
       <%!-- Renders the player first in the room, when the ready state does not matter anymore  --%>
@@ -148,7 +151,7 @@ defmodule Live.Whoami.Components do
         <.icon :if={@captain != @self.id} name="hero-user" class="icon" />
         <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon" />
         <div class="name">{@self.name}</div>
-        <div class="score">{@self.wins}</div>
+        <div class="score">{@self.points}</div>
       </div>
 
       <%!-- Renders the player list for the waiting room - where ready state determines the color of player bg --%>
@@ -178,7 +181,7 @@ defmodule Live.Whoami.Components do
           <.icon name="hero-signal-slash" class="icon" />
         <% end %>
         <div class="name">{player.name}</div>
-        <div class="score">{player.wins}</div>
+        <div class="score">{player.points}</div>
       </div>
 
       <%!-- Renders the player list for stages that are not the waiting room - where ready status doesn't matter --%>
@@ -208,7 +211,7 @@ defmodule Live.Whoami.Components do
           <.icon name="hero-signal-slash" class="icon" />
         <% end %>
         <div class="name">{player.name}</div>
-        <div class="score">{player.wins}</div>
+        <div class="score">{player.points}</div>
       </div>
     </div>
     """
@@ -238,6 +241,7 @@ defmodule Live.Whoami.Components do
               display: flex;
               width: 100%;
               height: 50vh;
+              min-height: 400px;
               text-align: center;
               justify-content: center;
               flex-direction: column; 
@@ -307,7 +311,7 @@ defmodule Live.Whoami.Components do
   @doc "Handles the arena logic. Will reach out to the server for the information it needs."
   def arena(assigns) do
     ~H"""
-    <div :if={@player_to_guess != nil and @player_to_guess != @self}>
+    <div :if={@player_to_guess != nil and @player_to_guess.id != @self.id}>
       <br />The word this turn is: {@word_in_play}
       <br />to be guessed by: {@player_to_guess.name}
       <br />
@@ -350,9 +354,23 @@ defmodule Live.Whoami.Components do
       </div>
     </div>
 
-    <div :if={@player_to_guess == @self}>
+    <div :if={@player_to_guess != nil and @player_to_guess.id == @self.id}>
       Think and make a yes or no question.
       your friends will answer, and they will be the judge of your question!
+      <br>
+      <br>
+      <form phx-submit="guess_attempt" style="display: flex; flex-direction: column; align-items: center; margin-top:5vh">
+      <span>or try your luck guessing the word:</span>
+        <input
+          name="attempt"
+          type="text"
+          required
+          placeholder="One word, please"
+          class="rounded-xl bg-zinc-800"
+          style="width: 10vw; min-width: 350px; max-width: 500px; margin: 1vh"
+        />
+        <.button type="submit" style="padding: 3vw; width: 150px">confirm</.button>
+        </form>
     </div>
 
     <div :if={@player_to_guess == nil}>

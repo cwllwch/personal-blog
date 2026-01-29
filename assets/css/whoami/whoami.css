@@ -171,9 +171,9 @@
 		.field {
 				flex-direction: column;
 				justify-content: start;
-				min-height: 800px;
+				min-height: 900px;
 				gap: 20px;
-				height: 90%;
+				height: 90vh;
 				min-height: 750px;
 				width: 100%;
 				aspect-ratio: 16/9;
