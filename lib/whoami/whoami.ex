@@ -237,6 +237,22 @@ defmodule Whoami do
     end
   end
 
+  def send_guess(word, lobby) when is_pid(lobby) do 
+    case GenServer.call(lobby, {:guess, word}) do
+      {:ok, :correct} -> {:ok, :correct}
+      {:ok, :close} -> {:ok, :close}
+      {:ok, :wrong} -> {:ok, :wrong}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def send_guess(word, lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> send_guess(word, pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
   def ban_check(username, lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:ban_check, username}) do
       {:banned} -> {:error, "You've been banned from this lobby"}

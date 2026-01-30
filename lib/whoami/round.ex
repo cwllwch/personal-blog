@@ -94,6 +94,25 @@ defmodule Whoami.Round do
     |> changeset(%{votes_per_question: new_votes})
     |> apply_action(:update)
   end
+  
+  def evaluate_answer(attempt, round) do
+    og = round.answer
+
+    comparison = String.jaro_distance(og, attempt)
+
+    Logger.info([
+      message: "attempt to guess made", 
+      answer: og, 
+      attempt: attempt, 
+      result: comparison
+    ])
+
+    cond do
+    comparison >= 0.95 -> :correct
+    comparison >= 0.85 -> :close
+    comparison < 0.85 -> :wrong
+    end
+  end
 
   @doc "Evaluates votes once all users have cast their ballots. Will return the new round and the answer after validating the changes."
   def evaluate_votes(%{votes_per_question: votes, players: players} = round) do

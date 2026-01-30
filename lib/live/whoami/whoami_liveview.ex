@@ -196,7 +196,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
   
   @impl true
   def handle_event("guess_attempt", %{"attempt" => word}, socket) do
-  Logger.info("tried to guess with #{word}")
+    sanitized_word = Helpers.sanitize_word(word)
+    send(self(), {:guess, sanitized_word})
     {:noreply, socket}
   end
 
@@ -347,6 +348,19 @@ defmodule PortalWeb.LiveStuff.Whoami do
          assign(socket, loading: false, stage: nil)
          |> put_flash(:info, "Can't tell the stage of the game, go back to the start")}
     end
+  end
+  
+  @impl true
+  def handle_info({:guess, sanitized_word}, socket) do
+    {_status, atom} = Whoami.send_guess(sanitized_word, socket.assigns.lobby_id)
+
+    Logger.info([
+      message: "Got answer to guess attempt", 
+      atom: inspect(atom), 
+      attempted: sanitized_word
+    ])
+
+    {:noreply, assign(socket, loading: true)}
   end
 
   @impl true

@@ -241,7 +241,7 @@ defmodule Live.Whoami.Components do
               display: flex;
               width: 100%;
               height: 50vh;
-              min-height: 400px;
+              min-height: 520px;
               text-align: center;
               justify-content: center;
               flex-direction: column; 
@@ -365,7 +365,7 @@ defmodule Live.Whoami.Components do
           name="attempt"
           type="text"
           required
-          placeholder="One word, please"
+          placeholder="you will lose a question."
           class="rounded-xl bg-zinc-800"
           style="width: 10vw; min-width: 350px; max-width: 500px; margin: 1vh"
         />

@@ -97,6 +97,28 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call({:guess, word}, _from, state) do
+    round = get_round_to_fill(state)
+    case Round.evaluate_answer(word, round) do
+      :correct -> 
+        # Insert logic to start a new round here. Award idk 300 points to the player.
+        {:reply, {:ok, :correct}, state}
+      
+      :close -> 
+        # Functionally same as error here. Will take up one question spot.
+        {:reply, {:ok, :close}, state}
+      
+      :wrong -> 
+        # Takes the spot of a question, but does not remove points.
+        {:reply, {:ok, :wrong}, state}
+
+      {:error, reason} -> 
+        # In case of an exception. Just return state and let user know that it happened. Log error.
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
   def handle_call({:set_next_word}, _from, state) do
     case get_next_word(state) do
       {:ok, new_state} -> {:reply, {:ok}, new_state}

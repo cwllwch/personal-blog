@@ -250,4 +250,16 @@ defmodule Whoami.Helpers do
         {:ok}
     end
   end
+
+  def sanitize_word(word) when is_binary(word) do
+    try do
+      String.trim(word)
+      rescue
+        e -> {:error, inspect(e)}
+    end
+  end
+
+  def sanitize_word(word) when not is_binary(word) do
+    {:error, "not a string"}
+  end
 end
