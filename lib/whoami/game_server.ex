@@ -101,16 +101,30 @@ defmodule Whoami.GameServer do
     round = get_round_to_fill(state)
     case Round.evaluate_answer(word, round) do
       :correct -> 
-        # Insert logic to start a new round here. Award idk 300 points to the player.
-        {:reply, {:ok, :correct}, state}
+        new_state = add_points(state, :correct)
+        {:reply, {:ok, :correct}, new_state}
       
       :close -> 
-        # Functionally same as error here. Will take up one question spot.
-        {:reply, {:ok, :close}, state}
+        {:ok, new_round} = Round.add_guess_attempt(round)
+
+        new_rounds = 
+          state.round 
+          |> Enum.reject(&(Map.keys(&1) == [new_round.round_id]))
+          |> List.insert_at(-1, %{new_round.round_id => new_round})
+
+        new_state = Map.replace(state, :round, new_rounds)
+        {:reply, {:ok, :close}, new_state}
       
       :wrong -> 
-        # Takes the spot of a question, but does not remove points.
-        {:reply, {:ok, :wrong}, state}
+        {:ok, new_round} = Round.add_guess_attempt(round)
+
+        new_rounds = 
+          state.round
+          |> Enum.reject(&(Map.keys(&1) == [new_round.round_id]))
+          |> List.insert_at(-1, %{new_round.round_id => new_round})
+
+        new_state = Map.replace(state, :round, new_rounds)
+        {:reply, {:ok, :wrong}, new_state}
 
       {:error, reason} -> 
         # In case of an exception. Just return state and let user know that it happened. Log error.
@@ -302,7 +316,13 @@ defmodule Whoami.GameServer do
     Logger.info(in_round: players_in_round, answered: players_who_answered)
 
     if players_in_round == players_who_answered do
-      Logger.info(message: "should create a new round here")
+      Logger.info([
+      message: "all answers computed",
+      players_in_round: inspect(players_in_round),
+      players_who_answered: inspect(players_in_round),
+      guesser: inspect(guesser),
+      round: inspect(current_round)
+      ])
       {answer, new_round} = Round.evaluate_votes(current_round)
       question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
       Helpers.broadcast({:voting_complete, answer, question_nr}, state.id)
@@ -562,6 +582,11 @@ defmodule Whoami.GameServer do
     %{state | players: new_players}
   end
 
+
+  defp add_points_conditions(player, answer) when answer == :correct do
+     Map.update!(player, :points, fn previous -> previous + 500 end)
+  end
+  
   defp add_points_conditions(player, answer) when answer == :yes do
      Map.update!(player, :points, fn previous -> previous + 20 end)
   end
