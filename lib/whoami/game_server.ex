@@ -101,30 +101,29 @@ defmodule Whoami.GameServer do
     round = get_round_to_fill(state)
     case Round.evaluate_answer(word, round) do
       :correct -> 
+        new_rounds = Round.add_guess_attempt(round, :correct_guess)
+        |> replace_round_in_list(state.round)
         new_state = add_points(state, :correct)
-        {:reply, {:ok, :correct}, new_state}
+
+        Helpers.broadcast({:show_guess_result, :correct, word}, state.id)
+
+        {:reply, {:ok, :correct}, %{new_state | round: new_rounds}}
       
       :close -> 
-        {:ok, new_round} = Round.add_guess_attempt(round)
+        new_rounds = Round.add_guess_attempt(round, :wrong_guess)
+        |> replace_round_in_list(state.round)
 
-        new_rounds = 
-          state.round 
-          |> Enum.reject(&(Map.keys(&1) == [new_round.round_id]))
-          |> List.insert_at(-1, %{new_round.round_id => new_round})
+        Helpers.broadcast({:show_guess_result, :close, word}, state.id)
 
-        new_state = Map.replace(state, :round, new_rounds)
-        {:reply, {:ok, :close}, new_state}
+        {:reply, {:ok, :close}, %{state | round: new_rounds}}
       
       :wrong -> 
-        {:ok, new_round} = Round.add_guess_attempt(round)
+        new_rounds = Round.add_guess_attempt(round, :wrong_guess)
+        |> replace_round_in_list(state.round)
 
-        new_rounds = 
-          state.round
-          |> Enum.reject(&(Map.keys(&1) == [new_round.round_id]))
-          |> List.insert_at(-1, %{new_round.round_id => new_round})
+        Helpers.broadcast({:show_guess_result, :wrong, word}, state.id)
 
-        new_state = Map.replace(state, :round, new_rounds)
-        {:reply, {:ok, :wrong}, new_state}
+        {:reply, {:ok, :wrong}, %{state | round: new_rounds}}
 
       {:error, reason} -> 
         # In case of an exception. Just return state and let user know that it happened. Log error.
@@ -202,12 +201,7 @@ defmodule Whoami.GameServer do
     new_round_list =
       List.flatten(
         [state.round],
-        [
-          %{
-            (prev_round_id + 1) =>
-              Round.create_round(guesser, players_in_round, state.word_in_play, prev_round_id)
-          }
-        ]
+        [%{(prev_round_id + 1) => Round.create_round(guesser, players_in_round, state.word_in_play, prev_round_id)}]
       )
 
     {:noreply, %{state | stage: :versus_arena, round: new_round_list}}
@@ -242,6 +236,13 @@ defmodule Whoami.GameServer do
 
     PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:change_disc_list, new_disc_list})
     {:noreply, %{state | disc_list: new_disc_list}}
+  end
+
+  @impl true
+  def handle_info({:show_guess_result, _atom, _word}, state) do
+    Helpers.broadcast({:fetch_players, state.id}, state.id)
+    IO.inspect("insert new round start call here.")
+    {:noreply, state}
   end
 
   @impl true
@@ -481,6 +482,18 @@ defmodule Whoami.GameServer do
     end
   end
 
+  def replace_round_in_list(new_round, list) when is_tuple(new_round) do
+    case new_round do
+      {:ok, obj} -> replace_round_in_list(obj, list)
+      diff -> Logger.error([message: "wrong type received", received: inspect(diff)])
+    end  
+  end
+
+  def replace_round_in_list(new_round, list) do
+    Enum.reject(list, &(Map.keys(&1) == [new_round.round_id]))
+    |> List.insert_at(-1, %{new_round.round_id => new_round})
+  end
+
   def remove_player(player_to_del, state) do
     names = Enum.reduce(state.players, [], fn player, acc -> acc ++ [Map.get(player, :name)] end)
 
@@ -539,6 +552,10 @@ defmodule Whoami.GameServer do
 
   def remove_from_disc_list(player_id) do
     send(self(), {:remove_from_disc_list, player_id})
+  end
+
+  def start_new_round(state) do
+  
   end
 
   defp simplify(diff) do

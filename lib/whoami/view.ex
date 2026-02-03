@@ -23,7 +23,9 @@ defmodule Whoami.View do
             word_in_play: nil,
             player_to_guess: nil,
             answer_history: nil,
-            answer: nil
+            answer: nil,
+            attempted_word: nil,
+            result: nil
 
   @type t :: %__MODULE__{
           loading: boolean(),
@@ -39,7 +41,9 @@ defmodule Whoami.View do
           word_in_play: String.t() | nil,
           player_to_guess: %Player{} | nil,
           answer_history: map() | nil,
-          answer: String.t() | nil
+          answer: String.t() | nil,
+          attempted_word: String.t() | nil,
+          result: atom() | nil
         }
 
   @spec create_view(String.t()) :: Whoami.View.t()

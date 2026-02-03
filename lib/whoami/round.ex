@@ -176,32 +176,27 @@ defmodule Whoami.Round do
       end)
   end
 
-  def add_guess_attempt(round) do
-    [next_q] = 
-      round.questions
-      |> get_next_question()
+  def add_guess_attempt(round, guess_result) do
+    [next_q] = round.questions |> get_next_question()
     
-    new_q = %{next_q => :wrong_guess}
+    new_q = %{next_q => guess_result}
 
-    new_questions = 
-      round.questions
-      |> Enum.map(fn m -> if Map.keys(m) == [next_q], do: new_q, else: m end)
+    new_questions = round.questions
+    |> Enum.map(fn m -> if Map.keys(m) == [next_q], do: new_q, else: m end)
 
-    next_vote = 
-      round.votes_per_question
-      |> get_next_vote()
+    next_vote = round.votes_per_question |> get_next_vote()
 
     new_votes = 
-      Map.update(
+    Map.update(
         round.votes_per_question,
         next_vote,
-        %{round.guesser.id => :attempt},
+        %{round.guesser.id => guess_result},
         fn existing_val -> 
           Logger.info([
             message: "overriding values in question's vote",
             values: inspect(existing_val)
           ])
-          %{round.guesser.id => :attempt}
+          %{round.guesser.id => guess_result}
         end
       )
 

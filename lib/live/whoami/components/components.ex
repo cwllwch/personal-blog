@@ -381,5 +381,28 @@ defmodule Live.Whoami.Components do
     """
   end
 
-  # Arena helpers
+  attr :word_in_play, :string, required: true
+  attr :guesser, :string, required: true
+  attr :guess_word, :string, required: true
+  attr :result, :atom, required: true
+
+  def guess_result(assigns) do
+    cond do
+    assigns.result == :correct -> 
+      ~H"""
+      {@guesser.name} guessed <b>"{@word_in_play}"</b> exactly right, gaining
+      + 500 points!
+      """
+    assigns.result == :close ->
+      ~H"""
+      {@guesser.name} tried <b>"{@guess_word}"</b> and that's not quite right. <br><br>
+      It was a close attempt, but one chance has still been consumed!
+      """
+    assigns.result == :wrong ->
+      ~H"""
+      {@guesser.name} tried <b>"{@guess_word}"</b> which is completely off the mark. <br><br> 
+      In doing so, {@guesser.name} used a chance to ask stuff!
+      """
+    end
+  end
 end

@@ -159,6 +159,21 @@ defmodule PortalWeb.LiveStuff.Whoami do
           <div :if={@answer == :no} class="answer-no"> no <br> no points for you </div>
           <div :if={@answer == :maybe} class="answer-maybe"> maybe <br> 5 points </div>
           <div :if={@answer == :illegal} class="answer-illegal"> illegal question! <br> -100 points </div>
+
+        <% @stage == :guess_result and @loading == false -> %>
+          <.player_bar
+            lobby_id={@lobby_id}
+            self={@player}
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+          <.guess_result 
+            word_in_play={@word_in_play}
+            guess_word={@attempted_word}
+            guesser={@player_to_guess}
+            result={@result}
+          />
       <% end %>
     </div>
     """
@@ -352,15 +367,15 @@ defmodule PortalWeb.LiveStuff.Whoami do
   
   @impl true
   def handle_info({:guess, sanitized_word}, socket) do
-    {_status, atom} = Whoami.send_guess(sanitized_word, socket.assigns.lobby_id)
-
-    Logger.info([
-      message: "Got answer to guess attempt", 
-      atom: inspect(atom), 
-      attempted: sanitized_word
-    ])
+    Whoami.send_guess(sanitized_word, socket.assigns.lobby_id)
 
     {:noreply, assign(socket, loading: true)}
+  end
+
+  @impl true
+  def handle_info({:show_guess_result, atom, word}, socket) do
+    Process.send_after(self(), {:iterate_question}, 7_000)
+    {:noreply, assign(socket, result: atom, attempted_word: word, stage: :guess_result, loading: false)}
   end
 
   @impl true
