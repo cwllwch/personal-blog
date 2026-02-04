@@ -97,6 +97,23 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call({:next_step}, _from, state) do
+    round = get_round_to_fill(state)
+    nxt_free_q = Round.get_next_question(round.questions)
+    word_q_check = 
+      state.word_map 
+      |> Map.values() 
+      |> List.flatten()
+      |> length()
+
+    cond do
+      nxt_free_q != nil -> {:reply, {:ok, :new_q}, state}
+      nxt_free_q == nil && word_q_check != 0 -> {:reply, {:ok, :new_round}, state}
+      word_q_check == 0 -> {:reply, {:ok, :end_game}, state}
+    end
+  end
+
+  @impl true
   def handle_call({:guess, word}, _from, state) do
     round = get_round_to_fill(state)
     case Round.evaluate_answer(word, round) do
@@ -322,7 +339,7 @@ defmodule Whoami.GameServer do
       players_in_round: inspect(players_in_round),
       players_who_answered: inspect(players_in_round),
       guesser: inspect(guesser),
-      round: inspect(current_round)
+      round: current_round.round_id
       ])
       {answer, new_round} = Round.evaluate_votes(current_round)
       question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()

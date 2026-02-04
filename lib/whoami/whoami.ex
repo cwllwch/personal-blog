@@ -267,6 +267,27 @@ defmodule Whoami do
     end
   end
 
+  def check_next_step(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, {:next_step}) do
+      {:ok, :new_q} -> :new_q
+
+      {:ok, :new_round} -> :new_round 
+
+      {:ok, :end_game} -> :end_game 
+
+      {:error, reason} -> 
+        Logger.info([message: "can't fetch next step", lobby: inspect(lobby)])
+        {:error, reason}
+    end
+  end
+
+  def check_next_step(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> check_next_step(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
   # Helper functions
   def generate_id() do
     Stream.repeatedly(fn -> :rand.uniform(9) end)

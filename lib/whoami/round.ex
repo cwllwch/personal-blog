@@ -205,10 +205,20 @@ defmodule Whoami.Round do
     |> apply_action(:update)
   end
 
-  defp get_next_question(questions) do
-    case Enum.filter(questions, fn m -> Map.values(m) == [%{}] end) do
-      [] -> [1] # if a user tries to guess on the first question, the list will be empty (all questions unfilled)
-      filtered -> Enum.sort(filtered, :asc) |> hd() |> Map.keys()
+  @doc """
+  returns the next question in a :questions list of maps in the Round. It just ooks for the first unfilled map in the list.
+  """
+  def get_next_question(questions) do
+    q = Enum.filter(questions, fn m -> Map.values(m) == [%{}] end)
+    |> Enum.sort(:asc) 
+    |> List.first() 
+
+    if is_nil(q) do
+      nil
+    else
+      q 
+      |> Map.keys()
+      |> hd()
     end
   end
 

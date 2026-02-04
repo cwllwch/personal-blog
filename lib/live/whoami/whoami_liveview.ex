@@ -318,7 +318,11 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   @impl true
   def handle_info({:iterate_question}, socket) do
-    {:noreply, assign(socket, stage: :versus_arena)}
+    case Whoami.check_next_step(socket.assigns.lobby_id) do
+      :new_q -> {:noreply, assign(socket, stage: :versus_arena)}
+      :new_round -> {:noreply, assign(socket, loading: true)}
+      :end_game -> {:noreply, assign(socket, loading: true)}
+    end
   end
 
   @impl true
