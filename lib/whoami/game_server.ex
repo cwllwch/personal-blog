@@ -97,23 +97,6 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
-  def handle_call({:next_step}, _from, state) do
-    round = get_round_to_fill(state)
-    nxt_free_q = Round.get_next_question(round.questions)
-    word_q_check = 
-      state.word_map 
-      |> Map.values() 
-      |> List.flatten()
-      |> length()
-
-    cond do
-      nxt_free_q != nil -> {:reply, {:ok, :new_q}, state}
-      nxt_free_q == nil && word_q_check != 0 -> {:reply, {:ok, :new_round}, state}
-      word_q_check == 0 -> {:reply, {:ok, :end_game}, state}
-    end
-  end
-
-  @impl true
   def handle_call({:guess, word}, _from, state) do
     round = get_round_to_fill(state)
     case Round.evaluate_answer(word, round) do
@@ -145,14 +128,6 @@ defmodule Whoami.GameServer do
       {:error, reason} -> 
         # In case of an exception. Just return state and let user know that it happened. Log error.
         {:reply, {:error, reason}, state}
-    end
-  end
-
-  @impl true
-  def handle_call({:set_next_word}, _from, state) do
-    case get_next_word(state) do
-      {:ok, new_state} -> {:reply, {:ok}, new_state}
-      error -> {:reply, {:error, error}, state}
     end
   end
 
@@ -207,21 +182,53 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_cast({:next_step}, state) do
+    round = get_round_to_fill(state)
+    nxt_free_q = Round.get_next_question(round.questions)
+    word_q_check = 
+      state.word_map 
+      |> Map.values() 
+      |> List.flatten()
+      |> length()
+
+    # Alter the state according to what you need to do
+    # below before returning, so that the state is ready 
+    # when the reply goes out.
+
+    cond do
+      nxt_free_q != nil -> 
+        Logger.debug([
+          message: "going to next available question",
+          question_nr: nxt_free_q,
+          lobby: state.id
+        ])
+        Helpers.broadcast({:fetch_stage, state.id}, state.id)
+        {:noreply, state}
+
+      nxt_free_q == nil && word_q_check != 0 -> 
+        Logger.debug([
+          message: "no other questions available, creating new round",
+          words_remaining: word_q_check,
+          lobby: state.id
+        ])
+        new_state = gen_round(state)
+        Helpers.broadcast({:fetch_stage, state.id}, state.id)
+        {:noreply, new_state}
+
+      nxt_free_q == nil && word_q_check == 0 ->
+       Logger.debug([
+          message: "no more questions or words, ending game",
+          lobby: state.id
+        ])
+        {:noreply, state}
+    end
+  end
+  
+  @impl true
   def handle_info({:update_stage, :versus_arena}, state) do
-    prev_round_id = get_last_round_id(state)
+    new_state = gen_round(state)
 
-    # The current round already moved the in-turn player to last position in q by now
-    guesser = get_next_guesser(state)
-
-    players_in_round = Enum.reject(state.players, fn player -> player.id in state.disc_list end)
-
-    new_round_list =
-      List.flatten(
-        [state.round],
-        [%{(prev_round_id + 1) => Round.create_round(guesser, players_in_round, state.word_in_play, prev_round_id)}]
-      )
-
-    {:noreply, %{state | stage: :versus_arena, round: new_round_list}}
+    {:noreply, %{new_state | stage: :versus_arena}}
   end
 
   @impl true
@@ -258,7 +265,6 @@ defmodule Whoami.GameServer do
   @impl true
   def handle_info({:show_guess_result, _atom, _word}, state) do
     Helpers.broadcast({:fetch_players, state.id}, state.id)
-    IO.inspect("insert new round start call here.")
     {:noreply, state}
   end
 
@@ -309,6 +315,23 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_info({:fetch_stage, _id}, state) do
+    # This handler needs to be here to not crash the server. 
+    # As all messages go through the channel, the broadcasts for the 
+    # views to request updated info from the server also come to the server
+    # since it's easier to manage this here than to figure out the names of 
+    # the LV clients. Also creates an opportunity for non-duplicated logging.
+
+    Logger.debug([
+      message: "client requesting stage info",
+      lobby: state.id,
+      rounds: length(state.round),
+      current_answer: state.word_in_play
+    ])
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info({:check_answers_for_q}, state) do
     current_round = get_round_to_fill(state)
 
@@ -335,25 +358,31 @@ defmodule Whoami.GameServer do
 
     if players_in_round == players_who_answered do
       Logger.info([
-      message: "all answers computed",
-      players_in_round: inspect(players_in_round),
-      players_who_answered: inspect(players_in_round),
-      guesser: inspect(guesser),
-      round: current_round.round_id
+        message: "all answers computed",
+        players_in_round: inspect(players_in_round),
+        players_who_answered: inspect(players_in_round),
+        guesser: inspect(guesser),
+        round: current_round.round_id,
+        lobby: state.id
       ])
       {answer, new_round} = Round.evaluate_votes(current_round)
       question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
       Helpers.broadcast({:voting_complete, answer, question_nr}, state.id)
       {:noreply, %{state | round: [%{new_round.round_id => new_round}]}}
     else
-      Logger.info(message: "no need to create a new round yet")
+      # Wait for more answers
       {:noreply, state}
     end
   end
 
   @impl true
   def handle_info({:voting_complete, answer, question_nr}, state) do
-    Logger.info([message: "question has been answered completely", question_nr: question_nr, answer: answer])
+    Logger.debug([
+      message: "question has been answered completely", 
+      question_nr: question_nr, 
+      answer: answer,
+      lobby: state.id
+    ])
     new_state = add_points(state, answer)
     Helpers.broadcast({:fetch_players, state.id}, state.id)
     {:noreply, new_state}
@@ -411,7 +440,7 @@ defmodule Whoami.GameServer do
         ansi_color: :red
       )
 
-      Whoami.destroy_lobby(state.id, state.players)
+      Whoami.Main.destroy_lobby(state.id, state.players)
     end
   end
 
@@ -421,14 +450,16 @@ defmodule Whoami.GameServer do
         0
 
       not_empty ->
-        Enum.sort_by(not_empty, fn r -> r.round_id end, :desc)
+        Enum.sort(not_empty, :desc)
+        
         |> List.first()
-        |> Map.get(:round_id)
+        |> Map.keys()
+        |> hd()
     end
   end
 
-  defp get_next_word(%LobbyStruct{word_map: word_map, word_queue: word_queue} = state) do
-    {user, rest} = List.pop_at(word_queue, 0)
+  def get_next_word(%LobbyStruct{word_map: word_map} = state) do
+    {user, rest} = get_next_guesser(state)
 
     # Makes a list of all the words that aren't made by the current user, rejects nil 
     # and then takes a random word from this list and outputs a list with exactly one word
@@ -461,10 +492,46 @@ defmodule Whoami.GameServer do
   end
 
   def get_next_guesser(state) do
-    cond do
-      state.word_queue == [] -> Enum.sort_by(state.players, & &1.id, :asc) |> List.first()
-      state.word_queue != [] -> Enum.sort_by(state.players, & &1.id, :desc) |> List.first()
+    {g, l} = List.pop_at(state.word_queue, 0)
+
+    if g in state.disc_list do
+      recurse_guesser(g, l, state.disc_list)
+    else
+      {g, l}
     end
+  end
+
+  defp recurse_guesser(og_guesser, tail, excluded_list) do
+    {new_candidate, new_list} = 
+    tail ++ [og_guesser]
+    |> List.pop_at(0)
+
+    if new_candidate in excluded_list do
+      recurse_guesser(new_candidate, new_list, excluded_list, 1)
+    else
+      {new_candidate, new_list}
+    end
+  end
+
+  defp recurse_guesser(guesser, list, excluded, counter) when counter <= length(list) do
+    {new_candidate, new_list} = 
+      list ++ [guesser]
+      |> List.pop_at(0)
+
+    if new_candidate in excluded do
+      recurse_guesser(new_candidate, new_list, excluded, counter + 1)
+    else
+      {new_candidate, new_list}
+    end
+  end
+
+  defp recurse_guesser(guesser, list, excluded, counter) when counter > length(list) do
+    Logger.info([
+      message: "everyone left, can't make a new lobby",
+      excluded: excluded,
+      players: [guesser] ++ list
+    ])
+    {:error, "Can't find a connected user"}
   end
 
   defp maybe_add_player(new_player, state) when state.player_count > length(state.players) do
@@ -571,8 +638,28 @@ defmodule Whoami.GameServer do
     send(self(), {:remove_from_disc_list, player_id})
   end
 
-  def start_new_round(state) do
-  
+  def gen_round(state) do
+    previous_round = get_last_round_id(state)
+    |> IO.inspect()
+
+    new_state = get_next_word(state)
+
+    players_in_round = Enum.reject(state.players, fn player -> player.id in state.disc_list end)
+
+    guesser_id = new_state.word_queue |> List.last()
+
+    new_round = 
+      Round.create_round(
+        new_state.players |> Enum.filter(&(&1.id == guesser_id)) |> hd(), 
+        players_in_round, 
+        new_state.word_in_play, 
+        previous_round
+      )
+
+    %{
+      new_state |
+      round: new_state.round ++ [%{new_round.round_id => new_round}]
+    }
   end
 
   defp simplify(diff) do

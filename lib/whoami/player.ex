@@ -21,7 +21,7 @@ defmodule Whoami.Player do
   def create_player(user) when is_binary(user) do
     %__MODULE__{
       name: user,
-      id: Whoami.generate_id()
+      id: Whoami.Main.generate_id()
     }
   end
 end

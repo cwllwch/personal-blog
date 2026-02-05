@@ -1,6 +1,6 @@
 defmodule Whoami.Helpers do
   use PortalWeb, :live_view
-  alias Whoami
+  alias Whoami.Main
   alias Whoami.Player
   alias PortalWeb.Presence
   alias Phoenix.PubSub
@@ -65,7 +65,7 @@ defmodule Whoami.Helpers do
       )
 
     if connected?(new_socket) do
-      Whoami.add_player(lobby, player)
+      Main.add_player(lobby, player)
       new_socket = track_presence(new_socket, topic)
       {:noreply, new_socket}
     else
@@ -75,7 +75,8 @@ defmodule Whoami.Helpers do
 
   def put_into_lobby(socket, _user, _lobby, _free_spots) do
     new_socket = put_flash(socket, :error, "This lobby is already full!")
-    {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
+    Process.send_after(self(), :clear_flash, 10_000)
+    {:noreply, push_patch(new_socket, to: ~p{/whoami})}
   end
 
   def remove_presences(socket, _leaves) do
@@ -141,14 +142,14 @@ defmodule Whoami.Helpers do
   end
 
   def find_player(username, lobby) when not is_tuple(username) do
-    case Whoami.ban_check(username, lobby) do
+    case Main.ban_check(username, lobby) do
       {:error, message} -> {:error, message}
       {:ok, _} -> find_player({:allowed, username}, lobby)
     end
   end
 
   def find_player({:allowed, username}, lobby) do
-    case Whoami.fetch_players(lobby) do
+    case Main.fetch_players(lobby) do
       {:ok, users, free_spots} ->
         {:ok, Enum.filter(users, fn user -> user.name == username end) |> List.first(),
          free_spots}

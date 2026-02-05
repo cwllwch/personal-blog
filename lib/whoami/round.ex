@@ -177,7 +177,7 @@ defmodule Whoami.Round do
   end
 
   def add_guess_attempt(round, guess_result) do
-    [next_q] = round.questions |> get_next_question()
+    next_q = round.questions |> get_next_question()
     
     new_q = %{next_q => guess_result}
 
@@ -209,11 +209,11 @@ defmodule Whoami.Round do
   returns the next question in a :questions list of maps in the Round. It just ooks for the first unfilled map in the list.
   """
   def get_next_question(questions) do
-    q = Enum.filter(questions, fn m -> Map.values(m) == [%{}] end)
+    q = Enum.filter(questions, fn m -> Map.values(m) == [%{}] || [:correct_guess] end)
     |> Enum.sort(:asc) 
-    |> List.first() 
+    |> List.first()
 
-    if is_nil(q) do
+    if is_nil(q) || Map.values(q) == [:correct_guess] do
       nil
     else
       q 

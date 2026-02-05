@@ -1,5 +1,5 @@
 defmodule Live.Whoami.Components do
-  alias Whoami
+  alias Whoami.Main, as: Whoami
   use PortalWeb, :live_component
 
   @moduledoc """

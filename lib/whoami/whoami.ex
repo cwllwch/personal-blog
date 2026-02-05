@@ -1,4 +1,4 @@
-defmodule Whoami do
+defmodule Whoami.Main do
   require Logger
   alias Whoami.Helpers
   alias Whoami.GameServer
@@ -268,17 +268,7 @@ defmodule Whoami do
   end
 
   def check_next_step(lobby) when is_pid(lobby) do
-    case GenServer.call(lobby, {:next_step}) do
-      {:ok, :new_q} -> :new_q
-
-      {:ok, :new_round} -> :new_round 
-
-      {:ok, :end_game} -> :end_game 
-
-      {:error, reason} -> 
-        Logger.info([message: "can't fetch next step", lobby: inspect(lobby)])
-        {:error, reason}
-    end
+    GenServer.cast(lobby, {:next_step})
   end
 
   def check_next_step(lobby) do
@@ -309,4 +299,7 @@ defmodule Whoami do
 
   def get_pid_by_lid(lobby_id) when is_integer(lobby_id),
     do: Integer.to_string(lobby_id) |> get_pid_by_lid()
+
+  def get_pid_by_lid(lobby_id) when lobby_id == nil,
+    do: {:error, "can't call lobby with address: nil"}
 end

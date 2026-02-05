@@ -8,7 +8,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   alias Whoami.Helpers
   alias Whoami.Player
   alias Whoami.View
-  alias Whoami
+  alias Whoami.Main, as: Whoami
 
   @moduledoc """
   Orchestrates the game featured in Inglorious Bastards where
@@ -58,7 +58,9 @@ defmodule PortalWeb.LiveStuff.Whoami do
           socket
           |> put_flash(:error, message)
 
-        {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
+        Process.send_after(self(), :clear_flash, 10_000)
+
+        {:noreply, push_patch(new_socket, to: ~p{/whoami})}
     end
   end
 
@@ -205,6 +207,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         {:noreply, new_socket}
 
       {:error, reason} ->
+        Process.send_after(self(), :clear_flash, 10_000)
         {:noreply, put_flash(socket, :error, reason)}
     end
   end
@@ -298,11 +301,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   @impl true
-  def handle_info({:voting_complete, answer, question}, socket) do
-    Logger.debug(
-      [message: "got answer #{inspect(answer)} to question #{inspect(question)}", 
-      user: socket.assigns.player.name
-    ])
+  def handle_info({:voting_complete, answer, _question}, socket) do
     Process.send_after(self(), {:iterate_question}, 7_000)
     {:noreply, assign(socket, stage: :show_answer, answer: answer)}
   end
@@ -318,11 +317,8 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   @impl true
   def handle_info({:iterate_question}, socket) do
-    case Whoami.check_next_step(socket.assigns.lobby_id) do
-      :new_q -> {:noreply, assign(socket, stage: :versus_arena)}
-      :new_round -> {:noreply, assign(socket, loading: true)}
-      :end_game -> {:noreply, assign(socket, loading: true)}
-    end
+    Whoami.check_next_step(socket.assigns.lobby_id)
+    {:noreply, assign(socket, loading: true)}
   end
 
   @impl true
@@ -335,6 +331,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
       {:error, message} ->
         Logger.info(message: message, lobby: lobby, player: socket.assigns.player)
         put_flash(socket, :info, message)
+        Process.send_after(self(), :clear_flash, 10_000)
         {:noreply, push_patch(socket, to: ~p{/whoami})}
     end
   end
@@ -343,6 +340,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:fetch_disc_list}, socket) do
     case Whoami.fetch_disc_list(socket.assigns.lobby_id) do
       {:error, message} ->
+        Process.send_after(self(), :clear_flash, 10_000)
         {:noreply, put_flash(socket, :error, message)}
 
       list ->
@@ -415,6 +413,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
         )
 
         new_socket = socket |> put_flash(:info, reason)
+        Process.send_after(self(), :clear_flash, 10_000)
         {:noreply, push_patch(new_socket, to: ~p{/whoami})}
     end
   end
@@ -440,6 +439,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
           player: socket.assigns.player.id
         )
 
+        Process.send_after(self(), :clear_flash, 10_000)
         {:noreply, put_flash(socket, :error, "Couldn't get the word in play")}
 
       {word, player} ->
@@ -498,10 +498,19 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
     if self.name in list do
       Presence.untrack(self(), "lobby:#{lobby}", self.id)
+      new_context = 
+        self.name
+        |> View.create_view()
+        |> Map.from_struct()
 
-      new_socket = put_flash(socket, :error, "you've been kicked ¯\\\_(ツ)_/¯ ")
+      new_socket = 
+        socket
+        |> put_flash(:error, "you've been kicked ¯\\\_(ツ)_/¯ ")
+        |> assign(new_context)
 
-      {:noreply, push_navigate(new_socket, to: ~p{/whoami})}
+      Process.send_after(self(), :clear_flash, 10_000)
+
+      {:noreply, push_patch(new_socket, to: ~p{/whoami})}
     else
       new_list = Enum.reject(socket.assigns.players_in_lobby, &(&1.name == player))
       {:noreply, assign(socket, :players_in_lobby, new_list)}
@@ -530,5 +539,10 @@ defmodule PortalWeb.LiveStuff.Whoami do
         Logger.info(message: "can't update last interaction", error: reason)
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info(:clear_flash, socket) do
+    {:noreply, clear_flash(socket)}
   end
 end
