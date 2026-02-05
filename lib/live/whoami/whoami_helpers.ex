@@ -240,18 +240,6 @@ defmodule Whoami.Helpers do
     end)
   end
 
-  def validate_words(word_list) do
-    dedup = Enum.dedup(word_list)
-
-    cond do
-      length(dedup) != length(word_list) ->
-        {:error, "i need different words. not the same word twice."}
-
-      true ->
-        {:ok}
-    end
-  end
-
   def sanitize_word(word) when is_binary(word) do
     try do
       String.trim(word)

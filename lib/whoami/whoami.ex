@@ -1,6 +1,5 @@
 defmodule Whoami.Main do
   require Logger
-  alias Whoami.Helpers
   alias Whoami.GameServer
 
   @moduledoc """
@@ -60,7 +59,7 @@ defmodule Whoami.Main do
   def input_word(lobby, player, word) when is_pid(lobby) do
     word_list = Map.values(word) |> Enum.reject(fn i -> i == nil end)
 
-    case Helpers.validate_words(word_list) do
+    case validate_words(word_list, lobby) do
       {:ok} ->
         GenServer.cast(lobby, {:input_word, player, word_list})
         {:ok}
@@ -77,6 +76,30 @@ defmodule Whoami.Main do
     end
   end
 
+  def validate_words(word_list, lobby) do
+    dedup = Enum.dedup(word_list)
+    
+    words_in_server = verify_server(word_list, lobby)
+
+    cond do
+      length(dedup) != length(word_list) ->
+        {:error, "i need different words. not the same word twice."}
+      
+      words_in_server == :error ->
+        {:error, "try different words"}
+
+      true ->
+        {:ok}
+    end
+  end
+
+  def verify_server(word_list, lobby) do
+    case GenServer.call(lobby, {:verify_words, word_list}) do
+      {:ok} -> :ok
+      {:error, _reason} -> :error
+    end
+  end
+  
   def input_answer(lobby, answer, player, word) when is_pid(lobby) do
     GenServer.cast(lobby, {:answer, answer, player, word})
   end

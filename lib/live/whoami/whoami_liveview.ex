@@ -176,6 +176,11 @@ defmodule PortalWeb.LiveStuff.Whoami do
             guesser={@player_to_guess}
             result={@result}
           />
+        <% @stage == :final_results and @loading == false -> %>
+          <.final_result 
+            players={@players_in_lobby}
+            self={@player}
+          />
       <% end %>
     </div>
     """
@@ -200,16 +205,9 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   @impl true
-  def handle_event("enter_words", params, %{assigns: %{lobby_id: lobby, player: player}} = socket) do
-    case Whoami.input_word(lobby, player.id, params) do
-      {:ok} ->
-        new_socket = assign(socket, stage: :waiting_for_words)
-        {:noreply, new_socket}
-
-      {:error, reason} ->
-        Process.send_after(self(), :clear_flash, 10_000)
-        {:noreply, put_flash(socket, :error, reason)}
-    end
+  def handle_event("enter_words", params, socket) do
+    send(self(), {:enter_words, params})
+    {:noreply, assign(socket, :loading, true)}
   end
   
   @impl true
@@ -298,6 +296,21 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:answer, lobby, answer, player, word}, socket) do
     Whoami.input_answer(lobby, answer, player, word)
     {:noreply, socket}
+  end
+
+  def handle_info({:enter_words, params}, %{assigns: %{lobby_id: lobby, player: player}} = socket) do
+    case Whoami.input_word(lobby, player.id, params) do
+      {:ok} ->
+        new_socket = assign(socket, stage: :waiting_for_words, loading: false)
+        {:noreply, new_socket}
+
+      {:error, reason} ->
+        new_socket = assign(socket, loading: false)
+        
+        Process.send_after(self(), :clear_flash, 10_000)
+
+        {:noreply, put_flash(new_socket, :error, reason)}
+    end
   end
 
   @impl true

@@ -132,6 +132,24 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call({:verify_words, word_list}, _from, state) do
+    previous = state.word_map |> Enum.reduce([], fn {_k, v}, acc -> v ++ acc end)
+    repeated = word_list |> Enum.find(fn i -> i in previous end)
+
+    if repeated == nil do
+      {:reply, {:ok}, state}
+    else
+      Logger.info([
+        message: "someone tried to add an existing word", 
+        lobby: state.id,
+        repeated: repeated,
+        words: List.to_string(previous)
+      ])
+      {:reply, {:error, "someone else already used this word"}, state}
+    end
+  end
+
+  @impl true
   def handle_cast({:input_word, player, words}, state) do
     keys = Map.keys(state.word_map)
 
@@ -220,6 +238,7 @@ defmodule Whoami.GameServer do
           message: "no more questions or words, ending game",
           lobby: state.id
         ])
+        Helpers.broadcast({:update_stage, :final_results}, state.id)
         {:noreply, state}
     end
   end
@@ -368,7 +387,8 @@ defmodule Whoami.GameServer do
       {answer, new_round} = Round.evaluate_votes(current_round)
       question_nr = current_round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
       Helpers.broadcast({:voting_complete, answer, question_nr}, state.id)
-      {:noreply, %{state | round: [%{new_round.round_id => new_round}]}}
+      new_rounds = replace_round_in_list(new_round, state.round)
+      {:noreply, %{state | round: new_rounds}}
     else
       # Wait for more answers
       {:noreply, state}

@@ -405,4 +405,18 @@ defmodule Live.Whoami.Components do
       """
     end
   end
+
+  attr :players, :list, required: true
+  attr :self, :map, required: true
+
+  def final_result(assigns) do
+    all_players = assigns.players ++ [assigns.self]
+    assigns = assign(assigns, :players, all_players)
+    ~H"""
+    Final result: 
+      <div :for={player <- Enum.sort_by(@players, &(&1.points), :desc)}>
+      {player.name} had  {player.points} points
+      </div>
+    """
+  end
 end
