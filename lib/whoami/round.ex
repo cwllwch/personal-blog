@@ -209,14 +209,14 @@ defmodule Whoami.Round do
   returns the next question in a :questions list of maps in the Round. It just ooks for the first unfilled map in the list.
   """
   def get_next_question(questions) do
-    q = Enum.filter(questions, fn m -> Map.values(m) == [%{}] || [:correct_guess] end)
+    q = Enum.filter(questions, fn m -> Map.values(m) in [[%{}], [:correct_guess]] end)
     |> Enum.sort(:asc) 
     |> List.first()
 
     if is_nil(q) || Map.values(q) == [:correct_guess] do
       nil
     else
-      q 
+      q
       |> Map.keys()
       |> hd()
     end
