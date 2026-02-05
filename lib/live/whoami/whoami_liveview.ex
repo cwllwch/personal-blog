@@ -146,7 +146,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
           />
         <% @stage == :answered and @loading == false -> %>
           waiting on everyone to answer as well...
-
         <% @stage == :show_answer and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -155,13 +154,13 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <br>
-          Your friends agree that your answer is:
-          <div :if={@answer == :yes} class="answer-yes"> yes <br> gained 20 points! </div>
-          <div :if={@answer == :no} class="answer-no"> no <br> no points for you </div>
-          <div :if={@answer == :maybe} class="answer-maybe"> maybe <br> 5 points </div>
-          <div :if={@answer == :illegal} class="answer-illegal"> illegal question! <br> -100 points </div>
-
+          <br /> Your friends agree that your answer is:
+          <div :if={@answer == :yes} class="answer-yes">yes <br /> gained 20 points!</div>
+          <div :if={@answer == :no} class="answer-no">no <br /> no points for you</div>
+          <div :if={@answer == :maybe} class="answer-maybe">maybe <br /> 5 points</div>
+          <div :if={@answer == :illegal} class="answer-illegal">
+            illegal question! <br /> -100 points
+          </div>
         <% @stage == :guess_result and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -170,14 +169,14 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <.guess_result 
+          <.guess_result
             word_in_play={@word_in_play}
             guess_word={@attempted_word}
             guesser={@player_to_guess}
             result={@result}
           />
         <% @stage == :final_results and @loading == false -> %>
-          <.final_result 
+          <.final_result
             players={@players_in_lobby}
             self={@player}
           />
@@ -209,7 +208,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     send(self(), {:enter_words, params})
     {:noreply, assign(socket, :loading, true)}
   end
-  
+
   @impl true
   def handle_event("guess_attempt", %{"attempt" => word}, socket) do
     sanitized_word = Helpers.sanitize_word(word)
@@ -287,9 +286,10 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   @impl true
-  def handle_info({:answer, lobby, :word_trial, player, word}, socket) do
-    Whoami.initiate_trial(lobby, player, word)
-    {:noreply, assign(socket, loading: true)}
+  def handle_event("restart_game", _params, socket) do
+    Whoami.restart_game(socket.assigns.lobby_id, socket.assigns.player.id)
+    Process.send_after(self(), :clear_flash, 10_000)
+    {:noreply, put_flash(socket, :info, "Request sent, waiting for others...")}
   end
 
   @impl true
@@ -306,7 +306,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
       {:error, reason} ->
         new_socket = assign(socket, loading: false)
-        
+
         Process.send_after(self(), :clear_flash, 10_000)
 
         {:noreply, put_flash(new_socket, :error, reason)}
@@ -379,7 +379,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
          |> put_flash(:info, "Can't tell the stage of the game, go back to the start")}
     end
   end
-  
+
   @impl true
   def handle_info({:guess, sanitized_word}, socket) do
     Whoami.send_guess(sanitized_word, socket.assigns.lobby_id)
@@ -390,7 +390,9 @@ defmodule PortalWeb.LiveStuff.Whoami do
   @impl true
   def handle_info({:show_guess_result, atom, word}, socket) do
     Process.send_after(self(), {:iterate_question}, 7_000)
-    {:noreply, assign(socket, result: atom, attempted_word: word, stage: :guess_result, loading: false)}
+
+    {:noreply,
+     assign(socket, result: atom, attempted_word: word, stage: :guess_result, loading: false)}
   end
 
   @impl true
@@ -403,6 +405,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
     else
       {:noreply, assign(socket, stage: new_stage, loading: false)}
     end
+  end
+
+  @impl true
+  def handle_info({:update_stage, :final_results, :apologise}, socket) do
+    new_socket = assign(socket, stage: :final_results)
+
+    {:noreply,
+     put_flash(
+       new_socket,
+       :info,
+       "sorry, I encountered a bug so had to end the game prematurely :((("
+     )}
   end
 
   @impl true
@@ -511,12 +525,13 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
     if self.name in list do
       Presence.untrack(self(), "lobby:#{lobby}", self.id)
-      new_context = 
+
+      new_context =
         self.name
         |> View.create_view()
         |> Map.from_struct()
 
-      new_socket = 
+      new_socket =
         socket
         |> put_flash(:error, "you've been kicked ¯\\\_(ツ)_/¯ ")
         |> assign(new_context)

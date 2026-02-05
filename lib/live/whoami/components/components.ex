@@ -124,7 +124,7 @@ defmodule Live.Whoami.Components do
   def player_bar(assigns) do
     captain = captain?(assigns.lobby_id)
 
-    ordered = assigns.players |> Enum.sort_by(&(&1.points), :desc) 
+    ordered = assigns.players |> Enum.sort_by(& &1.points, :desc)
 
     assigns =
       Map.put_new(assigns, :captain, captain)
@@ -356,11 +356,13 @@ defmodule Live.Whoami.Components do
 
     <div :if={@player_to_guess != nil and @player_to_guess.id == @self.id}>
       Think and make a yes or no question.
-      your friends will answer, and they will be the judge of your question!
-      <br>
-      <br>
-      <form phx-submit="guess_attempt" style="display: flex; flex-direction: column; align-items: center; margin-top:5vh">
-      <span>or try your luck guessing the word:</span>
+      your friends will answer, and they will be the judge of your question! <br />
+      <br />
+      <form
+        phx-submit="guess_attempt"
+        style="display: flex; flex-direction: column; align-items: center; margin-top:5vh"
+      >
+        <span>or try your luck guessing the word:</span>
         <input
           name="attempt"
           type="text"
@@ -370,7 +372,7 @@ defmodule Live.Whoami.Components do
           style="width: 10vw; min-width: 350px; max-width: 500px; margin: 1vh"
         />
         <.button type="submit" style="padding: 3vw; width: 150px">confirm</.button>
-        </form>
+      </form>
     </div>
 
     <div :if={@player_to_guess == nil}>
@@ -388,21 +390,25 @@ defmodule Live.Whoami.Components do
 
   def guess_result(assigns) do
     cond do
-    assigns.result == :correct -> 
-      ~H"""
-      {@guesser.name} guessed <b>"{@word_in_play}"</b> exactly right, gaining
-      + 500 points!
-      """
-    assigns.result == :close ->
-      ~H"""
-      {@guesser.name} tried <b>"{@guess_word}"</b> and that's not quite right. <br><br>
-      It was a close attempt, but one chance has still been consumed!
-      """
-    assigns.result == :wrong ->
-      ~H"""
-      {@guesser.name} tried <b>"{@guess_word}"</b> which is completely off the mark. <br><br> 
-      In doing so, {@guesser.name} used a chance to ask stuff!
-      """
+      assigns.result == :correct ->
+        ~H"""
+        {@guesser.name} guessed <b>"{@word_in_play}"</b> exactly right, gaining
+        + 500 points!
+        """
+
+      assigns.result == :close ->
+        ~H"""
+        {@guesser.name} tried <b>"{@guess_word}"</b>
+        and that's not quite right. <br /><br />
+        It was a close attempt, but one chance has still been consumed!
+        """
+
+      assigns.result == :wrong ->
+        ~H"""
+        {@guesser.name} tried <b>"{@guess_word}"</b>
+        which is completely off the mark. <br /><br />
+        In doing so, {@guesser.name} used a chance to ask stuff!
+        """
     end
   end
 
@@ -410,13 +416,90 @@ defmodule Live.Whoami.Components do
   attr :self, :map, required: true
 
   def final_result(assigns) do
-    all_players = assigns.players ++ [assigns.self]
+    all_players =
+      (assigns.players ++ [assigns.self])
+      |> Enum.sort_by(& &1.points, :desc)
+      |> get_position()
+
     assigns = assign(assigns, :players, all_players)
+
     ~H"""
-    Final result: 
-      <div :for={player <- Enum.sort_by(@players, &(&1.points), :desc)}>
-      {player.name} had  {player.points} points
+    final standings:
+    <div :for={player <- @players}>
+      <div style={"#{div_selector(player.index)}"}>
+        <span>{player.index}</span>
+        <span>{player.name}</span>
+        <span>{player.points}</span>
       </div>
+    </div>
+
+    <.button type="submit" phx-click="restart_game" style="padding: 3vw; width: 150px">
+      new game
+    </.button>
     """
+  end
+
+  # Result helpers
+  defp get_position(enum) do
+    Enum.map(
+      enum,
+      &Map.put_new(
+        &1,
+        :index,
+        Enum.find_index(enum, fn p -> p.name == &1.name end) |> Kernel.+(1)
+      )
+    )
+  end
+
+  def div_selector(index) do
+    cond do
+      index == 1 -> "
+      display: flex;
+      background-color: #ebc12f; 
+      height: 1.5em; 
+      width: 80vw;
+      text-align: center;
+      color: black;
+      border-radius: 1em;
+      justify-content: space-evenly
+      "
+      index == 2 -> "
+      display: flex;
+      background-color: #b7cfce; 
+      height: 1.5em; 
+      width: 80vw;
+      text-align: center;
+      color: black;
+      border-radius: 1em;
+      justify-content: space-evenly
+      "
+      index == 3 -> "
+      display: flex;
+      background-color: #7d3b00; 
+      height: 1.5em; 
+      width: 80vw;
+      text-align: center;
+      border-radius: 1em;
+      justify-content: space-evenly
+      "
+      rem(index, 2) == 1 -> "
+      display: flex;
+      background-color: #4e4e4e; 
+      height: 1.5em; 
+      width: 80vw;
+      text-align: center;
+      border-radius: 1em;
+      justify-content: space-evenly
+      "
+      rem(index, 2) != 1 -> "
+      display: flex;
+      background-color: #2e2e2e; 
+      height: 1.5em; 
+      width: 80vw;
+      text-align: center;
+      border-radius: 1em;
+      justify-content: space-evenly
+      "
+    end
   end
 end

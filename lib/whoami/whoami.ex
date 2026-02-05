@@ -78,13 +78,13 @@ defmodule Whoami.Main do
 
   def validate_words(word_list, lobby) do
     dedup = Enum.dedup(word_list)
-    
+
     words_in_server = verify_server(word_list, lobby)
 
     cond do
       length(dedup) != length(word_list) ->
         {:error, "i need different words. not the same word twice."}
-      
+
       words_in_server == :error ->
         {:error, "try different words"}
 
@@ -99,7 +99,7 @@ defmodule Whoami.Main do
       {:error, _reason} -> :error
     end
   end
-  
+
   def input_answer(lobby, answer, player, word) when is_pid(lobby) do
     GenServer.cast(lobby, {:answer, answer, player, word})
   end
@@ -157,6 +157,17 @@ defmodule Whoami.Main do
   def remove_player(lobby, player) do
     case get_pid_by_lid(lobby) do
       {:ok, pid} -> remove_player(pid, player)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def restart_game(lobby, player) when is_pid(lobby) do
+    GenServer.cast(lobby, {:restart_game, player})
+  end
+
+  def restart_game(lobby, player) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> restart_game(pid, player)
       {:error, reason} -> {:error, reason}
     end
   end
@@ -260,7 +271,7 @@ defmodule Whoami.Main do
     end
   end
 
-  def send_guess(word, lobby) when is_pid(lobby) do 
+  def send_guess(word, lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:guess, word}) do
       {:ok, :correct} -> {:ok, :correct}
       {:ok, :close} -> {:ok, :close}

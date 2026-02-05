@@ -94,108 +94,111 @@ defmodule Whoami.Round do
     |> changeset(%{votes_per_question: new_votes})
     |> apply_action(:update)
   end
-  
+
   @doc "Takes a round and checks if given answer is the correct answer to it. If it is not, it can tell the player whether the answer is close (in case of a typo, for ex.)"
   def evaluate_answer(attempt, round) do
     og = round.answer
 
     comparison = String.jaro_distance(og, attempt)
 
-    Logger.info([
-      message: "attempt to guess made", 
-      answer: og, 
-      attempt: attempt, 
+    Logger.info(
+      message: "attempt to guess made",
+      answer: og,
+      attempt: attempt,
       result: comparison
-    ])
+    )
 
     cond do
-    comparison >= 0.95 -> :correct
-    comparison >= 0.85 -> :close
-    comparison < 0.85 -> :wrong
+      comparison >= 0.95 -> :correct
+      comparison >= 0.85 -> :close
+      comparison < 0.85 -> :wrong
     end
   end
 
   @doc "Evaluates votes once all users have cast their ballots. Will return the new round and the answer after validating the changes."
   def evaluate_votes(%{votes_per_question: votes, players: players} = round) do
     {result, new_q} = evaluate_votes(round, votes, players)
-    
-    {:ok, new_round} = 
+
+    {:ok, new_round} =
       round
       |> changeset(%{questions: new_q})
       |> apply_action(:update)
 
     {result, new_round}
   end
-  
+
   def evaluate_votes(round, votes, players) do
     threshold = length(players) |> Kernel.-(1) |> Kernel.*(0.7)
-    
+
     {yes, no, maybe, illegal} = tally_votes(votes)
-    Logger.debug([
+
+    Logger.debug(
       message: "voting breakdown:",
-      yes: yes, 
-      no: no, 
-      maybe: maybe, 
+      yes: yes,
+      no: no,
+      maybe: maybe,
       illegal: illegal
-    ])
+    )
 
     # Adds the response to the questions map and return the whole round, with old history and all.
     # Catchall to have ties bumped as maybe.
     cond do
-    yes >= threshold -> {:yes, add_response_to_answer(round, :yes)}
-    no >= threshold -> {:no, add_response_to_answer(round, :no)}
-    maybe >= threshold -> {:maybe, add_response_to_answer(round, :maybe)}
-    illegal >= threshold -> {:illegal, add_response_to_answer(round, :illegal)}
-    true -> {:maybe, add_response_to_answer(round, :maybe)}
+      yes >= threshold -> {:yes, add_response_to_answer(round, :yes)}
+      no >= threshold -> {:no, add_response_to_answer(round, :no)}
+      maybe >= threshold -> {:maybe, add_response_to_answer(round, :maybe)}
+      illegal >= threshold -> {:illegal, add_response_to_answer(round, :illegal)}
+      true -> {:maybe, add_response_to_answer(round, :maybe)}
     end
   end
 
   defp tally_votes(votes) do
-  values =
-    votes
-    |> Enum.sort(:desc)
-    |> hd()
-    |> elem(1)
-    |> Map.values()
-    |> Enum.frequencies()
+    values =
+      votes
+      |> Enum.sort(:desc)
+      |> hd()
+      |> elem(1)
+      |> Map.values()
+      |> Enum.frequencies()
 
-      {
-        Map.get(values, :yes, 0),
-        Map.get(values, :no, 0),
-        Map.get(values, :maybe, 0),
-        Map.get(values, :illegal, 0)
-      }
-    end
+    {
+      Map.get(values, :yes, 0),
+      Map.get(values, :no, 0),
+      Map.get(values, :maybe, 0),
+      Map.get(values, :illegal, 0)
+    }
+  end
 
-    def add_response_to_answer(round, answer) do
+  def add_response_to_answer(round, answer) do
     current_q = round.votes_per_question |> Map.keys() |> Enum.sort(:desc) |> hd()
 
     round.questions
-    |> Enum.reduce([], fn q, acc -> 
-        if Map.keys(q) == [current_q], do: acc ++ [%{current_q => answer}], else: acc ++ [q]
-      end)
+    |> Enum.reduce([], fn q, acc ->
+      if Map.keys(q) == [current_q], do: acc ++ [%{current_q => answer}], else: acc ++ [q]
+    end)
   end
 
   def add_guess_attempt(round, guess_result) do
     next_q = round.questions |> get_next_question()
-    
+
     new_q = %{next_q => guess_result}
 
-    new_questions = round.questions
-    |> Enum.map(fn m -> if Map.keys(m) == [next_q], do: new_q, else: m end)
+    new_questions =
+      round.questions
+      |> Enum.map(fn m -> if Map.keys(m) == [next_q], do: new_q, else: m end)
 
     next_vote = round.votes_per_question |> get_next_vote()
 
-    new_votes = 
-    Map.update(
+    new_votes =
+      Map.update(
         round.votes_per_question,
         next_vote,
         %{round.guesser.id => guess_result},
-        fn existing_val -> 
-          Logger.info([
+        fn existing_val ->
+          Logger.info(
             message: "overriding values in question's vote",
             values: inspect(existing_val)
-          ])
+          )
+
           %{round.guesser.id => guess_result}
         end
       )
@@ -209,9 +212,10 @@ defmodule Whoami.Round do
   returns the next question in a :questions list of maps in the Round. It just ooks for the first unfilled map in the list.
   """
   def get_next_question(questions) do
-    q = Enum.filter(questions, fn m -> Map.values(m) in [[%{}], [:correct_guess]] end)
-    |> Enum.sort(:asc) 
-    |> List.first()
+    q =
+      Enum.filter(questions, fn m -> Map.values(m) in [[%{}], [:correct_guess]] end)
+      |> Enum.sort(:asc)
+      |> List.first()
 
     if is_nil(q) || Map.values(q) == [:correct_guess] do
       nil

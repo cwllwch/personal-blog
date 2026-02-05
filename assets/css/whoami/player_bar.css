@@ -81,6 +81,7 @@
 
 .ready-false, .ready-true {
 		height: 5vi;
+		min-height: 40px;
 		max-height: 90px;
 		width: 40vi;
 		min-width: 300px;
