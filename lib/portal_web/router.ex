@@ -10,8 +10,20 @@ defmodule PortalWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :with_username do
+    plug PortalWeb.Whoami.AskForUsername, :save_redirect
+    plug PortalWeb.Whoami.AskForUsername, :ask_for_username
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  scope "/", PortalWeb do
+    pipe_through [:browser, :with_username]
+
+    get "/remove-username", Whoami.AskForUsername, :remove_username
+    live "/whoami", LiveStuff.Whoami
   end
 
   scope "/", PortalWeb do
@@ -20,7 +32,9 @@ defmodule PortalWeb.Router do
     get "/", PageController, :home
     get "/contact", PageController, :contact
     get "/about", PageController, :about
+    get "/set-user", Whoami.AskForUsername, :set_username
     live "/prettify-my-json", LiveStuff.Prettify
+    live "/whoami/set-user", LiveStuff.Whoami.SetUser
   end
 
   if Application.compile_env(:portal, :dev_routes) do

@@ -1,0 +1,113 @@
+@media screen and (max-width: 850px) {
+		.p_grid_q {
+				display: grid;
+				gap: 5px;
+				grid: 	
+						'expand expand expand'
+						'expand expand expand'
+						'fold fold btn-container';
+				height: 70vh;
+		}
+
+		.p_grid_r {
+				display: grid;
+				gap: 5px;
+				grid: 
+						'fold fold btn-container'
+						'expand expand expand'
+						'expand expand expand';
+				height: 70vh;
+		}
+
+		.btn-container {
+				display: grid;
+				grid-template-columns: auto auto;
+				gap: 5px;
+				justify-content: center;
+				align-items: center;
+		}
+
+		.about {
+				display: none;
+		}
+
+		.fold {
+				color: black;
+				grid-area: fold;
+				width: 100%;
+				height: 100%;
+				border-radius: 1rem;
+		}
+
+		.expand {
+				color: black;
+				grid-area: expand;
+				width: 100%;
+				height: 100%;
+				border-radius: 1rem;
+		}
+
+}
+
+@media screen and (min-width: 851px) {
+		.p_grid_q {
+				display: flex;
+				flex-flow: row wrap;
+				justify-content: space-between;
+				width: 100%;
+		}
+
+		.p_grid_r {
+				display: flex;
+				flex-flow: row wrap;
+				justify-content: space-between;
+				width: 100%;
+		}
+
+		.btn-container { 
+				display: flex;
+				flex-wrap: wrap; 
+				flex-direction: column;
+				gap: 5px;
+				padding-top: 20%;
+				align-items: center;
+				justify-content: middle;
+		}
+
+		.fold {
+				width: 20%; 
+				height: 30rem;
+				border-radius: 1rem;
+		}
+
+		.expand {
+				width: 63%; 
+				height: 30rem;
+				border-radius: 1rem;
+				color: black;
+		}
+}
+
+@layer components {
+		.vanilla-textbox {
+				@apply bg-white rounded-xl text-gray-500 h-full w-full;
+		}
+
+		.valid-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full shadow-xl 
+				shadow-lime-400/30 ring ring-lime-400/60 
+				whitespace-pre-wrap overflow-scroll;
+		}
+
+		.parsed-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full
+                shadow-xl shadow-[#4287f5] ring ring-[#4287f5]
+                whitespace-pre-wrap overflow-scroll;
+		}
+
+		.error-textbox {
+				@apply p-3 bg-white rounded-xl h-full w-full
+                shadow-xl shadow-red-400/30 ring ring-red-400/60
+                whitespace-pre-wrap overflow-scroll;
+		}
+}

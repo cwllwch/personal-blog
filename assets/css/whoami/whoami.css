@@ -1,0 +1,185 @@
+@keyframes fadeIn {
+		0%   {opacity: 0;}
+		10%  {opacity: 0.1;}
+		30%  {opacity: 0.3;}
+		60%  {opacity: 0.6;}
+		100% {opacity: 1;}
+}
+
+
+@keyframes loadingDots {
+		0%   {content: "⠊⠑⠈⠊";}
+		5%   {content: "⠜⠔⢄⠜";}
+		10%  {content: "⡱⢅⢑⡱";}
+		15%  {content: "⣑⣑⣑⣑";}
+		20%  {content: "⣡⣡⣡⣡";}
+		25%  {content: "⣤⣤⣤⣤";}
+		30%  {content: "⣬⣬⣬⣬";}
+		35%  {content: "⣵⣵⣵⣵";}
+		40%  {content: "⣶⣽⣶⣽";}
+		45%  {content: "⣿⣿⣿⣿";}
+		50%  {content: "⣿⣿⣿⣿";}
+		55%  {content: "⣿⣿⣿⣿";}
+		60%  {content: "⣮⣮⣮⣮";}
+		65%  {content: "⣵⣵⣵⣵";}
+		70%  {content: "⣕⣕⣕⣕";}
+		75%  {content: "⡵⡵⡵⡵";}
+		80%  {content: "⢑⡓⢑⡡";}
+		85%  {content: "⠣⠕⠣⡡";}
+		90%  {content: "⠈⠊⠐⠈";}
+		95%  {content: " ⠁ ⠂";}
+		100% {content: "⠂  ⠂";}
+}
+
+@keyframes altchange { 
+		from { --gradient: 0%;}
+		to { --gradient: 100%;}
+}
+
+@keyframes pulse {
+		0% {
+				opacity: 1;
+				transform: scale(0.99);
+		}
+		100% {
+				opacity: 0;
+				transform: scale(1.2);
+		}
+}
+
+@property --gradient {
+		syntax: "<percentage>";
+		inherits: true;
+		initial-value: 0%;
+}
+
+.loading-dots {
+		display: inline-block;
+		text-align: center;
+}
+
+.loading-dots::after {
+		content: " ";
+		letter-spacing: -3px;
+		animation: loadingDots 5s 0.2s steps(1) infinite;
+}
+ .invite-block {
+ 		margin: 5vi;
+		display: flex;
+ 		justify-self: center;
+ 		align-items: center;
+ 		padding: 15px 20px 15px 20px;
+ 		border-radius: 1vi;
+ 		background-color: oklch(0.4069 0.1158 279.94 / 40%);
+ 		width: fit-content;
+ 		gap: 2vi;
+ }
+
+.invite-link {
+		padding: 15px 10px 10px 10px;
+		text-align: center;
+		border-width: 3px;
+		border-color: #35530e;
+		border-radius: 1vi;
+		background-color: #27272a;
+		transition: transform 100ms ease-out;
+		user-select: none;
+}
+
+.invite-link:hover {
+		border-color: #005403;
+		background-color: #1a251c;
+		transform: scale(1.05);
+		transition: transform 100ms ease-in-out;
+}
+
+.invite-link:active {
+		border-color: #2f5500;
+		background-color: #11351b;
+		transition: transform  100ms ease-out;
+}
+
+.info {
+		padding: 20px;
+		margin: 20px;
+		height: 3em;
+		width: 40vi;
+		text-align: center;
+		min-width: 400px;
+		max-width: 500px;
+		border-radius: 5em;
+}
+
+.start {
+		position: relative;
+		margin: 20px;
+		height: 5vh;
+		width: 40vw;
+		z-index: 1;
+		z-index: 500 !important;
+		align-self: center;
+		text-align: center;
+		min-width: 400px;
+		max-width: 500px;
+		border-radius: 5em;
+		background-color: green;
+}
+
+.start::before {
+		filter: blur(5px);
+		content: "";
+		z-index: -1;
+		inset: 0;
+		position: absolute;
+		border-radius: inherit;
+		background-color: inherit;
+		height: 5vh;
+		width: 40vw;
+		min-width: 400px;
+		max-width: 500px;
+		animation: pulse 3s infinite;
+}
+
+.field {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+		overflow-y: visible;
+}
+
+ /* control small screen elements */
+@media screen and (max-width: 850px) {
+		.field {
+				flex-flow: column nowrap;
+				justify-content: start;
+				overflow-x: hidden;
+				overflow-y: auto;
+				gap: 20px;
+				height: 90vh;
+				min-height: 800px;
+				width: 90vw;
+				aspect-ratio: 9/16;
+				border-radius: 1rem;
+				padding: 2rem;
+				color: white;
+				animation: fadeIn 100ms;
+		}
+}
+
+/* controls large screen elements */
+@media screen and (min-width: 851px) {
+		.field {
+				flex-direction: column;
+				justify-content: start;
+				min-height: 900px;
+				gap: 20px;
+				height: 90vh;
+				min-height: 750px;
+				width: 100%;
+				aspect-ratio: 16/9;
+				border-radius: 1rem;
+				padding: 2rem;
+				color: white;
+				animation: fadeIn 100ms;
+		}
+}

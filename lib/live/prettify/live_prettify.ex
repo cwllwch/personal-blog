@@ -12,7 +12,7 @@ defmodule PortalWeb.LiveStuff.Prettify do
   def mount(_params, _session, socket) do
     new_socket =
       assign(socket,
-        page_title: "json prettifier",
+        page: "json prettifier",
         string: "",
         level: :normal,
         error: nil

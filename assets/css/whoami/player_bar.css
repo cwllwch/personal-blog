@@ -1,0 +1,147 @@
+@keyframes fadeInToHalf {
+		0%  {opacity: 0;}
+		50% {opacity: 0.5;}
+}
+
+.players {
+		display: flex;
+		flex-shrink: 0;
+		flex-flow: row nowrap;
+		justify-self: flex-start;
+		gap: 10px;
+		height: 20vh;
+		min-height: 150px;
+		margin: 20px;
+		overflow-x: auto;
+}
+
+.player-true, 
+.player-false {
+		display: grid;
+		grid: 
+				'stars' 'stars'
+				'icon' 'icon'
+				'name' 'score';
+		gap: 2px;
+		padding: 4px;
+		border-radius: 10px;
+		min-width: 90px;
+		width: min-content;
+		background-image: conic-gradient(from 0deg, #084009 var(--gradient), #3f3f46 var(--gradient)); 
+		transition: --gradient 0.5s ease-out;
+		position: relative
+}
+
+.player-false {
+		--gradient: 0%;
+}
+
+.player-true {
+		--gradient: 100%;
+}
+
+.player-true:hover .remove_player {
+		display: flex;
+		animation: fadeInToHalf 0.3s ease-in-out
+}
+
+.player-false:hover .remove_player {
+		display: flex;
+		animation: fadeInToHalf 0.3s ease-in-out
+}
+
+
+.icon {
+		justify-self: center;
+}
+
+.stars {
+		justify-self: center;
+		flex-direction: row;
+		height: 1em;
+		transform: scale(0.5);
+}
+
+.name {
+		justify-self: center;
+}
+
+.score {
+		justify-self: center;
+}
+
+
+.ready-false {
+		background-color: #7c0400;
+}
+
+.ready-true {
+		background-color: #35530e;
+}
+
+.ready-false, .ready-true {
+		height: 5vi;
+		min-height: 40px;
+		max-height: 90px;
+		width: 40vi;
+		min-width: 300px;
+		max-width: 500px;
+		border-radius: 5em;
+		align-self: center;
+}
+
+.remove_player {
+		display: none;
+		position: absolute;
+		top: 15px;
+		right: 10px;
+		color: #222222;
+		background-color: #a8a8a8;
+		width: 30px;
+		height: 30px;
+		margin: -22px;
+		border-radius: 7vi;
+		transition: transform 50ms ease-in-out;
+		opacity: 0.5;
+		z-index: 500;
+}
+
+.remove_player:hover {
+		background-color: #ff7975;
+		transform: scale(1.1);
+		opacity: 1;
+		transition: transform 50ms ease-in-out
+}
+
+.remove_player:active {
+		transform: scale(1.05);
+		transition: transform 50ms ease-in-out
+}
+
+.remove_player svg {
+		position: relative;
+		height: 30px;
+		width: 30px;
+}
+
+@media screen and (max-width: 850px) {
+
+		.players {
+				width: 100%;
+				border-color: #35530e;
+				border-width: 3px;
+				border-radius: 1vi;
+				padding: 10px;
+		}
+}
+
+@media screen and (min-width: 851px) {
+		.players {
+				width: 100%;
+				border-color: #35530e;
+				border-width: 3px;
+				border-radius: 1vi;
+				padding: 10px;
+		}
+}
+

@@ -7,12 +7,22 @@
 
 <div class="grid grid-cols-1 m-5 gap-3 p-3 rounded-xl 
             md:grid-cols-2 
-            lg:grid-cols-3 lg:grid-flow-row 
+            lg:grid-cols-3
             dark:bg-stone-800/20 light:bg-teal-300">
+  <.link
+    navigate={~p"/whoami#body"}
+    class="lg:col-span-3 lg:aspect-auto
+      md:col-span-2 md:row-span-2
+      !aspect-[4/1] overflow-hidden rounded-lg
+      bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
+      flex items-center justify-center"
+  >
+    who am I?
+  </.link>
   <a
     href={~p"/prettify-my-json"}
     class="lg:col-span-2 lg:row-span-1 lg:aspect-auto
-      aspect-[3/2] w-full overflow-hidden rounded-lg
+      aspect-[3/2] overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
       flex items-center justify-center"
   >
@@ -20,7 +30,7 @@
   </a>
   <a
     href="https://github.com/cwllwch/personal-blog"
-    class="aspect-[3/2] w-full overflow-hidden rounded-lg
+    class="aspect-[3/2] overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
       flex items-center justify-center"
   >

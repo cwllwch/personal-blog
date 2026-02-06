@@ -1,0 +1,105 @@
+.button-grid {
+		height: 40vh;
+		width: 80vw;
+		margin: 1vh;
+		display: grid;
+		gap: 10px;
+		align-self: center;
+		justify-self: center;
+		grid:
+		'button-yes button-yes button-yes button-no'
+		'button-maybe button-maybe button-maybe button-illegal'
+		'button-stupid button-stupid button-stupid button-stupid';
+}
+
+.button-yes {
+		background-color: #2a3929;
+		border-color: darkgreen;
+		border-width: 3px;
+		grid-area: button-yes;
+}
+
+.button-yes:hover {
+		background-color: #004103 !important;
+}
+
+
+.button-maybe {
+		background-color: #2f3100;
+		border-color: gold;
+		border-width: 3px;
+		grid-area: button-maybe;
+}
+
+.button-maybe:hover {
+		background-color: #393b0b !important;
+}
+
+.button-no {
+		background-color: #003448;
+		border-color: teal;
+		border-width: 3px;
+		grid-area: button-no;
+}
+
+.button-no:hover {
+		background-color: #003e53 !important;
+}
+
+.button-illegal {
+		background-color: #272322;
+		border-color: gray;
+		border-width: 3px;
+		grid-area: button-illegal;
+}
+
+.button-illegal:hover {
+		background-color: #312d2c !important;
+}
+
+.button-stupid {
+		background-color: #420000;
+		border-color: darkred;
+		border-width: 3px;
+		grid-area: button-stupid;
+}
+
+.button-stupid:hover {
+		background-color: #4b0000 !important;
+}
+
+[class^="answer"] {
+		height: 6vh;
+		min-height: 75px;
+		width: 45vw;
+		min-width: 250px;
+		border-radius: 10px;
+		text-align: center;
+		padding: 1vh;
+		justify-self: center;
+		align-self: center;
+}
+
+.answer-yes {
+		background-color: #2a3929;
+}
+
+.answer-no {
+		background-color: #003448;
+}
+
+.answer-maybe {
+		background-color: #2f3100;
+}
+
+.answer-illegal_q {
+		background-color: #272322;
+}
+
+.answer-illegal_w {
+		background-color: #420000;
+		height: 8vh;
+		min-height: 100px;
+		width: 65vw;
+		min-width: 350px;
+}

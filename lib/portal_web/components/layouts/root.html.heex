@@ -5,13 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title>
-      {assigns[:page_title] || "cwllwch - portfolio"}
+      {assigns[:page] || "cwllwch - portfolio"}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
-  <body class="bg-zinc-800 font-mono w-full">
+
+  <%!-- I have no explanation but these have to be called here in root so they can be shown elsewhere.  --%>
+  <%!-- They are hidden, the way this works is they are basically just loaded here but shown only in  --%>
+  <%!-- specific components.  --%>
+
+  <.icon class="hidden" name="hero-clipboard-document" />
+  <.icon class="hidden" name="hero-signal-slash" />
+  <.icon class="hidden" name="hero-star-solid" />
+  <.icon class="hidden" name="hero-x-circle-solid" />
+  <.icon class="hidden" name="hero-user-plus" />
+
+  <body class="bg-zinc-800 font-mono w-full snap-y">
     {@inner_content}
   </body>
 </html>

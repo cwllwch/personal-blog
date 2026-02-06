@@ -2,7 +2,7 @@ defmodule PortalWeb.Components.CustomComponents do
   use Phoenix.Component
 
   @moduledoc """
-  Components custom made for this project. 
+  Components custom made for the parser page. 
   """
 
   @doc """
