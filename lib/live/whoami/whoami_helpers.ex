@@ -1,10 +1,10 @@
 defmodule Whoami.Helpers do
-  use PortalWeb, :live_view
+  alias Phoenix.PubSub
+  alias PortalWeb.Presence
   alias Whoami.Main
   alias Whoami.Player
-  alias PortalWeb.Presence
-  alias Phoenix.PubSub
   require Logger
+  use PortalWeb, :live_view
 
   @moduledoc """
   Helpers for the Whoami Liveview page. 
@@ -131,7 +131,7 @@ defmodule Whoami.Helpers do
     []
   end
 
-  def fetch_disc_list() do
+  def fetch_disc_list do
     send(self(), {:fetch_disc_list})
     []
   end
@@ -222,14 +222,14 @@ defmodule Whoami.Helpers do
   end
 
   def simplify(diff) do
-    # This is a rather convoluted way to get all joins, even 
+    # This is a rather convoluted way to get all joins, even
     Enum.reduce(diff, %{}, fn {id, metas}, acc ->
       # if there is a list with more than one sent. This will
       Map.put(acc, id, Map.get(metas, :metas))
     end)
 
     # always create a list with the most recent state for each
-    # of the user ids - then just map it over user list and 
+    # of the user ids - then just map it over user list and
     |> Enum.reduce(%{}, fn {id, list}, acc ->
       # it's all good to be patched.
       latest =
@@ -241,11 +241,9 @@ defmodule Whoami.Helpers do
   end
 
   def sanitize_word(word) when is_binary(word) do
-    try do
-      String.trim(word)
-    rescue
-      e -> {:error, inspect(e)}
-    end
+    String.trim(word)
+  catch
+    e -> {:error, inspect(e)}
   end
 
   def sanitize_word(word) when not is_binary(word) do

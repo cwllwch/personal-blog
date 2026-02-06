@@ -1,10 +1,10 @@
 defmodule Whoami.GameServer do
-  require Logger
-  use GenServer
+  alias Phoenix.PubSub
+  alias Whoami.Helpers
   alias Whoami.LobbyStruct
   alias Whoami.Round
-  alias Whoami.Helpers
-  alias Phoenix.PubSub
+  require Logger
+  use GenServer
 
   @moduledoc """
   The lobby itself, the processes that hold state and 
@@ -173,15 +173,19 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_cast({:interaction, timestamp}, state) do
-    new_state = %{state | last_interaction: timestamp}
+    if timestamp >= state.last_interaction + 10 do
+      new_state = %{state | last_interaction: timestamp}
 
-    Logger.debug(
-      message: "updated interaction, server will keep alive for #{inspect(@ttl)} more minutes",
-      timestamp: timestamp |> DateTime.from_unix() |> elem(1),
-      lobby: state.id
-    )
+      Logger.debug(
+        message: "updated interaction",
+        timestamp: timestamp |> DateTime.from_unix() |> elem(1),
+        lobby: state.id
+      )
 
-    {:noreply, new_state}
+      {:noreply, new_state}
+    else
+      {:noreply, state}
+    end  
   end
 
   @impl true
@@ -217,7 +221,7 @@ defmodule Whoami.GameServer do
       |> length()
 
     # Alter the state according to what you need to do
-    # below before returning, so that the state is ready 
+    # below before returning, so that the state is ready
     # when the reply goes out.
 
     cond do
@@ -267,6 +271,7 @@ defmodule Whoami.GameServer do
       new_state = LobbyStruct.restart(state)
       Helpers.broadcast({:update_stage, :waiting_room}, state.id)
       Helpers.broadcast({:fetch_players, state.id}, state.id)
+      Helpers.broadcast({:can_start_toggle, false}, state.id)
       {:noreply, new_state}
     else
       {:noreply, state}
@@ -357,18 +362,18 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_info({:fetch_players, _lobby}, state) do
-    # this handle info is here only to ignore the message. 
-    # This message is used to update the player bar in lobby, 
+    # this handle info is here only to ignore the message.
+    # This message is used to update the player bar in lobby,
     # so it is something the liveview will use. The server can safely discard it.
     {:noreply, state}
   end
 
   @impl true
   def handle_info({:fetch_stage, _id}, state) do
-    # This handler needs to be here to not crash the server. 
-    # As all messages go through the channel, the broadcasts for the 
+    # This handler needs to be here to not crash the server.
+    # As all messages go through the channel, the broadcasts for the
     # views to request updated info from the server also come to the server
-    # since it's easier to manage this here than to figure out the names of 
+    # since it's easier to manage this here than to figure out the names of
     # the LV clients. Also creates an opportunity for non-duplicated logging.
 
     Logger.debug(
@@ -403,8 +408,6 @@ defmodule Whoami.GameServer do
       |> Enum.map(& &1.id)
       |> Enum.reject(&(&1 == guesser))
       |> Enum.sort(:asc)
-
-    Logger.info(in_round: players_in_round, answered: players_who_answered)
 
     if players_in_round == players_who_answered do
       Logger.info(
@@ -516,7 +519,7 @@ defmodule Whoami.GameServer do
   def get_next_word(%LobbyStruct{word_map: word_map, author: author} = state) do
     {user, rest} = get_next_guesser(state)
 
-    # Makes a list of all the words that aren't made by the current user, rejects nil 
+    # Makes a list of all the words that aren't made by the current user, rejects nil
     # and then takes a random word from this list and outputs a list with exactly one word
 
     maybe_word = balance_word_useage(word_map, author, user)
@@ -765,14 +768,14 @@ defmodule Whoami.GameServer do
   end
 
   defp simplify(diff) do
-    # This is a rather convoluted way to get all joins, even 
+    # This is a rather convoluted way to get all joins, even
     Enum.reduce(diff, %{}, fn {id, metas}, acc ->
       # if there is a list with more than one sent. This will
       Map.put(acc, id, Map.get(metas, :metas))
     end)
 
     # always create a list with the most recent state for each
-    # of the user ids - then just map it over user list and 
+    # of the user ids - then just map it over user list and
     |> Enum.reduce(%{}, fn {id, list}, acc ->
       # it's all good to be patched.
       latest =
@@ -805,6 +808,19 @@ defmodule Whoami.GameServer do
   end
 
   @doc "Adds points to players according to the given answer"
+  def add_points(state, answer) when answer == :illegal_w do
+    author = Map.get(state, :author)
+    guesser_id = get_round_to_fill(state) |> Map.get(:guesser) |> Map.get(:id)
+
+    new_players =
+      state
+      |> Map.get(:players)
+      |> Enum.map(&if &1.id == author, do: add_points_conditions(&1, answer), else: &1)
+      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, :consolation), else: &1)
+
+    %{state | players: new_players}
+  end
+
   def add_points(state, answer) do
     guesser_id = get_round_to_fill(state) |> Map.get(:guesser) |> Map.get(:id)
 
@@ -820,6 +836,10 @@ defmodule Whoami.GameServer do
     Map.update!(player, :points, fn previous -> previous + 500 end)
   end
 
+  defp add_points_conditions(player, answer) when answer == :consolation do
+    Map.update!(player, :points, fn previous -> previous + 100 end)
+  end
+
   defp add_points_conditions(player, answer) when answer == :yes do
     Map.update!(player, :points, fn previous -> previous + 20 end)
   end
@@ -832,7 +852,11 @@ defmodule Whoami.GameServer do
     Map.update!(player, :points, fn previous -> previous end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :illegal do
+  defp add_points_conditions(player, answer) when answer == :illegal_q do
     Map.update!(player, :points, fn previous -> previous - 100 end)
+  end
+
+  defp add_points_conditions(player, answer) when answer == :illegal_w do
+    Map.update!(player, :points, fn previous -> previous - 300 end)
   end
 end

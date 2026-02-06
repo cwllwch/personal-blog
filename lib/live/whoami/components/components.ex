@@ -409,6 +409,10 @@ defmodule Live.Whoami.Components do
         which is completely off the mark. <br /><br />
         In doing so, {@guesser.name} used a chance to ask stuff!
         """
+        true -> 
+        ~H"""
+        {inspect(@result)}
+        """
     end
   end
 

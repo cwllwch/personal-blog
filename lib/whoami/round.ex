@@ -44,14 +44,15 @@ defmodule Whoami.Round do
     validate_change(
       changeset,
       :votes_per_question,
-      fn :votes_per_question, votes ->
-        if Enum.all?(votes, fn {_k, v} -> is_map(v) end) do
-          []
-        else
-          [votes_per_question: "each vote must be a map"]
-        end
-      end
-    )
+      fn :votes_per_question, votes -> map_check(votes) end)
+  end
+
+  defp map_check(votes) do
+    if Enum.all?(votes, fn {_k, v} -> is_map(v) end) do
+      []
+    else
+      [votes_per_question: "each vote must be a map"]
+    end
   end
 
   def create_round(guesser, players, word, prev_round) do
@@ -130,14 +131,15 @@ defmodule Whoami.Round do
   def evaluate_votes(round, votes, players) do
     threshold = length(players) |> Kernel.-(1) |> Kernel.*(0.7)
 
-    {yes, no, maybe, illegal} = tally_votes(votes)
+    {yes, no, maybe, illegal_q, illegal_w} = tally_votes(votes)
 
     Logger.debug(
       message: "voting breakdown:",
       yes: yes,
       no: no,
       maybe: maybe,
-      illegal: illegal
+      illegal_q: illegal_q,
+      illegal_q: illegal_w
     )
 
     # Adds the response to the questions map and return the whole round, with old history and all.
@@ -146,7 +148,8 @@ defmodule Whoami.Round do
       yes >= threshold -> {:yes, add_response_to_answer(round, :yes)}
       no >= threshold -> {:no, add_response_to_answer(round, :no)}
       maybe >= threshold -> {:maybe, add_response_to_answer(round, :maybe)}
-      illegal >= threshold -> {:illegal, add_response_to_answer(round, :illegal)}
+      illegal_q >= threshold -> {:illegal_q, add_response_to_answer(round, :illegal_q)}
+      illegal_w >= threshold -> {:illegal_w, add_response_to_answer(round, :illegal_w)}
       true -> {:maybe, add_response_to_answer(round, :maybe)}
     end
   end
@@ -164,7 +167,8 @@ defmodule Whoami.Round do
       Map.get(values, :yes, 0),
       Map.get(values, :no, 0),
       Map.get(values, :maybe, 0),
-      Map.get(values, :illegal, 0)
+      Map.get(values, :illegal, 0),
+      Map.get(values, :illegal_word, 0),
     }
   end
 
@@ -213,11 +217,11 @@ defmodule Whoami.Round do
   """
   def get_next_question(questions) do
     q =
-      Enum.filter(questions, fn m -> Map.values(m) in [[%{}], [:correct_guess]] end)
+      Enum.filter(questions, fn m -> Map.values(m) in [[%{}], [:correct_guess], [:illegal_w]] end)
       |> Enum.sort(:asc)
       |> List.first()
 
-    if is_nil(q) || Map.values(q) == [:correct_guess] do
+    if is_nil(q) || Map.values(q) in [[:correct_guess], [:illegal_w]] do
       nil
     else
       q
@@ -233,7 +237,7 @@ defmodule Whoami.Round do
     end
   end
 
-  defp gen_question_stubs() do
+  defp gen_question_stubs do
     Enum.map(1..@questions_per_round, fn x -> %{x => %{}} end)
   end
 end

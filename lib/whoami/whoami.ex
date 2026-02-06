@@ -313,7 +313,7 @@ defmodule Whoami.Main do
   end
 
   # Helper functions
-  def generate_id() do
+  def generate_id do
     Stream.repeatedly(fn -> :rand.uniform(9) end)
     |> Enum.take(8)
     |> Enum.join("")
