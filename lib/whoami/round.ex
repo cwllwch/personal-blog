@@ -44,7 +44,8 @@ defmodule Whoami.Round do
     validate_change(
       changeset,
       :votes_per_question,
-      fn :votes_per_question, votes -> map_check(votes) end)
+      fn :votes_per_question, votes -> map_check(votes) end
+    )
   end
 
   defp map_check(votes) do
@@ -168,7 +169,7 @@ defmodule Whoami.Round do
       Map.get(values, :no, 0),
       Map.get(values, :maybe, 0),
       Map.get(values, :illegal, 0),
-      Map.get(values, :illegal_word, 0),
+      Map.get(values, :illegal_word, 0)
     }
   end
 

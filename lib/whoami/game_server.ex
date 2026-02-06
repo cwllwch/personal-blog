@@ -185,7 +185,7 @@ defmodule Whoami.GameServer do
       {:noreply, new_state}
     else
       {:noreply, state}
-    end  
+    end
   end
 
   @impl true

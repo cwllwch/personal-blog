@@ -186,21 +186,6 @@ defmodule Live.Whoami.Components do
 
       <%!-- Renders the player list for stages that are not the waiting room - where ready status doesn't matter --%>
       <div :for={player <- @players} :if={@stage != :waiting_room} class="player-true">
-        <button
-          :if={@captain == @self.id}
-          class="remove_player"
-          phx-click="remove_player"
-          phx-value-player={player.name}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </button>
-
         <div class="stars">
           <.icon :for={win <- 1..player.wins} :if={player.wins >= 1} name="hero-star-solid" />
         </div>
@@ -409,7 +394,8 @@ defmodule Live.Whoami.Components do
         which is completely off the mark. <br /><br />
         In doing so, {@guesser.name} used a chance to ask stuff!
         """
-        true -> 
+
+      true ->
         ~H"""
         {inspect(@result)}
         """

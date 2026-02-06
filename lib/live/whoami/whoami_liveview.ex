@@ -155,33 +155,26 @@ defmodule PortalWeb.LiveStuff.Whoami do
             stage={@stage}
           />
           <br /> Your friends agree that your answer is:
-          
           <div :if={@answer == :yes} class="answer-yes">
-          yes <br />
-          gained 20 points!
+            yes <br /> gained 20 points!
           </div>
-          
+
           <div :if={@answer == :no} class="answer-no">
-            no <br />
-            no points for you
+            no <br /> no points for you
           </div>
-          
+
           <div :if={@answer == :maybe} class="answer-maybe">
-            maybe <br />
-            5 points
+            maybe <br /> 5 points
           </div>
-          
-          <div :if={@answer == :illegal} class="answer-illegal">
-            illegal question! <br />
-            -100 points
+
+          <div :if={@answer == :illegal_q} class="answer-illegal_q">
+            illegal question! <br /> -100 points
           </div>
 
           <div :if={@answer == :illegal_w} class="answer-illegal_w">
-            illegal word! <br />
-            -300 points for the author <br />
+            illegal word! <br /> -300 points for the author <br />
             +100 points in consolation for {@player.name}
           </div>
-
         <% @stage == :guess_result and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
