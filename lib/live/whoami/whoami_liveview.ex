@@ -434,32 +434,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
   end
 
   @impl true
-  def handle_info({:add_player, lobby}, socket) do
-    case Main.add_player(lobby, socket.assigns.player) do
-      {:ok, players, _count} ->
-        Logger.info(
-          message: "added #{socket.assigns.player.name} to lobby",
-          players: players,
-          lobby: lobby
-        )
-
-        new_socket = put_flash(socket, :info, "You are now in lobby #{lobby}")
-        {:noreply, new_socket}
-
-      {:error, reason} ->
-        Logger.warning(
-          message: "unable to add #{socket.assigns.player.name} to lobby",
-          lobby: lobby,
-          error: reason
-        )
-
-        new_socket = socket |> put_flash(:info, reason)
-        Process.send_after(self(), :clear_flash, 10_000)
-        {:noreply, push_patch(new_socket, to: ~p{/whoami})}
-    end
-  end
-
-  @impl true
   def handle_info({:can_start_toggle, status}, socket) do
     {:noreply, assign(socket, :can_start, status)}
   end

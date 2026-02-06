@@ -129,10 +129,6 @@ defmodule Whoami.GameServer do
         Helpers.broadcast({:show_guess_result, :wrong, word}, state.id)
 
         {:reply, {:ok, :wrong}, %{state | round: new_rounds}}
-
-      {:error, reason} ->
-        # In case of an exception. Just return state and let user know that it happened. Log error.
-        {:reply, {:error, reason}, state}
     end
   end
 

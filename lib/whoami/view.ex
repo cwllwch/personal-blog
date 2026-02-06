@@ -29,7 +29,7 @@ defmodule Whoami.View do
 
   @type t :: %__MODULE__{
           loading: boolean(),
-          player: %Player{},
+          player: %Player{} | nil,
           user: String.t(),
           lobby_id: non_neg_integer() | nil,
           players_in_lobby: list(),
@@ -46,8 +46,8 @@ defmodule Whoami.View do
           result: atom() | nil
         }
 
-  @spec create_view(String.t()) :: Whoami.View.t()
-  def create_view(user) do
+  @spec create_view(String.t()) :: t()
+  def create_view(user) when is_binary(user) do
     %Whoami.View{user: user}
   end
 end
