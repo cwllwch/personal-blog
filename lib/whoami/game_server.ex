@@ -286,6 +286,11 @@ defmodule Whoami.GameServer do
     {:noreply, %{state | stage: new_stage}}
   end
 
+  @impl true
+  def handle_info({:update_stage, new_stage, _atom}, state) do
+    {:noreply, %{state | stage: new_stage}}
+  end
+
   # this is used to update the liveviews, handled here just to not generate an error
   @impl true
   def handle_info({:change_disc_list, _new_disc_list}, state) do
