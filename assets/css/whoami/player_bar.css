@@ -6,12 +6,14 @@
 .players {
 		display: flex;
 		flex-shrink: 0;
+		width: 95%;
 		flex-flow: row nowrap;
 		justify-self: flex-start;
 		gap: 10px;
 		height: 20vh;
 		min-height: 150px;
-		margin: 20px;
+		margin: 10px 10px 10px 20px;
+		padding: 5px;
 		overflow-x: auto;
 }
 
@@ -53,6 +55,8 @@
 
 .icon {
 		justify-self: center;
+		height: 2rem;
+		width: 2rem;
 }
 
 .stars {
@@ -127,11 +131,14 @@
 @media screen and (max-width: 850px) {
 
 		.players {
-				width: 100%;
+				top: -5vh;
+				width: 85svw;
+				margin-left: -3%;
 				border-color: #35530e;
 				border-width: 3px;
 				border-radius: 1vi;
 				padding: 10px;
+				margin-bottom: 50px;
 		}
 }
 
