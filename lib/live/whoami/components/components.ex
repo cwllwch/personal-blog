@@ -384,7 +384,7 @@ defmodule Live.Whoami.Components do
     ~H"""
         <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
 
-        <div :if={@questions != nil} style="text-align: center">
+        <div :if={@questions != nil} style="text-align: center; margin-top: -5%">
           previous answers:
           <div class="history">
             <div :for={question <- @questions} class={"question-#{question}"}>
@@ -392,7 +392,7 @@ defmodule Live.Whoami.Components do
               <% question == "empty" -> %>
               <% question == "yes" -> %> ✔
               <% question == "no" -> %> ✗
-              <% question == "maybe" -> %> ≈
+              <% question == "maybe" -> %> ?
               <% question == "illegal_q" -> %> ☠
               <% question == "illegal_w" -> %> ⛈
               <% question == "wrong_guess" -> %> ⦻
