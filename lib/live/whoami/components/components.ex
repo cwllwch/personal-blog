@@ -384,7 +384,7 @@ defmodule Live.Whoami.Components do
     ~H"""
         <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
 
-        <div :if={@questions != nil}>
+        <div :if={@questions != nil} style="text-align: center">
           previous answers:
           <div class="history">
             <div :for={question <- @questions} class={"question-#{question}"}>
