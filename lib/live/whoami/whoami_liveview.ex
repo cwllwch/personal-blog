@@ -180,14 +180,13 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
           <div :if={@answer == :illegal_q} class="answer-illegal_q">
             <b>illegal question!</b> <br />
-            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
-            lost -100 points
+            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b> lost -100 points
           </div>
 
           <div :if={@answer == :illegal_w} class="answer-illegal_w">
             <b>bad word!</b> <br /> -300 points for whoever wrote that <br />
             +100 points in consolation for
-            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
+            <b>{" " <> Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
         <% @stage == :guess_result and @loading == false -> %>
           <.player_bar
