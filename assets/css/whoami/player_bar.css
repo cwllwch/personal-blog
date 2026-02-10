@@ -12,7 +12,7 @@
 		gap: 10px;
 		height: 20vh;
 		min-height: 150px;
-		margin: 0 10px 40px 20px;
+		margin: 0 10px 5px 20px;
 		padding: 2px;
 		overflow-x: auto;
 }
@@ -112,13 +112,17 @@
 @media screen and (max-width: 850px) {
 		.players {
 				position: relative;
-				width: 85svw;
-				margin-left: -3%;
+				left: -3%;
+				z-index: 500;
+				width: 80svw;
+				height: fit-content;
+				margin-bottom: 7%;
+				min-height: 10svh;
 				border-color: #35530e;
 				border-width: 3px;
-				border-radius: 1vi;
+				border-radius: 10px;
 				padding: 10px;
-				box-sizing: border-box;
+				box-sizing: content-box !important;
 		}
 }
 

@@ -164,25 +164,25 @@ defmodule PortalWeb.LiveStuff.Whoami do
           />
           <.question_history questions={@answer_history} />
           <div :if={@answer == :yes} class="answer-yes">
-            yes <br /> gained 20 points!
+            <b>yes</b> <br /> <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b> gained 20 points!
           </div>
 
           <div :if={@answer == :no} class="answer-no">
-            no <br /> no points for you
+            <b>no</b> <br /> no points for <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
 
           <div :if={@answer == :maybe} class="answer-maybe">
-            maybe <br /> 5 points
+            <b>maybe</b> <br /> 5 points for <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
 
           <div :if={@answer == :illegal_q} class="answer-illegal_q">
-            illegal question! <br /> -100 points
+            <b>illegal question!</b> <br /> <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b> lost -100 points
           </div>
 
           <div :if={@answer == :illegal_w} class="answer-illegal_w">
-            bad word! <br /> -300 points for whoever wrote that <br />
-            +100 points in consolation for {@player.name}
-          </div>
+            <b>bad word!</b> <br /> -300 points for whoever wrote that <br />
+            +100 points in consolation for <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
+            </div>
         <% @stage == :guess_result and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}

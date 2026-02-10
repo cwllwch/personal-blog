@@ -249,4 +249,8 @@ defmodule Whoami.Helpers do
   def sanitize_word(word) when not is_binary(word) do
     {:error, "not a string"}
   end
+
+  def name_selector(guesser, self) when guesser == self, do: "you"
+
+  def name_selector(guesser, self) when guesser != self, do: guesser
 end

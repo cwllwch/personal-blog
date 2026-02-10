@@ -237,8 +237,9 @@ defmodule Live.Whoami.Components do
               align-items: center;
               vertical-align: middle;
               gap: 40px;
-              margin-top: 10px">
-        <h1>think of objects, people, or characters <br />known by everyone in the group</h1>
+              margin-top: 10px;
+              box-sizing: content-box">
+        <h1>think of objects, people, or characters known by everyone in the group</h1>
         <input
           name="word_1"
           type="text"
@@ -277,7 +278,7 @@ defmodule Live.Whoami.Components do
 
         <p style="font-family: monospace; align-self: end;">
           If you choose something weird or too unknown, the other players can
-          challenge the word and vote to eliminate the word. <br />
+          challenge the word and vote to eliminate the word. 
           <b style="color: white">You will lose a point if your word is voted out!</b>
         </p>
       </div>
@@ -387,7 +388,7 @@ defmodule Live.Whoami.Components do
     ~H"""
     <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
 
-    <div :if={@questions != nil} style="text-align: center; margin-top: -5%">
+    <div :if={@questions != nil} style="text-align: center">
       previous answers:
       <div class="history">
         <div :for={question <- @questions} class={"question-#{question}"}>

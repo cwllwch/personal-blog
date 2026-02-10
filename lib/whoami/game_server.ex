@@ -535,6 +535,9 @@ defmodule Whoami.GameServer do
       {:error, reason} ->
         {:error, reason}
 
+      [] -> 
+        {:error, "ran out of words!"}
+
       next_word ->
         [{key_to_update, list}] = Enum.filter(word_map, fn {_k, v} -> next_word in v end)
 
@@ -582,9 +585,11 @@ defmodule Whoami.GameServer do
   end
 
   defp last_resort_filter(map) do
-    Logger.info(message: "ran out of good options, will deliver users's word to them")
+    Logger.info(message: "ran out of good options, will deliver users's word to them", map: inspect(map))
 
-    Enum.map(map, fn {_k, v} -> v end)
+    Enum.map(map, fn {_k, v} -> if v != [], do: hd(v) end)
+    |> Enum.filter(&(&1 != nil))
+    |> IO.inspect()
     |> Enum.take_random(1)
     |> List.first()
   end

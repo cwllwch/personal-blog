@@ -94,7 +94,7 @@
 }
 
 [class^="answer"] {
-		height: 6vh;
+		height: auto;
 		min-height: 75px;
 		width: 45vw;
 		min-width: 250px;
@@ -155,5 +155,11 @@
 		.tooltip {
 				max-width: 80svw;
 
+		}
+
+		.answer-illegal_w {
+				min-width: 60svw;
+				width: 70svw;
+				height: auto;
 		}
 }
