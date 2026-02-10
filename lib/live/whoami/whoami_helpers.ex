@@ -255,8 +255,9 @@ defmodule Whoami.Helpers do
   so that if you answer earlier correctly = get more points
   """
   def questions_to_multiplier(questions) do
-    multiplier = Enum.filter(questions, fn i -> Map.values(i) == [%{}] end)
-    |> length()
+    multiplier =
+      Enum.filter(questions, fn i -> Map.values(i) == [%{}] end)
+      |> length()
 
     if multiplier == 0, do: 1, else: multiplier
   end

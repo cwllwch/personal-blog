@@ -841,7 +841,9 @@ defmodule Whoami.GameServer do
       state
       |> Map.get(:players)
       |> Enum.map(&if &1.id == author, do: add_points_conditions(&1, answer, 1), else: &1)
-      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, :consolation, 1), else: &1)
+      |> Enum.map(
+        &if &1.id == guesser_id, do: add_points_conditions(&1, :consolation, 1), else: &1
+      )
 
     %{state | players: new_players}
   end
@@ -855,17 +857,21 @@ defmodule Whoami.GameServer do
     new_players =
       state
       |> Map.get(:players)
-      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, answer, multiplier), else: &1)
+      |> Enum.map(
+        &if &1.id == guesser_id, do: add_points_conditions(&1, answer, multiplier), else: &1
+      )
 
     %{state | players: new_players}
   end
 
   defp add_points_conditions(player, answer, multiplier) when answer == :correct do
-    Map.update!(player, :points, fn previous -> 50 |> Kernel.*(multiplier) |> Kernel.+(previous) end)
+    Map.update!(player, :points, fn previous ->
+      50 |> Kernel.*(multiplier) |> Kernel.+(previous)
+    end)
   end
 
   defp add_points_conditions(player, answer, multiplier) when answer == :consolation do
-    Map.update!(player, :points, fn previous -> previous + 10  * multiplier end)
+    Map.update!(player, :points, fn previous -> previous + 10 * multiplier end)
   end
 
   defp add_points_conditions(player, answer, _multiplier) when answer == :yes do

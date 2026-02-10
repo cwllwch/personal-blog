@@ -443,7 +443,9 @@ defmodule Live.Whoami.Components do
   attr :questions, :map, required: true
 
   def guess_result(assigns) do
-    multiplier = Helpers.questions_to_multiplier(assigns.questions) + 1 # By the time this gets computed, the correct guess was entered into this list so gotta get it right
+    # By the time the multiplier gets computed here, the correct guess was entered into this list.
+    # Ideal solution is to retrieve it from server but... honestly, much easier to reconstruct it here.
+    multiplier = Helpers.questions_to_multiplier(assigns.questions) + 1
     assigns = assign(assigns, :multiplier, multiplier)
 
     cond do
