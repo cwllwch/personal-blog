@@ -91,6 +91,12 @@ defmodule Whoami.GameServer do
   end
 
   @impl true
+  def handle_call(:fetch_q_history, _from, state) do
+    round = get_round_to_fill(state)
+    {:reply, {:ok, round.questions}, state}
+  end
+
+  @impl true
   def handle_call({:fetch_word_in_play}, _from, state) do
     player_to_guess = List.last(state.word_queue)
     {:reply, {:ok, state.word_in_play, player_to_guess}, state}
@@ -283,6 +289,11 @@ defmodule Whoami.GameServer do
 
   @impl true
   def handle_info({:update_stage, new_stage}, state) do
+    {:noreply, %{state | stage: new_stage}}
+  end
+
+  @impl true
+  def handle_info({:update_stage, new_stage, _atom}, state) do
     {:noreply, %{state | stage: new_stage}}
   end
 
@@ -524,6 +535,9 @@ defmodule Whoami.GameServer do
       {:error, reason} ->
         {:error, reason}
 
+      [] ->
+        {:error, "ran out of words!"}
+
       next_word ->
         [{key_to_update, list}] = Enum.filter(word_map, fn {_k, v} -> next_word in v end)
 
@@ -543,6 +557,9 @@ defmodule Whoami.GameServer do
     end
   end
 
+  # This tries to find a word not written by the person who will guess, or the author of the last word
+  # in order to balance the word useage. If it doesn't work, last resort is to deliver the user's word
+  # back to themselves. ¯\_(ツ)_/¯
   defp balance_word_useage(map, author, user) do
     strict_filter =
       Enum.map(map, fn {k, v} -> if k not in [author, user], do: v end)
@@ -556,7 +573,7 @@ defmodule Whoami.GameServer do
 
       [] ->
         fallback = fallback_filter(map, user)
-        if fallback == [], do: {:error, nil}, else: List.first(fallback)
+        if fallback == [], do: last_resort_filter(map), else: List.first(fallback)
     end
   end
 
@@ -565,6 +582,18 @@ defmodule Whoami.GameServer do
     |> Enum.reject(fn v -> v == nil end)
     |> List.flatten()
     |> Enum.take_random(1)
+  end
+
+  defp last_resort_filter(map) do
+    Logger.info(
+      message: "ran out of good options, will deliver users's word to them",
+      map: inspect(map)
+    )
+
+    Enum.map(map, fn {_k, v} -> if v != [], do: hd(v) end)
+    |> Enum.filter(&(&1 != nil))
+    |> Enum.take_random(1)
+    |> List.first()
   end
 
   @doc "Gets the round with the highest id, which should be the latest one."

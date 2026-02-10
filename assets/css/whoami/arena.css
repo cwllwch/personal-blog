@@ -51,10 +51,22 @@
 		border-color: gray;
 		border-width: 3px;
 		grid-area: button-illegal;
+		position: relative;
 }
 
 .button-illegal:hover {
 		background-color: #312d2c !important;
+}
+
+.button-illegal .tooltip {
+		top: -80%;
+
+}
+.button-illegal:hover .tooltip {
+		visibility: visible;
+		opacity: 1;
+		transform: scale(1);
+		transition: visibility 0.3s 0.5s, opacity 0.3s ease 0.5s, transform 0.3s 0.5s;
 }
 
 .button-stupid {
@@ -62,6 +74,19 @@
 		border-color: darkred;
 		border-width: 3px;
 		grid-area: button-stupid;
+		position: relative;
+}
+
+.button-stupid:hover .tooltip {
+		visibility: visible;
+		opacity: 1;
+		transform: scale(1);
+		transition: visibility 0.3s 0.5s, opacity 0.3s ease 0.5s, transform 0.3s 0.5s;
+}
+
+
+.button-stupid .tooltip {
+		top: -80%;
 }
 
 .button-stupid:hover {
@@ -69,7 +94,7 @@
 }
 
 [class^="answer"] {
-		height: 6vh;
+		height: auto;
 		min-height: 75px;
 		width: 45vw;
 		min-width: 250px;
@@ -102,4 +127,39 @@
 		min-height: 100px;
 		width: 65vw;
 		min-width: 350px;
+}
+
+.tooltip {
+		visibility: hidden;
+		opacity: 0;
+		transform: scale(0.5);
+		transform-origin: center;
+		position: absolute;
+		text-align: center;
+		background-color: #27232280;
+		border-style: solid;
+		border-radius: 2em;
+		border-color: white;
+		border-width: 2px;
+		max-width: 100vw;
+		padding: 15px;
+		justify-self: center;
+		align-self: center;
+		z-index: 500;
+		backdrop-filter: blur(4px);
+		transition: visibility 0.3s, opacity 0.3s ease, transform 0.2s;
+}
+
+
+@media screen and (max-width: 700px) {
+		.tooltip {
+				max-width: 80svw;
+
+		}
+
+		.answer-illegal_w {
+				min-width: 60svw;
+				width: 70svw;
+				height: auto;
+		}
 }

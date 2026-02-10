@@ -206,6 +206,20 @@ defmodule Whoami.Main do
     end
   end
 
+  def fetch_q_history(lobby) when is_pid(lobby) do
+    case GenServer.call(lobby, :fetch_q_history) do
+      {:ok, history} -> history
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def fetch_q_history(lobby) do
+    case get_pid_by_lid(lobby) do
+      {:ok, pid} -> fetch_q_history(pid)
+      {:error, message} -> {:error, message}
+    end
+  end
+
   def fetch_captain(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, {:fetch_captain}) do
       {:ok, captain} ->

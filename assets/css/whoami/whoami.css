@@ -63,12 +63,33 @@
 		letter-spacing: -3px;
 		animation: loadingDots 5s 0.2s steps(1) infinite;
 }
- .invite-block {
+
+.ready-false {
+		background-color: #7c0400;
+}
+
+.ready-true {
+		background-color: #35530e;
+}
+
+.ready-false, .ready-true {
+		height: 5vi;
+		min-height: 40px;
+		max-height: 90px;
+		width: 40vi;
+		min-width: 275px;
+		max-width: 500px;
+		border-radius: 5em;
+		align-self: center;
+}
+
+
+.invite-block {
  		margin: 5vi;
 		display: flex;
  		justify-self: center;
  		align-items: center;
- 		padding: 15px 20px 15px 20px;
+ 		padding: 15px 10px 15px 10px;
  		border-radius: 1vi;
  		background-color: oklch(0.4069 0.1158 279.94 / 40%);
  		width: fit-content;
@@ -119,7 +140,7 @@
 		z-index: 500 !important;
 		align-self: center;
 		text-align: center;
-		min-width: 400px;
+		min-width: 250px;
 		max-width: 500px;
 		border-radius: 5em;
 		background-color: green;
@@ -135,7 +156,7 @@
 		background-color: inherit;
 		height: 5vh;
 		width: 40vw;
-		min-width: 400px;
+		min-width: 250px;
 		max-width: 500px;
 		animation: pulse 3s infinite;
 }
@@ -147,22 +168,99 @@
 		overflow-y: visible;
 }
 
+.history {
+		width: 90vw;
+		overflow-x: auto;
+		overflow-y: clip;
+		height: 10vh;
+		flex-direction: row;
+		display: flex;
+		padding: 2vw;
+		gap: 1vw;
+}
+
+[class^=question] {
+		height: 3.5rem;
+		width: calc((100% - 4vw) / 5);
+		aspect-ratio: 4/3;
+		border-color: darkgrey;
+		border-width: 2px;
+		border-radius: 1svw;
+		font-size: xx-large;
+}
+
+.question-yes {
+		background-color: #35530e;
+}
+
+.question-no {
+		background-color: #003e53;
+}
+
+.question-maybe {
+		background-color: #393b0b;
+}
+
+.question-illegal_q {
+		background-color: #420000;
+}
+
+.question-illegal_w {
+		background-color: #420000;
+}
+
+.question-wrong_guess {
+		background-color: #312d2c;
+}
+
+.question-correct_guess {
+		background-color: #35530e;
+}
+
  /* control small screen elements */
 @media screen and (max-width: 850px) {
 		.field {
 				flex-flow: column nowrap;
 				justify-content: start;
 				overflow-x: hidden;
-				overflow-y: auto;
 				gap: 20px;
 				height: 90vh;
 				min-height: 800px;
 				width: 90vw;
 				aspect-ratio: 9/16;
 				border-radius: 1rem;
-				padding: 2rem;
+				padding: 1rem;
 				color: white;
 				animation: fadeIn 100ms;
+		}
+
+		.invite-block {
+				flex-flow: column nowrap;
+				text-align: center;
+				margin: 2vw;
+				position: relative;
+				left: -4vw
+		}
+
+		[class^=start] {
+				position: relative;
+				left: -4vw;
+				z-index: 100;
+		}
+
+		[class^=ready] {
+				position: relative;
+				left: -4vw;
+		}
+
+		.history {
+				flex-wrap: wrap;
+		}
+
+		[class^=question] {
+				height: 2rem;
+				width: calc((95% - 4vw) / 5);
+				font-size: medium;
 		}
 }
 

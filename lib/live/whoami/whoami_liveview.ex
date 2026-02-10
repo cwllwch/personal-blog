@@ -137,6 +137,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
+          <.question_history questions={@answer_history} />
           <.arena
             lobby_id={@lobby_id}
             self={@player}
@@ -145,7 +146,14 @@ defmodule PortalWeb.LiveStuff.Whoami do
             player_to_guess={@player_to_guess}
           />
         <% @stage == :answered and @loading == false -> %>
-          waiting on everyone to answer as well...
+          <.player_bar
+            lobby_id={@lobby_id}
+            self={@player}
+            players={@players_in_lobby}
+            disc_list={@disc_list}
+            stage={@stage}
+          />
+          <br /> waiting on everyone to answer as well...
         <% @stage == :show_answer and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -154,26 +162,31 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <br /> Your friends agree that your answer is:
+          <.question_history questions={@answer_history} />
           <div :if={@answer == :yes} class="answer-yes">
-            yes <br /> gained 20 points!
+            <b>yes</b> <br /> <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
+            gained 20 points!
           </div>
 
           <div :if={@answer == :no} class="answer-no">
-            no <br /> no points for you
+            <b>no</b> <br /> no points for
+            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
 
           <div :if={@answer == :maybe} class="answer-maybe">
-            maybe <br /> 5 points
+            <b>maybe</b> <br /> 5 points for
+            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
 
           <div :if={@answer == :illegal_q} class="answer-illegal_q">
-            illegal question! <br /> -100 points
+            <b>illegal question!</b> <br />
+            <b>{Helpers.name_selector(@player_to_guess.name, @player.name)}</b> lost -100 points
           </div>
 
           <div :if={@answer == :illegal_w} class="answer-illegal_w">
-            illegal word! <br /> -300 points for the author <br />
-            +100 points in consolation for {@player.name}
+            <b>bad word!</b> <br /> -300 points for whoever wrote that <br />
+            +100 points in consolation for
+            <b>{" " <> Helpers.name_selector(@player_to_guess.name, @player.name)}</b>
           </div>
         <% @stage == :guess_result and @loading == false -> %>
           <.player_bar
@@ -183,6 +196,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
+          <.question_history questions={@answer_history} />
           <.guess_result
             word_in_play={@word_in_play}
             guess_word={@attempted_word}
@@ -330,6 +344,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   @impl true
   def handle_info({:voting_complete, answer, _question}, socket) do
     Process.send_after(self(), {:iterate_question}, 7_000)
+    send(self(), :fetch_q_history)
     {:noreply, assign(socket, stage: :show_answer, answer: answer)}
   end
 
@@ -346,6 +361,24 @@ defmodule PortalWeb.LiveStuff.Whoami do
   def handle_info({:iterate_question}, socket) do
     Main.check_next_step(socket.assigns.lobby_id)
     {:noreply, assign(socket, loading: true)}
+  end
+
+  @impl true
+  def handle_info(:fetch_q_history, socket) do
+    case Main.fetch_q_history(socket.assigns.lobby_id) do
+      {:error, reason} ->
+        Logger.error(
+          message: "Can't fetch the question history",
+          reason: inspect(reason),
+          lobby: socket.assigns.lobby_id,
+          stage: inspect(socket.assigns.stage)
+        )
+
+        {:noreply, socket}
+
+      history ->
+        {:noreply, assign(socket, :answer_history, history)}
+    end
   end
 
   @impl true
@@ -404,6 +437,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
   @impl true
   def handle_info({:show_guess_result, atom, word}, socket) do
     Process.send_after(self(), {:iterate_question}, 7_000)
+    send(self(), :fetch_q_history)
 
     {:noreply,
      assign(socket, result: atom, attempted_word: word, stage: :guess_result, loading: false)}
@@ -414,6 +448,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
     send(self(), {:update_interaction, System.system_time(:second)})
 
     if new_stage == :versus_arena do
+      send(self(), :fetch_q_history)
       send(self(), {:fetch_next_word})
       {:noreply, assign(socket, stage: new_stage, loading: true)}
     else

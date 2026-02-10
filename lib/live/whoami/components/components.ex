@@ -133,23 +133,26 @@ defmodule Live.Whoami.Components do
     ~H"""
     <div class="players">
       <%!-- This will separate the current player from others - so that the player is always first when viewing itself  --%>
-      <div :if={@stage == :waiting_room} class={"player-#{@self.ready}"}>
+      <div :if={@stage == :waiting_room} class={"player-#{@self.ready} ring-blue-500"}>
         <div class="stars">
           <.icon :for={win <- 1..@self.wins} :if={@self.wins >= 1} name="hero-star-solid" />
         </div>
         <.icon :if={@captain != @self.id} name="hero-user" class="icon" />
-        <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon" />
+        <.icon :if={@captain == @self.id} name="hero-user-circle" class="icon" />
         <div class="name">{@self.name}</div>
         <div class="score">{@self.points}</div>
       </div>
-
       <%!-- Renders the player first in the room, when the ready state does not matter anymore  --%>
-      <div :if={@stage != :waiting_room} class="player-true">
+      <div
+        :if={@stage != :waiting_room}
+        class="player-true"
+        style="border-width: 1px; border-color: yellow;"
+      >
         <div class="stars">
           <.icon :for={win <- 1..@self.wins} :if={@self.wins >= 1} name="hero-star-solid" />
         </div>
         <.icon :if={@captain != @self.id} name="hero-user" class="icon" />
-        <.icon :if={@captain == @self.id} name="hero-user-plus" class="icon" />
+        <.icon :if={@captain == @self.id} name="hero-user-circle" class="icon" />
         <div class="name">{@self.name}</div>
         <div class="score">{@self.points}</div>
       </div>
@@ -176,7 +179,7 @@ defmodule Live.Whoami.Components do
         </div>
         <%= if player.id not in @disc_list do %>
           <.icon :if={@captain != player.id} name="hero-user" class="icon" />
-          <.icon :if={@captain == player.id} name="hero-user-plus" class="icon" />
+          <.icon :if={@captain == player.id} name="hero-user-circle" class="icon" />
         <% else %>
           <.icon name="hero-signal-slash" class="icon" />
         <% end %>
@@ -191,7 +194,7 @@ defmodule Live.Whoami.Components do
         </div>
         <%= if player.id not in @disc_list do %>
           <.icon :if={@captain != player.id} name="hero-user" class="icon" />
-          <.icon :if={@captain == player.id} name="hero-user-plus" class="icon" />
+          <.icon :if={@captain == player.id} name="hero-user-circle" class="icon" />
         <% else %>
           <.icon name="hero-signal-slash" class="icon" />
         <% end %>
@@ -227,14 +230,16 @@ defmodule Live.Whoami.Components do
               width: 100%;
               height: 50vh;
               min-height: 520px;
+              overflow: visible
               text-align: center;
               justify-content: center;
               flex-direction: column; 
               align-items: center;
               vertical-align: middle;
               gap: 40px;
-              margin-top: 10px">
-        <h1>think of objects, people, or characters <br />known by everyone in the group</h1>
+              margin-top: 10px;
+              box-sizing: content-box">
+        <h1>think of objects, people, or characters known by everyone in the group</h1>
         <input
           name="word_1"
           type="text"
@@ -273,7 +278,7 @@ defmodule Live.Whoami.Components do
 
         <p style="font-family: monospace; align-self: end;">
           If you choose something weird or too unknown, the other players can
-          challenge the word and vote to eliminate the word. <br />
+          challenge the word and vote to eliminate the word.
           <b style="color: white">You will lose a point if your word is voted out!</b>
         </p>
       </div>
@@ -297,7 +302,7 @@ defmodule Live.Whoami.Components do
   def arena(assigns) do
     ~H"""
     <div :if={@player_to_guess != nil and @player_to_guess.id != @self.id}>
-      <br />The word this turn is: {@word_in_play}
+      The word this turn is: {@word_in_play}
       <br />to be guessed by: {@player_to_guess.name}
       <br />
       <br />The answer to {@player_to_guess.name}'s question is:
@@ -327,6 +332,9 @@ defmodule Live.Whoami.Components do
           class="button-illegal"
           phx-click="illegal_question"
         >
+          <div class="tooltip">
+            If the question cannot be answered with Yes or No, then it is an illegal question.
+          </div>
           illegal question!
         </.button>
 
@@ -334,6 +342,10 @@ defmodule Live.Whoami.Components do
           class="button-stupid"
           phx-click="illegal_word"
         >
+          <div class="tooltip">
+            If your friends agree with this vote, the author of the word will lose 300 points
+            and the poor soul trying to guess this will get 100 points.
+          </div>
           this word is terrible
         </.button>
       </div>
@@ -354,7 +366,7 @@ defmodule Live.Whoami.Components do
           required
           placeholder="you will lose a question."
           class="rounded-xl bg-zinc-800"
-          style="width: 10vw; min-width: 350px; max-width: 500px; margin: 1vh"
+          style="width: 10vw; min-width: 300px; max-width: 500px; margin: 1vh"
         />
         <.button type="submit" style="padding: 3vw; width: 150px">confirm</.button>
       </form>
@@ -366,6 +378,61 @@ defmodule Live.Whoami.Components do
       </div>
     </div>
     """
+  end
+
+  attr :questions, :map, required: true
+
+  def question_history(assigns) do
+    assigns = assign(assigns, :questions, replace_questions(assigns.questions))
+
+    ~H"""
+    <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
+
+    <div :if={@questions != nil} style="text-align: center">
+      previous answers:
+      <div class="history">
+        <div :for={question <- @questions} class={"question-#{question}"}>
+          <%= cond do %>
+            <% question == "empty" -> %>
+            <% question == "yes" -> %>
+              ✔
+            <% question == "no" -> %>
+              ✗
+            <% question == "maybe" -> %>
+              ?
+            <% question == "illegal_q" -> %>
+              ☠
+            <% question == "illegal_w" -> %>
+              ⛈
+            <% question == "wrong_guess" -> %>
+              ⦻
+            <% question == "correct_guess" -> %>
+              ○
+            <% true -> %>
+              {question}
+          <% end %>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # The questions are fetched ansychronously, so if we don't guard for the value being null
+  # then Enum will crash the frontend process.
+  defp replace_questions(list) when list == nil, do: nil
+
+  defp replace_questions(list) when list != nil, do: question_converter(list)
+
+  defp question_converter(list) do
+    Enum.map(list, fn m ->
+      if Map.values(m) != [%{}] do
+        Map.values(m)
+        |> hd()
+        |> Atom.to_string()
+      else
+        "empty"
+      end
+    end)
   end
 
   attr :word_in_play, :string, required: true
