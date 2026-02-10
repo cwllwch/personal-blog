@@ -238,7 +238,7 @@ defmodule Whoami.Round do
     end
   end
 
-  defp gen_question_stubs do
+  def gen_question_stubs do
     Enum.map(1..@questions_per_round, fn x -> %{x => %{}} end)
   end
 end

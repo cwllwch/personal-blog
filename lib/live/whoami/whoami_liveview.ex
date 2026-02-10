@@ -202,6 +202,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             guess_word={@attempted_word}
             guesser={@player_to_guess}
             result={@result}
+            questions={@answer_history}
           />
         <% @stage == :final_results and @loading == false -> %>
           <.final_result
