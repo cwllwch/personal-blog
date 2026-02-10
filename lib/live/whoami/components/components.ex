@@ -278,7 +278,7 @@ defmodule Live.Whoami.Components do
 
         <p style="font-family: monospace; align-self: end;">
           If you choose something weird or too unknown, the other players can
-          challenge the word and vote to eliminate the word. 
+          challenge the word and vote to eliminate the word.
           <b style="color: white">You will lose a point if your word is voted out!</b>
         </p>
       </div>
