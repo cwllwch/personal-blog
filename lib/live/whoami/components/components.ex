@@ -143,7 +143,11 @@ defmodule Live.Whoami.Components do
         <div class="score">{@self.points}</div>
       </div>
       <%!-- Renders the player first in the room, when the ready state does not matter anymore  --%>
-      <div :if={@stage != :waiting_room} class="player-true" style="border-width: 1px; border-color: yellow;">
+      <div
+        :if={@stage != :waiting_room}
+        class="player-true"
+        style="border-width: 1px; border-color: yellow;"
+      >
         <div class="stars">
           <.icon :for={win <- 1..@self.wins} :if={@self.wins >= 1} name="hero-star-solid" />
         </div>
@@ -330,7 +334,6 @@ defmodule Live.Whoami.Components do
           <div class="tooltip">
             If the question cannot be answered with Yes or No, then it is an illegal question.
           </div>
-
           illegal question!
         </.button>
 
@@ -339,10 +342,9 @@ defmodule Live.Whoami.Components do
           phx-click="illegal_word"
         >
           <div class="tooltip">
-            If your friends agree with this vote, the author of the word will lose 300 points 
+            If your friends agree with this vote, the author of the word will lose 300 points
             and the poor soul trying to guess this will get 100 points.
           </div>
-
           this word is terrible
         </.button>
       </div>
@@ -381,43 +383,52 @@ defmodule Live.Whoami.Components do
 
   def question_history(assigns) do
     assigns = assign(assigns, :questions, replace_questions(assigns.questions))
-    ~H"""
-        <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
 
-        <div :if={@questions != nil} style="text-align: center; margin-top: -5%">
-          previous answers:
-          <div class="history">
-            <div :for={question <- @questions} class={"question-#{question}"}>
-              <%= cond do %>
-              <% question == "empty" -> %>
-              <% question == "yes" -> %> ✔
-              <% question == "no" -> %> ✗
-              <% question == "maybe" -> %> ?
-              <% question == "illegal_q" -> %> ☠
-              <% question == "illegal_w" -> %> ⛈
-              <% question == "wrong_guess" -> %> ⦻
-              <% question == "correct_guess" -> %> ○
-              <% true -> %> {question}
-              <% end %>
-            </div>
-          </div>
+    ~H"""
+    <.icon :if={@questions == nil} name="hero-arrow-path" class="animate-spin text-white" />
+
+    <div :if={@questions != nil} style="text-align: center; margin-top: -5%">
+      previous answers:
+      <div class="history">
+        <div :for={question <- @questions} class={"question-#{question}"}>
+          <%= cond do %>
+            <% question == "empty" -> %>
+            <% question == "yes" -> %>
+              ✔
+            <% question == "no" -> %>
+              ✗
+            <% question == "maybe" -> %>
+              ?
+            <% question == "illegal_q" -> %>
+              ☠
+            <% question == "illegal_w" -> %>
+              ⛈
+            <% question == "wrong_guess" -> %>
+              ⦻
+            <% question == "correct_guess" -> %>
+              ○
+            <% true -> %>
+              {question}
+          <% end %>
         </div>
+      </div>
+    </div>
     """
   end
 
-  # The questions are fetched ansychronously, so if we don't guard for the value being null 
+  # The questions are fetched ansychronously, so if we don't guard for the value being null
   # then Enum will crash the frontend process.
-  defp replace_questions(list) when list == nil, do: nil 
+  defp replace_questions(list) when list == nil, do: nil
 
   defp replace_questions(list) when list != nil, do: question_converter(list)
 
   defp question_converter(list) do
-    Enum.map(list, fn m -> 
-      if Map.values(m) != [%{}] do 
-        Map.values(m) 
-        |> hd() 
+    Enum.map(list, fn m ->
+      if Map.values(m) != [%{}] do
+        Map.values(m)
+        |> hd()
         |> Atom.to_string()
-      else 
+      else
         "empty"
       end
     end)

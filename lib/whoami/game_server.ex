@@ -554,7 +554,7 @@ defmodule Whoami.GameServer do
     end
   end
 
-  # This tries to find a word not written by the person who will guess, or the author of the last word 
+  # This tries to find a word not written by the person who will guess, or the author of the last word
   # in order to balance the word useage. If it doesn't work, last resort is to deliver the user's word
   # back to themselves. ¯\_(ツ)_/¯
   defp balance_word_useage(map, author, user) do
@@ -582,7 +582,7 @@ defmodule Whoami.GameServer do
   end
 
   defp last_resort_filter(map) do
-    Logger.info([message: "ran out of good options, will deliver users's word to them"])
+    Logger.info(message: "ran out of good options, will deliver users's word to them")
 
     Enum.map(map, fn {_k, v} -> v end)
     |> Enum.take_random(1)

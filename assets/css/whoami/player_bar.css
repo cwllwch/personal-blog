@@ -75,25 +75,6 @@
 }
 
 
-.ready-false {
-		background-color: #7c0400;
-}
-
-.ready-true {
-		background-color: #35530e;
-}
-
-.ready-false, .ready-true {
-		height: 5vi;
-		min-height: 40px;
-		max-height: 90px;
-		width: 40vi;
-		min-width: 300px;
-		max-width: 500px;
-		border-radius: 5em;
-		align-self: center;
-}
-
 .remove_player {
 		display: none;
 		position: absolute;
@@ -130,14 +111,14 @@
 
 @media screen and (max-width: 850px) {
 		.players {
-				top: -5vh;
+				position: relative;
 				width: 85svw;
 				margin-left: -3%;
 				border-color: #35530e;
 				border-width: 3px;
 				border-radius: 1vi;
 				padding: 10px;
-				margin-bottom: 5px;
+				box-sizing: border-box;
 		}
 }
 

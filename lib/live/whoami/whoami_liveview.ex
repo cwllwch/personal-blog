@@ -85,13 +85,11 @@ defmodule PortalWeb.LiveStuff.Whoami do
           <div class="justify-self-center justify-center">
             <.icon name="hero-arrow-path" class="animate-spin text-white" /> loading...
           </div>
-
         <% @stage == nil and @loading == false -> %>
           <.new_lobby
             question={"How many are playing, " <> @player.name <> "?"}
             button="create the lobby"
           />
-
         <% @stage == :waiting_room and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -106,7 +104,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
             self={@player}
             can_start={@can_start}
           />
-
         <% @stage == :input_word and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -121,7 +118,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
             self={@player}
             players={@players_in_lobby}
           />
-
         <% @stage == :waiting_for_words and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -133,7 +129,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
           <div style="align-self: center; margin-top: 5em">
             <.icon name="hero-arrow-path" class="animate-spin text-white" /> waiting for others...
           </div>
-
         <% @stage == :versus_arena and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -142,9 +137,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <.question_history
-            questions={@answer_history}
-          />
+          <.question_history questions={@answer_history} />
           <.arena
             lobby_id={@lobby_id}
             self={@player}
@@ -152,7 +145,6 @@ defmodule PortalWeb.LiveStuff.Whoami do
             word_in_play={@word_in_play}
             player_to_guess={@player_to_guess}
           />
-
         <% @stage == :answered and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -161,9 +153,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <br />
-          waiting on everyone to answer as well...
-
+          <br /> waiting on everyone to answer as well...
         <% @stage == :show_answer and @loading == false -> %>
           <.player_bar
             lobby_id={@lobby_id}
@@ -172,9 +162,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <.question_history
-            questions={@answer_history}
-          />
+          <.question_history questions={@answer_history} />
           <div :if={@answer == :yes} class="answer-yes">
             yes <br /> gained 20 points!
           </div>
@@ -192,8 +180,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
           </div>
 
           <div :if={@answer == :illegal_w} class="answer-illegal_w">
-            bad word! <br /> 
-            -300 points for whoever wrote that <br />
+            bad word! <br /> -300 points for whoever wrote that <br />
             +100 points in consolation for {@player.name}
           </div>
         <% @stage == :guess_result and @loading == false -> %>
@@ -204,9 +191,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
             disc_list={@disc_list}
             stage={@stage}
           />
-          <.question_history
-            questions={@answer_history}
-          />
+          <.question_history questions={@answer_history} />
           <.guess_result
             word_in_play={@word_in_play}
             guess_word={@attempted_word}
@@ -376,17 +361,18 @@ defmodule PortalWeb.LiveStuff.Whoami do
   @impl true
   def handle_info(:fetch_q_history, socket) do
     case Main.fetch_q_history(socket.assigns.lobby_id) do
-      {:error, reason} -> 
-        Logger.error([
-          message: "Can't fetch the question history", 
+      {:error, reason} ->
+        Logger.error(
+          message: "Can't fetch the question history",
           reason: inspect(reason),
           lobby: socket.assigns.lobby_id,
           stage: inspect(socket.assigns.stage)
-        ])
+        )
+
         {:noreply, socket}
 
       history ->
-        {:noreply, assign(socket, :answer_history, history) }
+        {:noreply, assign(socket, :answer_history, history)}
     end
   end
 

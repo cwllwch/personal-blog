@@ -205,7 +205,7 @@ defmodule Whoami.Main do
       {:error, message} -> {:error, message}
     end
   end
-  
+
   def fetch_q_history(lobby) when is_pid(lobby) do
     case GenServer.call(lobby, :fetch_q_history) do
       {:ok, history} -> history

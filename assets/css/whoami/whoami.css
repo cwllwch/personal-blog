@@ -64,12 +64,32 @@
 		animation: loadingDots 5s 0.2s steps(1) infinite;
 }
 
- .invite-block {
+.ready-false {
+		background-color: #7c0400;
+}
+
+.ready-true {
+		background-color: #35530e;
+}
+
+.ready-false, .ready-true {
+		height: 5vi;
+		min-height: 40px;
+		max-height: 90px;
+		width: 40vi;
+		min-width: 275px;
+		max-width: 500px;
+		border-radius: 5em;
+		align-self: center;
+}
+
+
+.invite-block {
  		margin: 5vi;
 		display: flex;
  		justify-self: center;
  		align-items: center;
- 		padding: 15px 20px 15px 20px;
+ 		padding: 15px 10px 15px 10px;
  		border-radius: 1vi;
  		background-color: oklch(0.4069 0.1158 279.94 / 40%);
  		width: fit-content;
@@ -120,7 +140,7 @@
 		z-index: 500 !important;
 		align-self: center;
 		text-align: center;
-		min-width: 400px;
+		min-width: 250px;
 		max-width: 500px;
 		border-radius: 5em;
 		background-color: green;
@@ -136,7 +156,7 @@
 		background-color: inherit;
 		height: 5vh;
 		width: 40vw;
-		min-width: 400px;
+		min-width: 250px;
 		max-width: 500px;
 		animation: pulse 3s infinite;
 }
@@ -209,9 +229,28 @@
 				width: 90vw;
 				aspect-ratio: 9/16;
 				border-radius: 1rem;
-				padding: 2rem;
+				padding: 1rem;
 				color: white;
 				animation: fadeIn 100ms;
+		}
+
+		.invite-block {
+				flex-flow: column nowrap;
+				text-align: center;
+				margin: 2vw;
+				position: relative;
+				left: -4vw
+		}
+
+		[class^=start] {
+				position: relative;
+				left: -4vw;
+				z-index: 100;
+		}
+
+		[class^=ready] {
+				position: relative;
+				left: -4vw;
 		}
 
 		.history {
