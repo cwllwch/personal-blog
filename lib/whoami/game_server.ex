@@ -840,48 +840,51 @@ defmodule Whoami.GameServer do
     new_players =
       state
       |> Map.get(:players)
-      |> Enum.map(&if &1.id == author, do: add_points_conditions(&1, answer), else: &1)
-      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, :consolation), else: &1)
+      |> Enum.map(&if &1.id == author, do: add_points_conditions(&1, answer, 1), else: &1)
+      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, :consolation, 1), else: &1)
 
     %{state | players: new_players}
   end
 
   def add_points(state, answer) do
-    guesser_id = get_round_to_fill(state) |> Map.get(:guesser) |> Map.get(:id)
+    round = get_round_to_fill(state)
+    guesser_id = round |> Map.get(:guesser) |> Map.get(:id)
+
+    multiplier = round |> Map.get(:questions) |> Helpers.questions_to_multiplier()
 
     new_players =
       state
       |> Map.get(:players)
-      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, answer), else: &1)
+      |> Enum.map(&if &1.id == guesser_id, do: add_points_conditions(&1, answer, multiplier), else: &1)
 
     %{state | players: new_players}
   end
 
-  defp add_points_conditions(player, answer) when answer == :correct do
-    Map.update!(player, :points, fn previous -> previous + 500 end)
+  defp add_points_conditions(player, answer, multiplier) when answer == :correct do
+    Map.update!(player, :points, fn previous -> 50 |> Kernel.*(multiplier) |> Kernel.+(previous) end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :consolation do
-    Map.update!(player, :points, fn previous -> previous + 100 end)
+  defp add_points_conditions(player, answer, multiplier) when answer == :consolation do
+    Map.update!(player, :points, fn previous -> previous + 10  * multiplier end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :yes do
+  defp add_points_conditions(player, answer, _multiplier) when answer == :yes do
     Map.update!(player, :points, fn previous -> previous + 20 end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :maybe do
+  defp add_points_conditions(player, answer, _multiplier) when answer == :maybe do
     Map.update!(player, :points, fn previous -> previous + 5 end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :no do
+  defp add_points_conditions(player, answer, _multiplier) when answer == :no do
     Map.update!(player, :points, fn previous -> previous end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :illegal_q do
+  defp add_points_conditions(player, answer, _multiplier) when answer == :illegal_q do
     Map.update!(player, :points, fn previous -> previous - 100 end)
   end
 
-  defp add_points_conditions(player, answer) when answer == :illegal_w do
+  defp add_points_conditions(player, answer, _multiplier) when answer == :illegal_w do
     Map.update!(player, :points, fn previous -> previous - 300 end)
   end
 end

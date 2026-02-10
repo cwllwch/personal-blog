@@ -250,6 +250,17 @@ defmodule Whoami.Helpers do
     {:error, "not a string"}
   end
 
+  @doc """
+  Gets a questions map and then outputs the amount of times points should be multiplied by 
+  so that if you answer earlier correctly = get more points
+  """
+  def questions_to_multiplier(questions) do
+    multiplier = Enum.filter(questions, fn i -> Map.values(i) == [%{}] end)
+    |> length()
+
+    if multiplier == 0, do: 1, else: multiplier
+  end
+
   def name_selector(guesser, self) when guesser == self, do: "you"
 
   def name_selector(guesser, self) when guesser != self, do: guesser

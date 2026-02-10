@@ -1,5 +1,6 @@
 defmodule Live.Whoami.Components do
-  alias Whoami.Main, as: Whoami
+  alias Whoami.Helpers
+  alias Whoami.Main
   use PortalWeb, :live_component
 
   @moduledoc """
@@ -207,7 +208,7 @@ defmodule Live.Whoami.Components do
 
   # Helpers for the player_bar
   def captain?(lobby_id) do
-    case Whoami.fetch_captain(lobby_id) do
+    case Main.fetch_captain(lobby_id) do
       {:ok, captain} -> captain.id
       {:error, _reason} -> false
     end
@@ -288,7 +289,7 @@ defmodule Live.Whoami.Components do
 
   # Word input helpers
   defp check_word_list(lobby) do
-    Whoami.fetch_word_list(lobby)
+    Main.fetch_word_list(lobby)
     |> Map.keys()
   end
 
@@ -439,13 +440,17 @@ defmodule Live.Whoami.Components do
   attr :guesser, :string, required: true
   attr :guess_word, :string, required: true
   attr :result, :atom, required: true
+  attr :questions, :map, required: true
 
   def guess_result(assigns) do
+    multiplier = Helpers.questions_to_multiplier(assigns.questions) + 1 # By the time this gets computed, the correct guess was entered into this list so gotta get it right
+    assigns = assign(assigns, :multiplier, multiplier)
+
     cond do
       assigns.result == :correct ->
         ~H"""
         {@guesser.name} guessed <b>"{@word_in_play}"</b> exactly right, gaining
-        + 500 points!
+        + {50 |> Kernel.*(@multiplier)} points!
         """
 
       assigns.result == :close ->
