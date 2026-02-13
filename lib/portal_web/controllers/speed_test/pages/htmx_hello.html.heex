@@ -1,0 +1,9 @@
+<div id="main">
+  <button hx-boost="true" hx-get={~p"/speed-test/hello-htmx?#{%{"value" => String.to_integer(@value) + 1}}"} hx-target="#main" hx-swap="outerHTML">
+  add one
+  </button>
+
+  <div id="result">
+  {String.to_integer(@value) + 1}
+  </div>
+</div>

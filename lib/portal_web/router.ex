@@ -10,6 +10,12 @@ defmodule PortalWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :htmx do
+    plug :accepts, ["html"]
+    plug :put_layout, false
+    plug :put_secure_browser_headers
+  end
+
   pipeline :with_username do
     plug PortalWeb.Whoami.AskForUsername, :save_redirect
     plug PortalWeb.Whoami.AskForUsername, :ask_for_username
@@ -26,6 +32,12 @@ defmodule PortalWeb.Router do
     live "/whoami", LiveStuff.Whoami
   end
 
+  scope "/speed-test" do
+    pipe_through [:htmx]
+    
+    get "/hello-htmx", PortalWeb.STController, :htmx_hello
+  end
+
   scope "/", PortalWeb do
     pipe_through :browser
 
@@ -33,6 +45,7 @@ defmodule PortalWeb.Router do
     get "/contact", PageController, :contact
     get "/about", PageController, :about
     get "/set-user", Whoami.AskForUsername, :set_username
+    get "/speed-test",  STController, :speed_test
     live "/prettify-my-json", LiveStuff.Prettify
     live "/whoami/set-user", LiveStuff.Whoami.SetUser
   end

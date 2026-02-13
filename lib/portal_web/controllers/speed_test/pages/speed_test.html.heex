@@ -1,0 +1,20 @@
+<body>
+  HTMX served content, fresh 
+
+
+  <br>
+  <br>
+
+  <div id="main">
+    <button hx-get={~p"/speed-test/hello-htmx?#{%{"value" => @value}}"} hx-target="#main" hx-swap="outerHTML">
+    add one
+    </button>
+
+    <div id="result">
+    {@value}
+    </div>
+  </div>
+
+
+  <a href="/speed-test/new-page" hx-boost="true" hx-confirm="Are you sure you want to go there?"> link </a>
+</body>
