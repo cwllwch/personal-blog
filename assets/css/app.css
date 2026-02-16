@@ -51,7 +51,6 @@ p {
 
 .main {
 		height: fit-content;
-		width: 90vw;
 		display: grid;
 		place-items: center
 }
