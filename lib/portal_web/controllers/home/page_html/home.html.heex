@@ -6,18 +6,28 @@
 </p>
 
 <div class="grid grid-cols-1 m-5 gap-3 p-3 rounded-xl 
-            md:grid-cols-2 
-            lg:grid-cols-3
-            dark:bg-stone-800/20 light:bg-teal-300">
+            md:grid-cols-3 md:grid-rows-2 
+            lg:grid-cols-3 lg:grid-rows-2
+            light:bg-teal-300">
+  <.link
+    navigate={~p"/speed-test#body"}
+    class="lg:col-span-1 lg:row-span-2 lg:aspect-auto
+      md:col-span-2 md:row-span-2
+      overflow-hidden rounded-lg
+      bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
+      flex items-center justify-center "
+  >
+    what's my ping to the server?
+  </.link>
   <.link
     navigate={~p"/whoami#body"}
-    class="lg:col-span-3 lg:aspect-auto
-      md:col-span-2 md:row-span-2
+    class="lg:col-span-2 lg:row-span-2 lg:aspect-auto
+      md:col-span-1 md:row-span-2
       !aspect-[4/1] overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
       flex items-center justify-center"
   >
-    who am I?
+    who am I? - the game!
   </.link>
   <a
     href={~p"/prettify-my-json"}
