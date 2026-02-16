@@ -20,9 +20,4 @@ defmodule PortalWeb.STController do
     |> assign(:value, value)
     |> render(:htmx_hello)
   end
-
-  def new_page(conn, _params) do
-    conn
-    |> render(:new_page)
-  end
 end
