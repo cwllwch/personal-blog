@@ -139,7 +139,7 @@ services:
 
   portal: 
     container_name: server
-    image: bernardocorais/test-repo:portal-0.1.1
+    image: bernardocorais/test-repo:portal-0.1.3
     env_file: .env
     labels:
       # Enable and configure Traefik

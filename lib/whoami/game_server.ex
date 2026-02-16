@@ -461,7 +461,6 @@ defmodule Whoami.GameServer do
 
       new_state =
         Map.put(state, :word_queue, queue)
-        |> get_next_word()
 
       PubSub.broadcast(Portal.PubSub, "lobby:#{state.id}", {:update_stage, :versus_arena})
       {:noreply, new_state}

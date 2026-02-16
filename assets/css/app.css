@@ -32,6 +32,29 @@ p {
 		color: white;
 }
 
+.ping {
+		padding: 30px;
+		margin: 30px;
+		justify-self: center;
+		align-self: center;
+		height: fit-content;
+		width: fit-content;
+		background-color: #002f00;
+		border-radius: 10px
+}
+
+.text-fade {
+		animation: fadeIn ease-in-out 200ms forwards;
+		text-align: center;
+		margin-top: 15px;
+}
+
+.main {
+		height: fit-content;
+		display: grid;
+		place-items: center
+}
+
 @layer components {
 		.vanilla-textbox {
 				@apply bg-white rounded-xl text-gray-500 h-full w-full;
