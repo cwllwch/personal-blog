@@ -34,7 +34,7 @@ defmodule PortalWeb.Router do
 
   scope "/speed-test" do
     pipe_through :htmx
-    
+
     get "/ping", PortalWeb.STController, :ping
   end
 
