@@ -33,9 +33,9 @@ defmodule PortalWeb.Router do
   end
 
   scope "/speed-test" do
-    pipe_through [:htmx]
+    pipe_through :htmx
     
-    get "/hello-htmx", PortalWeb.STController, :htmx_hello
+    get "/ping", PortalWeb.STController, :ping
   end
 
   scope "/", PortalWeb do
@@ -45,7 +45,7 @@ defmodule PortalWeb.Router do
     get "/contact", PageController, :contact
     get "/about", PageController, :about
     get "/set-user", Whoami.AskForUsername, :set_username
-    get "/speed-test",  STController, :speed_test
+    get "/speed-test", STController, :speed_test
     live "/prettify-my-json", LiveStuff.Prettify
     live "/whoami/set-user", LiveStuff.Whoami.SetUser
   end
