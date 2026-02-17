@@ -1,0 +1,22 @@
+.search-bar {
+		background-color: #512000;
+		border-color: #313131;
+		border-width: 2px ; 
+		align-self: center;
+		justify-self: center;
+		width: 60%;
+		height: 4rem;
+		margin-left: 20%;
+		border-radius: 10px;
+		font-family: monospace;
+		font-size: 1.5rem;
+		text-align: center;
+}
+
+.search-bar:focus {
+		border-color: #313131;
+		background-color: #471600;
+		outline: none;
+		box-shadow: none;
+		transition: background-color 100ms;
+}

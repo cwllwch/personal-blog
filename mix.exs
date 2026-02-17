@@ -39,6 +39,7 @@ defmodule Portal.MixProject do
   defp deps do
     [
       {:dotenv, "~> 3.1.0"},
+      {:req, "~> 0.5.17"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:logger_json, "~> 7.0", only: [:dev, :prod], runtime: Mix.env() == :prod},

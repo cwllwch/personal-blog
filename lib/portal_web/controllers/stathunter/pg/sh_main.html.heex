@@ -1,0 +1,10 @@
+<input 
+  type="text"
+  name="nick"
+  class="search-bar"
+  hx-get="/stathunter/find-player"
+  hx-trigger="keyup changed delay:1s"
+  hx-target="#search-results"
+  placeholder="search faceit player nick..."
+>
+<div id="search-results" style="display: none;"></div>

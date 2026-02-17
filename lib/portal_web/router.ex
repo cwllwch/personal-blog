@@ -38,6 +38,12 @@ defmodule PortalWeb.Router do
     get "/ping", PortalWeb.STController, :ping
   end
 
+  scope "/stathunter", PortalWeb.StatHunter do
+    pipe_through :htmx
+
+    get "/find-player", StatHunterAPI, :find_player
+  end
+
   scope "/", PortalWeb do
     pipe_through :browser
 
@@ -46,6 +52,7 @@ defmodule PortalWeb.Router do
     get "/about", PageController, :about
     get "/set-user", Whoami.AskForUsername, :set_username
     get "/speed-test", STController, :speed_test
+    get "/stathunter", StatHunter.StatHunterController, :main
     live "/prettify-my-json", LiveStuff.Prettify
     live "/whoami/set-user", LiveStuff.Whoami.SetUser
   end
