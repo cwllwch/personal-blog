@@ -1,10 +1,37 @@
-<input 
-  type="text"
-  name="nick"
-  class="search-bar"
-  hx-get="/stathunter/find-player"
-  hx-trigger="keyup changed delay:1s"
+<form 
+  hx-get="/stathunter/find-player" 
   hx-target="#search-results"
-  placeholder="search faceit player nick..."
->
-<div id="search-results" style="display: none;"></div>
+  hx-swap="outerHTML swap:1s"
+  class="search-container">
+  <input 
+    type="text"
+    name="nick"
+    class="search-bar"
+    hx-get="/stathunter/find-player"
+    hx-trigger="input delay:0.5s changed, keyup[key=='Enter']"
+    hx-target="#search-results"
+    hx-swap="outerHTML swap:1s settle:1s"
+    placeholder=" enter faceit name"
+    hx-indicator="#loading">
+  <.button 
+    id="search-button" 
+    type="submit" 
+    value="Search">
+    search
+  </.button>
+  <span id="loading" class="htmx-indicator">
+    <svg 
+      fill="none" 
+      viewBox="0 0 24 24" 
+      stroke-width="1.5" 
+      stroke="currentColor" 
+      class="size-10">
+      <path 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 
+        0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+    </svg>
+  </span>
+</form>
+<div id="search-results" style="display: none; opacity: 0;"></div>

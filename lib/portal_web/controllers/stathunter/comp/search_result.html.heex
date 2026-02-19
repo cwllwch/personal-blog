@@ -1,0 +1,16 @@
+<%= if @results != [] do %>
+<table id="search-results" style="display: grid; opacity: 1">
+  <tbody>
+    <tr :for={result <- @results} class="search-row">
+      <td valign="middle"> <img src={result["avatar"]} alt={result["nickname"] <> "\'s avatar"} width="50" height="50" id="avatar"> </td>
+      <td>{result["nickname"]}</td>
+      <td>{result["country"]}</td>
+      <td>{StatHunter.list_games(result["games"])}</td>
+    </tr>
+  </tbody>
+</table>
+<% else %>
+  <div id="search-results" style="background-color: #2a2a2a; height: 4rem; z-index: 1">
+    No players found
+  </div>
+<% end %>

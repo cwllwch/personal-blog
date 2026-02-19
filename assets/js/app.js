@@ -25,3 +25,17 @@ let liveSocket = new LiveSocket("/live", Socket, {
 liveSocket.connect()
 
 window.liveSocket = liveSocket
+
+function updateInertState() {
+		document.querySelectorAll("search-container").forEach(container => {
+				if (container.classList.contains('htmx-request')) {
+						container.setAttribute('inert', '');
+				} else {
+						container.removeAttribute('inert');
+				}
+		});
+}
+
+document.body.addEventListener('htmx:configRequest', updateInertState);
+document.body.addEventListener('htmx:afterSwap', updateInertState);
+document.body.addEventListener('htmx:afterRequest', updateInertState);

@@ -5,13 +5,14 @@
   hx-trigger="load delay:3s"
   hx-swap="innerHTML"
 >
-  <p>
-    this page uses htmx to reload the element below. <br />
-    The server generates a timestamp on first load, that is then passed to the repeated pings inside the
+  <p style="font-family: monospace;">
+    this page uses htmx to reload the element below. <br /><br />
+
+    the server generates a timestamp on first load, that is then passed to the repeated pings inside the
     element below, which is patched with the difference between current time in the server and previous time
     in the request parameter. Idea is that it does not depend on the client to calculate the round trip, but
     then a single leg of the trip might take more time than the other and it also accounts for load time and
-    whatnot. So take it with a grain of salt. But, nonetheless, it exists!
+    whatnot - so take it with a grain of salt.
   </p>
   <div id="result" class="ping">
     <%= cond do %>
