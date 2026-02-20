@@ -497,7 +497,7 @@ defmodule Live.Whoami.Components do
       </div>
     </div>
 
-    <.button type="submit" phx-click="restart_game" style="padding: 3vw; width: 150px">
+    <.button type="submit" phx-click="restart_game" style="padding: 10px;height: 4rem; width: 100px">
       new game
     </.button>
     """
@@ -522,47 +522,52 @@ defmodule Live.Whoami.Components do
       background-color: #ebc12f; 
       height: 1.5em; 
       width: 80vw;
+      max-width: 1200px;
       text-align: center;
       color: black;
       border-radius: 1em;
-      justify-content: space-evenly
+      justify-content: space-around
       "
       index == 2 -> "
       display: flex;
       background-color: #b7cfce; 
       height: 1.5em; 
       width: 80vw;
+      max-width: 1200px;
       text-align: center;
       color: black;
       border-radius: 1em;
-      justify-content: space-evenly
+      justify-content: space-around
       "
       index == 3 -> "
       display: flex;
       background-color: #7d3b00; 
       height: 1.5em; 
       width: 80vw;
+      max-width: 1200px;
       text-align: center;
       border-radius: 1em;
-      justify-content: space-evenly
+      justify-content: space-around
       "
       rem(index, 2) == 1 -> "
       display: flex;
       background-color: #4e4e4e; 
       height: 1.5em; 
       width: 80vw;
+      max-width: 1200px;
       text-align: center;
       border-radius: 1em;
-      justify-content: space-evenly
+      justify-content: space-around
       "
       rem(index, 2) != 1 -> "
       display: flex;
       background-color: #2e2e2e; 
       height: 1.5em; 
       width: 80vw;
+      max-width: 1200px;
       text-align: center;
       border-radius: 1em;
-      justify-content: space-evenly
+      justify-content: space-around
       "
     end
   end

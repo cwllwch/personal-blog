@@ -33,7 +33,7 @@ p {
 		color: white;
 		min-height: 75svh;
 		max-height: fit-content;
-		transition: height 1s 0.5s;
+		min-width: 450px
 }
 
 .ping {
