@@ -101,7 +101,7 @@ defmodule Whoami.Round do
   def evaluate_answer(attempt, round) do
     og = round.answer
 
-    comparison = String.jaro_distance(og, attempt)
+    comparison = String.jaro_distance(String.downcase(og), String.downcase(attempt))
 
     Logger.info(
       message: "attempt to guess made",
