@@ -3,6 +3,12 @@
 		50% {opacity: 0.5;}
 }
 
+@property --gradient {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
 .players {
 		display: flex;
 		flex-shrink: 0;
