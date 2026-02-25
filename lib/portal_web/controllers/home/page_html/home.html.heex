@@ -6,43 +6,56 @@
 </p>
 
 <div class="grid grid-cols-1 m-5 gap-3 p-3 rounded-xl 
-            md:grid-cols-3 md:grid-rows-2 
-            lg:grid-cols-3 lg:grid-rows-2
+            md:grid-cols-5 md:grid-rows-2 
+            lg:grid-cols-5 lg:grid-rows-2
             light:bg-teal-300">
   <.link
-    navigate={~p"/speed-test#body"}
-    class="lg:col-span-1 lg:row-span-2 lg:aspect-auto
+    navigate={~p"/notary"}
+    class="lg:col-span-2 lg:row-span-2 lg:aspect-auto
       md:col-span-2 md:row-span-2
       overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
       flex items-center justify-center "
   >
-    what's my ping to the server?
+    notary
   </.link>
   <.link
     navigate={~p"/whoami#body"}
-    class="lg:col-span-2 lg:row-span-2 lg:aspect-auto
-      md:col-span-1 md:row-span-2
+    class="lg:col-span-3 lg:row-span-2 lg:aspect-auto
+      md:col-span-1 md:row-span-2 md:aspect-[16/9]
       !aspect-[4/1] overflow-hidden rounded-lg
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
       flex items-center justify-center"
   >
     who am I? - the game!
   </.link>
+  <.link
+    navigate={~p"/speed-test#body"}
+    class="lg:col-span-1 lg:row-span-2 aspect-[4/1]
+      overflow-hidden rounded-lg
+      md:col-span-1 md:row-span-2
+      bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
+      flex items-center justify-center h-full w-full"
+  >
+    what's my ping to the server?
+  </.link>
   <a
     href={~p"/prettify-my-json"}
-    class="lg:col-span-2 lg:row-span-1 lg:aspect-auto
-      aspect-[3/2] overflow-hidden rounded-lg
+    class="lg:col-span-3 lg:row-span-2 aspect-[4/1]
+      overflow-hidden rounded-lg
+      md:col-span-1 md:row-span-2
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
-      flex items-center justify-center"
+      flex items-center justify-center h-full w-full"
   >
     the json prettifier
   </a>
   <a
     href="https://github.com/cwllwch/personal-blog"
-    class="aspect-[3/2] overflow-hidden rounded-lg
+    class="overflow-hidden rounded-lg
+      lg:col-span-1 lg:row-span-2
+      md:col-span-2 md:row-span-2
       bg-lime-800 align-middle p-4 text-white hover:bg-lime-700 
-      flex items-center justify-center"
+      flex items-center justify-center h-full w-full"
   >
     this page
   </a>

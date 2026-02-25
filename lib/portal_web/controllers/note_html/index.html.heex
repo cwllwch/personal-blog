@@ -1,0 +1,26 @@
+<.header>
+  Listing Notes
+  <:actions>
+    <.link href={~p"/notes/new"}>
+      <.button>New Note</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table id="notes" rows={@notes} row_click={&JS.navigate(~p"/notes/#{&1}")}>
+  <:col :let={note} label="Note">{note.note}</:col>
+  <:col :let={note} label="Title">{note.title}</:col>
+  <:col :let={note} label="Due date">{note.due_date}</:col>
+  <:col :let={note} label="Note">{note.note_id}</:col>
+  <:action :let={note}>
+    <div class="sr-only">
+      <.link navigate={~p"/notes/#{note}"}>Show</.link>
+    </div>
+    <.link navigate={~p"/notes/#{note}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={note}>
+    <.link href={~p"/notes/#{note}"} method="delete" data-confirm="Are you sure?">
+      Delete
+    </.link>
+  </:action>
+</.table>

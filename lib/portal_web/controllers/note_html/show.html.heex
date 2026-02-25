@@ -1,0 +1,18 @@
+<.header>
+  Note {@note.id}
+  <:subtitle>This is a note record from your database.</:subtitle>
+  <:actions>
+    <.link href={~p"/notes/#{@note}/edit"}>
+      <.button>Edit note</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Note">{@note.note}</:item>
+  <:item title="Title">{@note.title}</:item>
+  <:item title="Due date">{@note.due_date}</:item>
+  <:item title="Note">{@note.note_id}</:item>
+</.list>
+
+<.back navigate={~p"/notes"}>Back to notes</.back>
