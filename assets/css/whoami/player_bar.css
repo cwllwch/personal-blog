@@ -6,7 +6,7 @@
 @property --gradient {
   syntax: '<percentage>';
   inherits: false;
-  initial-value: 0%;
+  initial-value: 0.000000001%;
 }
 
 .players {
