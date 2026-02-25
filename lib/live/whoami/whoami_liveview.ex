@@ -344,7 +344,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   @impl true
   def handle_info({:voting_complete, answer, _question}, socket) do
-    Process.send_after(self(), {:iterate_question}, 7_000)
+    Process.send_after(self(), {:iterate_question}, 4_000)
     send(self(), :fetch_q_history)
     {:noreply, assign(socket, stage: :show_answer, answer: answer)}
   end
@@ -437,7 +437,7 @@ defmodule PortalWeb.LiveStuff.Whoami do
 
   @impl true
   def handle_info({:show_guess_result, atom, word}, socket) do
-    Process.send_after(self(), {:iterate_question}, 7_000)
+    Process.send_after(self(), {:iterate_question}, 4_000)
     send(self(), :fetch_q_history)
 
     {:noreply,
