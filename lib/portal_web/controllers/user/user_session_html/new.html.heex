@@ -1,12 +1,12 @@
-<div class="mx-auto max-w-sm">
-  <.header class="text-center">
+<div class="mx-auto max-w-sm text-inherit!">
+  <.header class="text-center text-white">
     Log in to account
     <:subtitle>
       Don't have an account?
-      <.link navigate={~p"/users/register"} class="font-semibold text-brand hover:underline">
+      <.link navigate={~p"/users/register"} class="font-semibold hover:underline text-emerald-400">
         Sign up
       </.link>
-      for an account now.
+      for an account!
     </:subtitle>
   </.header>
 
@@ -18,7 +18,7 @@
 
     <:actions :let={f}>
       <.input field={f[:remember_me]} type="checkbox" label="Keep me logged in" />
-      <.link href={~p"/users/reset_password"} class="text-sm font-semibold">
+      <.link href={~p"/users/reset_password"} class="text-sm font-bold text-emerald-400">
         Forgot your password?
       </.link>
     </:actions>

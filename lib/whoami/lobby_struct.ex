@@ -56,7 +56,7 @@ defmodule Whoami.LobbyStruct do
     }
   end
 
-  def restart(lobby) do
+  def restart(%__MODULE__{} = lobby) do
     winner =
       Enum.sort_by(lobby.players, & &1.points, :desc)
       |> List.first()

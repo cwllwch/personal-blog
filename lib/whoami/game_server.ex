@@ -47,8 +47,7 @@ defmodule Whoami.GameServer do
     case remove_player(player, state) do
       {:ok, player_list} ->
         reply = {:ok, player_list}
-        new_state = %LobbyStruct{state | players: player_list}
-        {:reply, reply, new_state}
+        {:reply, reply, %{state | players: player_list}}
 
       {:error, message} ->
         {:reply, {:error, message}, state}
@@ -647,12 +646,12 @@ defmodule Whoami.GameServer do
     {:error, "Can't find a connected user"}
   end
 
-  defp maybe_add_player(new_player, state) when state.player_count > length(state.players) do
+  defp maybe_add_player(new_player, state = %LobbyStruct{}) when state.player_count > length(state.players) do
     case already_here?(new_player, state) do
       {:ok, "proceed"} ->
         Logger.debug(message: "user not in lobby", player: new_player)
         reply = {:ok, state.players ++ [new_player]}
-        {reply, %LobbyStruct{state | players: state.players ++ [new_player]}}
+        {reply, %{state | players: state.players ++ [new_player]}}
 
       {:error, message} ->
         Logger.debug(message: message, player: new_player)

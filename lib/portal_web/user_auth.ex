@@ -206,7 +206,7 @@ defmodule PortalWeb.UserAuth do
       conn
     else
       conn
-      |> put_flash(:error, "You must log in to access this page.")
+      |> maybe_put_flash()
       |> maybe_store_return_to()
       |> redirect(to: ~p"/users/log_in")
       |> halt()
@@ -226,4 +226,10 @@ defmodule PortalWeb.UserAuth do
   defp maybe_store_return_to(conn), do: conn
 
   defp signed_in_path(_conn), do: ~p"/"
+
+  defp maybe_put_flash(conn) when conn.path_info == ["notary"], do: conn
+
+  defp maybe_put_flash(conn) do
+    put_flash(conn, :error, "You must log in to access this page.")
+  end
 end
